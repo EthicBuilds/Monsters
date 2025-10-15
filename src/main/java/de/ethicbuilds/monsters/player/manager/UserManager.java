@@ -14,10 +14,10 @@ public class UserManager {
     private final Map<UUID, GameSpectator> spectators = new HashMap<>();
 
     public void addPlayer(GameUser gameUser) {
-        if (isFull()) {
-            gamePlayers.put(gameUser.getPlayer().getUniqueId(), new GamePlayer(gameUser.getPlayer()));
+        if (!isFull()) {
+            gamePlayers.put(gameUser.getPlayer().getUniqueId(), (GamePlayer) gameUser);
         } else {
-            spectators.put(gameUser.getPlayer().getUniqueId(), new GameSpectator(gameUser.getPlayer()));
+            spectators.put(gameUser.getPlayer().getUniqueId(), (GameSpectator) gameUser);
         }
     }
 
@@ -27,6 +27,10 @@ public class UserManager {
         } else if (isSpectator(uuid)) {
             spectators.remove(uuid);
         }
+    }
+
+    public GamePlayer getGamePlayer(UUID uuid) {
+        return gamePlayers.get(uuid);
     }
 
     public boolean isFull() {

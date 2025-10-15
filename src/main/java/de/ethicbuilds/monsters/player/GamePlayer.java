@@ -56,4 +56,8 @@ public class GamePlayer extends GameUser {
     public void addWeapon(Weapon weapon) {
         weapons.put(weapon.getItem(), weapon);
     }
+
+    public boolean isWeapon(ItemStack item) {
+        return weapons.containsKey(item);
+    }
 }

@@ -13,7 +13,6 @@ import org.bukkit.util.Vector;
 
 @Getter @Setter
 public abstract class Weapon {
-    @Inject
     private Main plugin;
 
     protected ItemStack item;
@@ -49,6 +48,6 @@ public abstract class Weapon {
                     this.cancel();
                 }
             }
-        }.runTaskTimer(plugin, 0L, 1L); // alle 1 Tick
+        }.runTaskTimer(Main.getInstance(), 0L, 1L);
     }
 }

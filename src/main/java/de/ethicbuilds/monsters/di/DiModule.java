@@ -18,8 +18,8 @@ public class DiModule extends AbstractModule {
     protected void configure() {
         bind(Main.class).toInstance(plugin);
 
-        bind(UserManager.class);
-        bind(GameManager.class);
-        bind(WaveManager.class);
+        bind(UserManager.class).asEagerSingleton();
+        bind(GameManager.class).asEagerSingleton();
+        bind(WaveManager.class).asEagerSingleton();
     }
 }
