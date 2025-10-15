@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.player;
 
+import de.ethicbuilds.monsters.weapons.Weapon;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -8,7 +9,13 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class GamePlayer extends GameUser {
+
+    private Map<ItemStack, Weapon> weapons = new HashMap<>();
+
     public GamePlayer(Player player) {
         super(player, GameMode.SURVIVAL);
     }
@@ -40,5 +47,13 @@ public class GamePlayer extends GameUser {
         player.getInventory().setItem(0, melee);
         player.getInventory().setItem(2, weaponSlot1);
         player.getInventory().setItem(3, weaponSlot2);
+    }
+
+    public Weapon getWeapon(ItemStack item) {
+        return weapons.get(item);
+    }
+
+    public void addWeapon(Weapon weapon) {
+        weapons.put(weapon.getItem(), weapon);
     }
 }
