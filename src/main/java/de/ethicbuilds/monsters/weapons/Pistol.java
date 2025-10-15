@@ -10,6 +10,8 @@ public class Pistol extends Weapon {
         this.name = "Pistole";
         this.damage = 2.0;
         this.fireRate = 10;
+        this.amo = 50;
+        this.magazine = 10;
 
         ItemMeta meta = this.item.getItemMeta();
         meta.setDisplayName(this.name);
