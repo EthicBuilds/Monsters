@@ -4,6 +4,7 @@ package de.ethicbuilds.monsters.player.manager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.GameSpectator;
 import de.ethicbuilds.monsters.player.GameUser;
+import org.bukkit.entity.Player;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,11 +14,11 @@ public class UserManager {
     private final Map<UUID, GamePlayer> gamePlayers = new HashMap<>();
     private final Map<UUID, GameSpectator> spectators = new HashMap<>();
 
-    public void addPlayer(GameUser gameUser) {
+    public void addPlayer(Player player) {
         if (!isFull()) {
-            gamePlayers.put(gameUser.getPlayer().getUniqueId(), (GamePlayer) gameUser);
+            gamePlayers.put(player.getUniqueId(), new GamePlayer(player));
         } else {
-            spectators.put(gameUser.getPlayer().getUniqueId(), (GameSpectator) gameUser);
+            spectators.put(player.getUniqueId(), new GameSpectator(player));
         }
     }
 

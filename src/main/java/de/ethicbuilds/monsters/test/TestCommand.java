@@ -16,12 +16,14 @@ public class TestCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String @NotNull [] args) {
-        GamePlayer gamePlayer = new GamePlayer((Player) sender);
+        var player = (Player) sender;
+
+
+        GamePlayer gamePlayer = userManager.getGamePlayer(player.getUniqueId());
         Pistol pistol = new Pistol();
         gamePlayer.addWeapon(pistol);
-        userManager.addPlayer(gamePlayer);
 
-        gamePlayer.getPlayer().getInventory().setItem(0, pistol.getItem());
+        gamePlayer.getPlayer().getInventory().setItem(1, pistol.getItem());
 
         return false;
     }

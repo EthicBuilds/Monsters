@@ -28,26 +28,43 @@ public abstract class Weapon {
 
         new BukkitRunnable() {
             double distanceTravelled = 0;
+            final double stepSize = 0.5;
 
             @Override
             public void run() {
-                distanceTravelled += 0.5; // Schrittweite pro Tick
+                distanceTravelled += stepSize;
                 Location current = start.clone().add(direction.clone().multiply(distanceTravelled));
 
-                // Partikel spawnen
                 player.getWorld().spawnParticle(
-                        Particle.FLAME, // Partikeltyp
-                        current,        // Position
-                        5,              // Anzahl
-                        0, 0, 0,        // Offset
-                        0.01            // Geschwindigkeit
+                        Particle.FLAME,
+                        current,
+                        5,
+                        0, 0, 0,
+                        0.01
                 );
 
-                // Abbruchbedingung nach 20 Blöcken
+                // Blockkollision prüfen
+                if (current.getBlock().getType().isSolid()) {
+                    this.cancel();
+                    return;
+                }
+
+                // Entity-Treffer prüfen
+                for (org.bukkit.entity.Entity entity : current.getWorld().getNearbyEntities(current, 0.5, 0.5, 0.5)) {
+                    if (entity instanceof Player) continue; // Eigener Spieler ignorieren
+                    if (entity instanceof org.bukkit.entity.LivingEntity) {
+                        ((org.bukkit.entity.LivingEntity) entity).damage(damage, player);
+                        this.cancel();
+                        return;
+                    }
+                }
+
+                // Maximale Reichweite prüfen
                 if (distanceTravelled > 20) {
                     this.cancel();
                 }
             }
-        }.runTaskTimer(Main.getInstance(), 0L, 1L);
+        }.runTaskTimer(Main.getInstance(), 0, 1); // 1-Tick Intervall für höhere Präzision
     }
+
 }

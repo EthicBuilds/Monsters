@@ -14,8 +14,10 @@ public abstract class GameUser {
     public GameUser(Player player, GameMode mode) {
         this.player = player;
         this.mode = mode;
+        player.setGameMode(mode);
 
         intialize();
+        player.sendMessage(String.format("Created new %s with %s as Player", this.getClass().getSimpleName(), player.getName()));
     }
 
     public abstract void intialize();

@@ -12,7 +12,7 @@ public class TestListener implements Listener {
     @Inject
     private UserManager userManager;
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         var gamePlayer = userManager.getGamePlayer(event.getPlayer().getUniqueId());
 
