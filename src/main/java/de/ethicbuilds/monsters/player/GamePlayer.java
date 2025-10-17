@@ -14,7 +14,7 @@ import java.util.Map;
 
 public class GamePlayer extends GameUser {
 
-    private Map<ItemStack, Weapon> weapons = new HashMap<>();
+    private Map<Material, Weapon> weapons = new HashMap<>();
 
     public GamePlayer(Player player) {
         super(player, GameMode.SURVIVAL);
@@ -50,11 +50,11 @@ public class GamePlayer extends GameUser {
     }
 
     public Weapon getWeapon(ItemStack item) {
-        return weapons.get(item);
+        return weapons.get(item.getType());
     }
 
     public void addWeapon(Weapon weapon) {
-        weapons.put(weapon.getItem(), weapon);
+        weapons.put(weapon.getItem().getType(), weapon);
     }
 
     public boolean isWeapon(ItemStack item) {
