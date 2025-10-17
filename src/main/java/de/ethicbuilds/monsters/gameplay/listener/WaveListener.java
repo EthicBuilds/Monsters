@@ -1,4 +1,6 @@
 package de.ethicbuilds.monsters.gameplay.listener;
 
-public class WaveListener {
+import org.bukkit.event.Listener;
+
+public class WaveListener implements Listener {
 }

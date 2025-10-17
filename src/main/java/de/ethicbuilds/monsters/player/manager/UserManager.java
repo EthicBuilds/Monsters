@@ -6,9 +6,7 @@ import de.ethicbuilds.monsters.player.GameSpectator;
 import de.ethicbuilds.monsters.player.GameUser;
 import org.bukkit.entity.Player;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class UserManager {
     private final Map<UUID, GamePlayer> gamePlayers = new HashMap<>();
@@ -46,11 +44,11 @@ public class UserManager {
         return spectators.containsKey(uuid);
     }
 
-    public Iterable<GamePlayer> getGamePlayers() {
+    public Collection<GamePlayer> getGamePlayers() {
         return gamePlayers.values();
     }
 
-    public Iterable<GameSpectator> getSpectators() {
+    public Collection<GameSpectator> getSpectators() {
         return spectators.values();
     }
 }

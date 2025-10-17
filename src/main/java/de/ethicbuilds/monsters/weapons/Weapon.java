@@ -43,15 +43,13 @@ public abstract class Weapon {
                         0.01
                 );
 
-                // Blockkollision prüfen
                 if (current.getBlock().getType().isSolid()) {
                     this.cancel();
                     return;
                 }
 
-                // Entity-Treffer prüfen
                 for (org.bukkit.entity.Entity entity : current.getWorld().getNearbyEntities(current, 0.5, 0.5, 0.5)) {
-                    if (entity instanceof Player) continue; // Eigener Spieler ignorieren
+                    if (entity instanceof Player) continue;
                     if (entity instanceof org.bukkit.entity.LivingEntity) {
                         ((org.bukkit.entity.LivingEntity) entity).damage(damage, player);
                         this.cancel();
@@ -59,12 +57,11 @@ public abstract class Weapon {
                     }
                 }
 
-                // Maximale Reichweite prüfen
                 if (distanceTravelled > 20) {
                     this.cancel();
                 }
             }
-        }.runTaskTimer(Main.getInstance(), 0, 1); // 1-Tick Intervall für höhere Präzision
+        }.runTaskTimer(Main.getInstance(), 0, 1);
     }
 
 }

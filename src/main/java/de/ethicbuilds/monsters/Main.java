@@ -3,7 +3,10 @@ package de.ethicbuilds.monsters;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import de.ethicbuilds.monsters.di.DiModule;
+import de.ethicbuilds.monsters.gameplay.listener.AfterGameListener;
+import de.ethicbuilds.monsters.gameplay.listener.GameListener;
 import de.ethicbuilds.monsters.gameplay.listener.PreGameListener;
+import de.ethicbuilds.monsters.gameplay.listener.WaveListener;
 import de.ethicbuilds.monsters.test.TestCommand;
 import de.ethicbuilds.monsters.test.TestListener;
 import org.bukkit.plugin.PluginManager;
@@ -42,5 +45,8 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(injector.getInstance(TestListener.class), this);
 
         pm.registerEvents(injector.getInstance(PreGameListener.class), this);
+        pm.registerEvents(injector.getInstance(AfterGameListener.class), this);
+        pm.registerEvents(injector.getInstance(WaveListener.class), this);
+        pm.registerEvents(injector.getInstance(GameListener.class), this);
     }
 }

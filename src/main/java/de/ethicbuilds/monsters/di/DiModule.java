@@ -4,6 +4,8 @@ import com.google.inject.AbstractModule;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
+import de.ethicbuilds.monsters.gameplay.model.GamePhase;
+import de.ethicbuilds.monsters.gameplay.repository.GameStates;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 
 public class DiModule extends AbstractModule {
@@ -21,5 +23,7 @@ public class DiModule extends AbstractModule {
         bind(UserManager.class).asEagerSingleton();
         bind(GameManager.class).asEagerSingleton();
         bind(WaveManager.class).asEagerSingleton();
+
+        bind(GameStates.class).asEagerSingleton();
     }
 }
