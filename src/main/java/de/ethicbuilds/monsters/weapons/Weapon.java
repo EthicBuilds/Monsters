@@ -1,6 +1,5 @@
 package de.ethicbuilds.monsters.weapons;
 
-import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import lombok.Getter;
 import lombok.Setter;
@@ -85,7 +84,7 @@ public abstract class Weapon {
                     this.cancel();
                 }
             }
-        }.runTaskTimer(Main.getInstance(), 0, 1);
+        }.runTaskTimer(Main.getINSTANCE(), 0, 1);
     }
 
     public void reload(Player player) {

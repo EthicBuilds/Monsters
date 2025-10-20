@@ -9,26 +9,38 @@ import de.ethicbuilds.monsters.gameplay.listener.PreGameListener;
 import de.ethicbuilds.monsters.gameplay.listener.WaveListener;
 import de.ethicbuilds.monsters.test.TestCommand;
 import de.ethicbuilds.monsters.test.TestListener;
+import lombok.Getter;
+import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Objects;
-import java.util.function.Predicate;
 
 public final class Main extends JavaPlugin {
+    /*** Todolist:
+     * TODO: Add Monsters
+     * TODO: Add Map Management
+     * TODO: ADD Money Management
+     * TODO: Connect Monsters with WaveManager
+     * TODO: Connect Map with Weapons and Monsters
+     * TODO: Last Details
+     */
 
     private Injector injector;
-    private static Main INSTANCE;
 
-    public static Main getInstance() {
-        return INSTANCE;
-    }
+    @Getter
+    private static Main INSTANCE;
+    @Getter
+    private World world;
 
     @Override
     public void onEnable() {
         // Plugin startup logic
         INSTANCE = this;
         injector = Guice.createInjector(new DiModule(INSTANCE));
+
+        world = Bukkit.getWorld("world");
 
         registerCommandsAndListeners();
     }
