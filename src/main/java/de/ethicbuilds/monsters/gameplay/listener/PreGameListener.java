@@ -14,7 +14,7 @@ public class PreGameListener implements Listener {
     @Inject
     private GameManager gameManager;
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         if (userManager.isFull()) {
             event.getPlayer().kickPlayer("Server is already full.");

@@ -33,7 +33,7 @@ public class UserManager {
     }
 
     public boolean isFull() {
-        return gamePlayers.size() >= 2;
+        return gamePlayers.size() >= 1;
     }
 
     public boolean isGamePlayer(UUID uuid) {

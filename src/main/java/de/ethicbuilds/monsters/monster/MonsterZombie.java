@@ -1,7 +1,6 @@
 package de.ethicbuilds.monsters.monster;
 
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Monster;
 
 public class MonsterZombie extends EnemyMonster {
     public MonsterZombie() {

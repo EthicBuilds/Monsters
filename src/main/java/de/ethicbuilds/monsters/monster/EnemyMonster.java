@@ -2,6 +2,8 @@ package de.ethicbuilds.monsters.monster;
 
 import com.destroystokyo.paper.entity.Pathfinder;
 import de.ethicbuilds.monsters.Main;
+import lombok.Getter;
+import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
@@ -12,15 +14,16 @@ public abstract class EnemyMonster {
     protected int damage;
     protected double speed;
     protected String name;
+    @Getter
     protected Monster monster;
     protected EntityType type;
+    @Getter
     protected int gold;
 
     private final Main plugin = Main.getINSTANCE();
 
-    public void summon(Player player) {
-        //TODO: Replace player.getLocation with Data from Map
-        monster = (Monster) plugin.getWorld().spawnEntity(player.getLocation(), type);
+    public void summon(Player player, Location spawnLocation) {
+        monster = (Monster) plugin.getWorld().spawnEntity(spawnLocation, type);
         monster.setCustomNameVisible(true);
         monster.setCustomName(monster.getCustomName());
         monster.setHealth(health);

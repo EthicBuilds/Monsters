@@ -11,12 +11,10 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 public class GameManager {
-    @Inject
-    private Main plugin;
-    @Inject
-    private UserManager userManager;
-    @Inject
-    private GameStates gameStates;
+    @Inject private Main plugin;
+    @Inject private UserManager userManager;
+    @Inject private GameStates gameStates;
+    @Inject private WaveManager waveManager;
 
     private BukkitTask gameStartTask;
 
@@ -33,7 +31,7 @@ public class GameManager {
                 }
 
                 if (i <= 1) {
-                    //TODO: Start the Wave
+                    waveManager.start();
 
                     gameStates.setCurrentPhase(GamePhase.WAVE);
                     this.cancel();

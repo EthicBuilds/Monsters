@@ -7,6 +7,7 @@ import de.ethicbuilds.monsters.gameplay.listener.AfterGameListener;
 import de.ethicbuilds.monsters.gameplay.listener.GameListener;
 import de.ethicbuilds.monsters.gameplay.listener.PreGameListener;
 import de.ethicbuilds.monsters.gameplay.listener.WaveListener;
+import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.test.TestCommand;
 import de.ethicbuilds.monsters.test.TestListener;
 import lombok.Getter;
@@ -19,10 +20,7 @@ import java.util.Objects;
 
 public final class Main extends JavaPlugin {
     /*** Todolist:
-     * TODO: Add Monsters
-     * TODO: Add Map Management
      * TODO: ADD Money Management
-     * TODO: Connect Monsters with WaveManager
      * TODO: Connect Map with Weapons and Monsters
      * TODO: Last Details
      */
@@ -41,6 +39,8 @@ public final class Main extends JavaPlugin {
         injector = Guice.createInjector(new DiModule(INSTANCE));
 
         world = Bukkit.getWorld("world");
+
+        injector.getInstance(MapManager.class).loadMapConfig();
 
         registerCommandsAndListeners();
     }
