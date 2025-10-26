@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.player;
 
+import de.ethicbuilds.monsters.weapons.Pistol;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -14,7 +15,6 @@ import java.util.Map;
 
 public class GamePlayer extends GameUser {
 
-    private Map<Material, Weapon> weapons = new HashMap<>();
 
     public GamePlayer(Player player) {
         super(player, GameMode.SURVIVAL);
@@ -47,6 +47,11 @@ public class GamePlayer extends GameUser {
         player.getInventory().setItem(0, melee);
         player.getInventory().setItem(2, weaponSlot1);
         player.getInventory().setItem(3, weaponSlot2);
+
+        Pistol pistol = new Pistol();
+        addWeapon(pistol);
+
+        player.getInventory().setItem(1, pistol.getItem());
     }
 
     public Weapon getWeapon(ItemStack item) {
@@ -59,5 +64,9 @@ public class GamePlayer extends GameUser {
 
     public boolean isWeapon(ItemStack item) {
         return weapons.containsKey(item);
+    }
+
+    public void addCoins(int coins) {
+        this.coins += coins;
     }
 }

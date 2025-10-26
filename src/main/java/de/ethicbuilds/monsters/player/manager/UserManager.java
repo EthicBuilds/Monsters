@@ -33,6 +33,7 @@ public class UserManager {
     }
 
     public boolean isFull() {
+        //TODO: Change Players size
         return gamePlayers.size() >= 1;
     }
 
@@ -44,8 +45,8 @@ public class UserManager {
         return spectators.containsKey(uuid);
     }
 
-    public Collection<GamePlayer> getGamePlayers() {
-        return gamePlayers.values();
+    public List<GamePlayer> getGamePlayers() {
+        return gamePlayers.values().stream().toList();
     }
 
     public Collection<GameSpectator> getSpectators() {

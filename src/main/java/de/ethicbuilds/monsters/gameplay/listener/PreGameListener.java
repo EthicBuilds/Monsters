@@ -3,16 +3,16 @@ package de.ethicbuilds.monsters.gameplay.listener;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 public class PreGameListener implements Listener {
-    @Inject
-    private UserManager userManager;
-    @Inject
-    private GameManager gameManager;
+    @Inject private UserManager userManager;
+    @Inject private GameManager gameManager;
+    @Inject private ScoreboardManager scoreboardManager;
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
@@ -25,6 +25,8 @@ public class PreGameListener implements Listener {
         if (userManager.isFull()) {
             gameManager.gameStart();
         }
+
+        event.getPlayer().setScoreboard(scoreboardManager.getScoreboard());
 
         event.setJoinMessage("");
     }

@@ -18,7 +18,7 @@ public abstract class EnemyMonster {
     protected Monster monster;
     protected EntityType type;
     @Getter
-    protected int gold;
+    protected int coin;
 
     private final Main plugin = Main.getINSTANCE();
 

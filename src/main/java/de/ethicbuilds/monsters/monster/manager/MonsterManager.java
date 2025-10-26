@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MonsterManager {
     @Inject
@@ -24,13 +25,23 @@ public class MonsterManager {
     private UserManager userManager;
 
     @Getter
-    private Map<Monster, EnemyMonster> monsters = new HashMap<>();
+    private final Map<Monster, EnemyMonster> monsters = new ConcurrentHashMap<>();
+    private final List<EnemyMonster> initialMonsters = new ArrayList<>();
 
     public void createMonsters(int amount) {
+        monsters.clear();
+        initialMonsters.clear();
         for (int i = 0; i < amount; i++) {
-            MonsterZombie monster = new MonsterZombie();
-            monsters.put(monster.getMonster(), monster);
+            initialMonsters.add(new MonsterZombie());
         }
+    }
+
+    public void removeMonster(Monster monster) {
+        monsters.remove(monster);
+    }
+
+    public void removeMonster(EnemyMonster monster) {
+        removeMonster(monster.getMonster());
     }
 
     public void summonMonsters() {
@@ -47,14 +58,28 @@ public class MonsterManager {
         int spawnerCount = activeSpawners.size();
         int playerCount = players.size();
 
+        Map<Monster, EnemyMonster> newMonsters = new HashMap<>();
+
         int index = 0;
-        for (EnemyMonster monster : monsters.values()) {
-            Location location = activeSpawners.get(index % spawnerCount);
+        for (EnemyMonster enemyMonster : initialMonsters) {
+            Location location = activeSpawners.get(index % spawnerCount).clone().add(0, 1, 0);
             Player player = players.get(index % playerCount);
 
-            monster.summon(player, location);
+            enemyMonster.summon(player, location);
+
+            newMonsters.put(enemyMonster.getMonster(), enemyMonster);
             index++;
         }
+
+        monsters.clear();
+        monsters.putAll(newMonsters);
+
+        initialMonsters.clear();
+    }
+
+
+    public EnemyMonster getEnemyMonster(Monster monster) {
+        return monsters.get(monster);
     }
 
     private List<Location> getActiveSpawnerLocations() {

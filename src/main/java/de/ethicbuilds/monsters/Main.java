@@ -8,6 +8,8 @@ import de.ethicbuilds.monsters.gameplay.listener.GameListener;
 import de.ethicbuilds.monsters.gameplay.listener.PreGameListener;
 import de.ethicbuilds.monsters.gameplay.listener.WaveListener;
 import de.ethicbuilds.monsters.map.MapManager;
+import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
+import de.ethicbuilds.monsters.test.LocateMonsters;
 import de.ethicbuilds.monsters.test.TestCommand;
 import de.ethicbuilds.monsters.test.TestListener;
 import lombok.Getter;
@@ -21,7 +23,9 @@ import java.util.Objects;
 public final class Main extends JavaPlugin {
     /*** Todolist:
      * TODO: ADD Money Management
-     * TODO: Connect Map with Weapons and Monsters
+     * TODO: Connect Map with Weapons
+     * TODO: Connect Map with Doors
+     * TODO: Death Handling
      * TODO: Last Details
      */
 
@@ -41,6 +45,7 @@ public final class Main extends JavaPlugin {
         world = Bukkit.getWorld("world");
 
         injector.getInstance(MapManager.class).loadMapConfig();
+        injector.getInstance(ScoreboardManager.class).init();
 
         registerCommandsAndListeners();
     }
@@ -52,6 +57,7 @@ public final class Main extends JavaPlugin {
 
     private void registerCommandsAndListeners() {
         Objects.requireNonNull(getCommand("monstersTest")).setExecutor(injector.getInstance(TestCommand.class));
+        Objects.requireNonNull(getCommand("locateMonsters")).setExecutor(injector.getInstance(LocateMonsters.class));
 
         PluginManager pm = getServer().getPluginManager();
         pm.registerEvents(injector.getInstance(TestListener.class), this);
@@ -59,6 +65,6 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(injector.getInstance(PreGameListener.class), this);
         pm.registerEvents(injector.getInstance(AfterGameListener.class), this);
         pm.registerEvents(injector.getInstance(WaveListener.class), this);
-        pm.registerEvents(injector.getInstance(GameListener.class), this);
+//        pm.registerEvents(injector.getInstance(GameListener.class), this);
     }
 }

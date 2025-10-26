@@ -7,3 +7,5 @@ authors: [ codedByGruba ]
 commands:
   monstersTest:
     description: "Test"
+  locateMonsters:
+    description: "locate monsters"

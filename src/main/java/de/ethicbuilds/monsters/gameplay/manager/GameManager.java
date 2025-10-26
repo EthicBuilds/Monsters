@@ -5,16 +5,19 @@ import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.gameplay.repository.GameStates;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+
 
 public class GameManager {
     @Inject private Main plugin;
     @Inject private UserManager userManager;
     @Inject private GameStates gameStates;
     @Inject private WaveManager waveManager;
+    @Inject private ScoreboardManager scoreboardManager;
 
     private BukkitTask gameStartTask;
 
@@ -34,6 +37,8 @@ public class GameManager {
                     waveManager.start();
 
                     gameStates.setCurrentPhase(GamePhase.WAVE);
+                    scoreboardManager.startTime();
+
                     this.cancel();
                 }
 

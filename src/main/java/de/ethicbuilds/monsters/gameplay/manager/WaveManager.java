@@ -1,10 +1,14 @@
 package de.ethicbuilds.monsters.gameplay.manager;
 
 import com.google.inject.Inject;
+import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+
+import java.util.concurrent.CountDownLatch;
 
 public class WaveManager {
 
@@ -12,11 +16,14 @@ public class WaveManager {
     private UserManager userManager;
     @Inject
     private MonsterManager monsterManager;
-    private Thread phaseThread = null;
+    @Inject
+    private Main plugin;
+    private Thread waveThread = null;
+    @Getter
     private int currentWave = 0;
 
     public void start() {
-        this.phaseThread = new Thread(() -> {
+        this.waveThread = new Thread(() -> {
             try {
                 while (Thread.currentThread().isAlive()) {
                     startWave();
@@ -26,19 +33,38 @@ public class WaveManager {
                 throw new RuntimeException(e);
             }
         });
+        this.waveThread.start();
     }
 
     private void startWave() {
         currentWave++;
         broadCastMessage(String.format("Starting Wave %d", currentWave));
 
-        int monsterCount = userManager.getGamePlayers().size() * 10 * currentWave;
+        int monsterCount = userManager.getGamePlayers().size() + 10 * currentWave;
 
         monsterManager.createMonsters(monsterCount);
-        monsterManager.summonMonsters();
 
-        while (!monsterManager.getMonsters().isEmpty()) {
-            //wait
+        CountDownLatch latch = new CountDownLatch(1);
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            try {
+                monsterManager.summonMonsters();
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            e.printStackTrace();
+        }
+
+        while (true) {
+            if (monsterManager.getMonsters().isEmpty()) {
+                break;
+            }
         }
     }
 

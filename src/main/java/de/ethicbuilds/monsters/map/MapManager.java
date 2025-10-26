@@ -140,10 +140,15 @@ public class MapManager {
                             if (!line.isBlank()) text.append(line).append(" ");
                         }
 
-                        foundSpawner.add(new MonsterSpawner(
+                        var spawner = new MonsterSpawner(
                                 text.toString().trim().toLowerCase(),
-                                patternBlocks
-                        ));
+                                patternBlocks);
+
+                        if (spawner.getAreaName().equals("spawn")) {
+                            spawner.setActive(true);
+                        }
+
+                        foundSpawner.add(spawner);
                         break;
                     }
                 }
