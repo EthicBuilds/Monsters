@@ -11,7 +11,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public abstract class GameUser {
+    @Getter
     protected Map<Material, Weapon> weapons = new HashMap<>();
+    @Getter
+    protected int[] weaponSlots = {1, 2, 3};
 
     @Getter
     protected Player player;

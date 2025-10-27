@@ -1,29 +1,49 @@
 package de.ethicbuilds.monsters.gameplay.listener;
 
 import com.google.inject.Inject;
+import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
+import de.ethicbuilds.monsters.gameplay.repository.GameStates;
+import de.ethicbuilds.monsters.map.MapConfiguration;
+import de.ethicbuilds.monsters.map.MapManager;
+import de.ethicbuilds.monsters.map.elements.Door;
+import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
+import de.ethicbuilds.monsters.map.elements.WeaponPoint;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import de.ethicbuilds.monsters.weapons.Weapon;
+import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.ItemType;
+import org.bukkit.scheduler.BukkitRunnable;
+
+import java.lang.reflect.InvocationTargetException;
 
 public class WaveListener implements Listener {
-    @Inject
-    private GameManager gameManager;
-    @Inject
-    private MonsterManager monsterManager;
-    @Inject
-    private UserManager userManager;
+    @Inject private GameManager gameManager;
+    @Inject private MonsterManager monsterManager;
+    @Inject private UserManager userManager;
+    @Inject private MapManager mapManager;
+    @Inject private WeaponManager weaponManager;
+    @Inject private Main plugin;
 
-
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         if (gameManager.getCurrentPhase() != GamePhase.WAVE
                 || !(event.getEntity() instanceof Monster monster)
@@ -36,9 +56,10 @@ public class WaveListener implements Listener {
         if (enemyMonster == null) return;
 
         gamePlayer.addCoins(enemyMonster.getCoin());
+        createFloatingHologram(enemyMonster.getMonster().getLocation(), String.format("§6+ %d Coins", enemyMonster.getCoin()));
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
         event.getDrops().clear();
 
@@ -49,5 +70,144 @@ public class WaveListener implements Listener {
         if (enemyMonster == null) return;
 
         monsterManager.removeMonster(enemyMonster);
+    }
+
+    @EventHandler
+    public void onPlayerInteractWithMap(PlayerInteractEvent event) {
+        event.setCancelled(true);
+
+        if (gameManager.getCurrentPhase() != GamePhase.WAVE || event.getClickedBlock() == null) return;
+
+        MapConfiguration mapConfiguration = mapManager.getMapConfiguration();
+
+        GamePlayer gamePlayer = userManager.getGamePlayer(event.getPlayer().getUniqueId());
+        if (gamePlayer == null) return;
+
+        Location location = event.getClickedBlock().getLocation();
+
+        for (Door door : mapConfiguration.getDoors()) {
+            for (Location loc : door.getClickableLocations()) {
+                if (loc.equals(location)) {
+                    openDoor(gamePlayer, door);
+                    return;
+                }
+            }
+        }
+
+        for (WeaponPoint weaponPoint : mapConfiguration.getWeaponPoints()) {
+            for (Location loc : weaponPoint.getLocation()) {
+                if (loc.equals(location)) {
+                    buyOrReloadWeapon(gamePlayer, weaponPoint);
+                    return;
+                }
+            }
+        }
+    }
+
+    private void openDoor(GamePlayer gamePlayer, Door door) {
+        if (gamePlayer.getCoins() < 1000) {
+            gamePlayer.getPlayer().sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum diese Türe zu öffnen", 1000 - gamePlayer.getCoins()));
+            return;
+        }
+
+        gamePlayer.setCoins(gamePlayer.getCoins() - 1000);
+
+        int i = 0;
+        for (Location location : door.getClickableLocations()) {
+            i++;
+            if (i == 1 || i == 2) continue;
+
+            else if (i == 6) {
+                i = 0;
+            }
+
+            location.getBlock().setType(Material.AIR);
+        }
+
+        for (MonsterSpawner monsterSpawner : mapManager.getMapConfiguration().getSpawners()) {
+            if (monsterSpawner.getAreaName().equalsIgnoreCase(door.getName())) {
+                monsterSpawner.setActive(true);
+            }
+        }
+    }
+
+    private void buyOrReloadWeapon(GamePlayer gamePlayer, WeaponPoint weaponPoint) {
+        Weapon weaponPointWeapon;
+
+        try {
+            weaponPointWeapon = weaponManager.getWeaponNames()
+                    .get(weaponPoint.getWeaponName().toLowerCase())
+                    .getDeclaredConstructor().newInstance();
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+
+        Weapon playerWeapon = gamePlayer.getWeapons().get(weaponPointWeapon.getItem().getType());
+
+        if (playerWeapon == null) {
+            if (gamePlayer.getCoins() < 1000) {
+                gamePlayer.getPlayer().sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum diese Waffe zu kaufen", 1000 - gamePlayer.getCoins()));
+                return;
+            }
+
+            for (int i : gamePlayer.getWeaponSlots()) {
+                if (gamePlayer.getPlayer().getInventory().getItem(i).getType().equals(Material.LIGHT_GRAY_DYE)) {
+                    gamePlayer.getPlayer().getInventory().setItem(i, weaponPointWeapon.getItem());
+
+                    gamePlayer.addWeapon(weaponPointWeapon);
+                    gamePlayer.setCoins(gamePlayer.getCoins() - 1000);
+                    return;
+                }
+            }
+            ItemStack itemInHand = gamePlayer.getPlayer().getInventory().getItemInMainHand();
+            if (gamePlayer.getWeapon(itemInHand) != null) {
+                gamePlayer.removeWeapon(gamePlayer.getWeapon(itemInHand));
+                gamePlayer.getPlayer().getInventory().setItemInMainHand(weaponPointWeapon.getItem());
+
+                gamePlayer.addWeapon(weaponPointWeapon);
+                gamePlayer.setCoins(gamePlayer.getCoins() - 1000);
+            } else if (gamePlayer.getWeapon(itemInHand) == null) {
+                gamePlayer.getPlayer().sendMessage("§cBitte verwende einen Waffen Slot um eine neue Waffe zu kaufen!");
+            }
+        } else {
+            if (gamePlayer.getCoins() < 500) {
+                gamePlayer.getPlayer().sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum die Munition aufzufüllen", 500 - gamePlayer.getCoins()));
+                return;
+            }
+            gamePlayer.setCoins(gamePlayer.getCoins() - 500);
+            playerWeapon.reload(gamePlayer.getPlayer());
+            playerWeapon.refill();
+        }
+    }
+
+    private void createFloatingHologram(Location location, String text) {
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            ArmorStand hologram = (ArmorStand) location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
+            hologram.setCustomName(text);
+            hologram.setCustomNameVisible(true);
+            hologram.setInvisible(true);
+            hologram.setMarker(true);
+            hologram.setGravity(false);
+            hologram.setInvulnerable(true);
+            hologram.setCollidable(false);
+
+            new BukkitRunnable() {
+                int ticks = 0;
+
+                @Override
+                public void run() {
+                    if (hologram.isDead() || ticks >= 100) {
+                        hologram.remove();
+                        cancel();
+                        return;
+                    }
+
+                    Location newLoc = hologram.getLocation().add(0, 0.05, 0);
+                    hologram.teleport(newLoc);
+
+                    ticks++;
+                }
+            }.runTaskTimer(plugin, 0L, 1L);
+        });
     }
 }

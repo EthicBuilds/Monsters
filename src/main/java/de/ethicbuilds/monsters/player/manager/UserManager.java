@@ -9,6 +9,8 @@ import org.bukkit.entity.Player;
 import java.util.*;
 
 public class UserManager {
+    public boolean canJoin = true;
+
     private final Map<UUID, GamePlayer> gamePlayers = new HashMap<>();
     private final Map<UUID, GameSpectator> spectators = new HashMap<>();
 
@@ -34,7 +36,7 @@ public class UserManager {
 
     public boolean isFull() {
         //TODO: Change Players size
-        return gamePlayers.size() >= 1;
+        return gamePlayers.size() >= 2;
     }
 
     public boolean isGamePlayer(UUID uuid) {

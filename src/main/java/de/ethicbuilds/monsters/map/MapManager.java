@@ -8,21 +8,27 @@ import de.ethicbuilds.monsters.map.adapter.LocationAdapter;
 import de.ethicbuilds.monsters.map.elements.Door;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.map.elements.WeaponPoint;
+import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.EntityType;
 
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+@Slf4j
 public class MapManager {
     private final Gson gson;
 
@@ -31,6 +37,8 @@ public class MapManager {
 
     @Inject
     public Main plugin;
+    @Inject
+    private WeaponManager weaponManager;
 
     public MapManager() {
         gson = new GsonBuilder()
@@ -45,6 +53,9 @@ public class MapManager {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+        createDoorHolos();
+        createWeaponPointHolos();
     }
 
     public void createMapConfig() {
@@ -75,6 +86,51 @@ public class MapManager {
             e.printStackTrace();
         }
     }
+
+    private void createDoorHolos() {
+        for (Door door : mapConfiguration.getDoors()) {
+            Location base = door.getHoloLocation().clone();
+
+            createHolo("§aÖffne", base.clone().add(0.5, 0.3, 0.5));
+            createHolo(String.format("§4%s", door.getName()), base.clone().add(0.5, 0, 0.5));
+            createHolo("§afür §61000 Coins", base.clone().add(0.5, -0.3, 0.5));
+        }
+    }
+
+    private void createWeaponPointHolos() {
+        int i = 0;
+        for (WeaponPoint weaponPoint : mapConfiguration.getWeaponPoints()) {
+            for (Location location : weaponPoint.getLocation()) {
+                try {
+                    location.getBlock().setType(Material.AIR);
+                    if (i == 0) {
+                        createHolo(String.format("§aKaufe Monition für §4%s §afür §6500 Coins", weaponManager.getWeaponNames().get(weaponPoint.getWeaponName().toLowerCase()).getDeclaredConstructor().newInstance().getName()), location);
+                        i++;
+                        continue;
+                    }
+                    if (i == 1) {
+                        createHolo(String.format("§aKaufe %s für §afür §61000 Coins", weaponManager.getWeaponNames().get(weaponPoint.getWeaponName().toLowerCase()).getDeclaredConstructor().newInstance().getName()), location);
+                        i = 0;
+                    }
+                } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
+                        NoSuchMethodException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    }
+
+    private void createHolo(String text, Location location) {
+        ArmorStand hologram = (ArmorStand) location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
+        hologram.setCustomName(text);
+        hologram.setCustomNameVisible(true);
+        hologram.setInvisible(true);
+        hologram.setMarker(true);
+        hologram.setGravity(false);
+        hologram.setInvulnerable(true);
+        hologram.setCollidable(false);
+    }
+
 
     private List<Location> findTargetBlocks(Location center) {
         World world = center.getWorld();

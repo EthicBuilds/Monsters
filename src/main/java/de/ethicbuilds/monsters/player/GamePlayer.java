@@ -62,6 +62,11 @@ public class GamePlayer extends GameUser {
         weapons.put(weapon.getItem().getType(), weapon);
     }
 
+    public void removeWeapon(Weapon weapon) {
+        if (weapons.containsKey(weapon.getItem())) return;
+        weapons.remove(weapon.getItem());
+    }
+
     public boolean isWeapon(ItemStack item) {
         return weapons.containsKey(item);
     }

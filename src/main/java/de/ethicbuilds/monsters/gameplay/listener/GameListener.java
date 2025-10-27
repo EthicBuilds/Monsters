@@ -10,8 +10,12 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.PlayerAdvancementDoneEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 
+/***
+ * Listener for the whole Game (Pregame, Wave, AfterGame)
+ */
 public class GameListener implements Listener {
     @Inject
     private UserManager userManager;

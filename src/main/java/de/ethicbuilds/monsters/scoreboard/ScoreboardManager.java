@@ -88,7 +88,6 @@ public class ScoreboardManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-
                 if (scoreboard == null) return;
 
                 var gamePlayers = userManager.getGamePlayers();
@@ -102,10 +101,10 @@ public class ScoreboardManager {
                 scoreboard.getTeam("§6").setPrefix(String.format("%s: ", gamePlayers.size() >= 2 ? gamePlayers.get(1).getPlayer().getName() : "§c- §r"));
                 scoreboard.getTeam("§6").setSuffix(String.format("§6%d", gamePlayers.size() >= 2 ? gamePlayers.get(1).getCoins() : 0));
 
-                scoreboard.getTeam("§7").setPrefix(String.format("%s: ", gamePlayers.size() >= 2 ? gamePlayers.get(2).getPlayer().getName() : "§c- §r"));
+                scoreboard.getTeam("§7").setPrefix(String.format("%s: ", gamePlayers.size() >= 3 ? gamePlayers.get(2).getPlayer().getName() : "§c- §r"));
                 scoreboard.getTeam("§7").setSuffix(String.format("§6%d", gamePlayers.size() >= 3 ? gamePlayers.get(2).getCoins() : 0));
 
-                scoreboard.getTeam("§8").setPrefix(String.format("%s: ", gamePlayers.size() >= 2 ? gamePlayers.get(3).getPlayer().getName() : "§c- §r"));
+                scoreboard.getTeam("§8").setPrefix(String.format("%s: ", gamePlayers.size() >= 4 ? gamePlayers.get(3).getPlayer().getName() : "§c- §r"));
                 scoreboard.getTeam("§8").setSuffix(String.format("§6%d", gamePlayers.size() >= 4 ? gamePlayers.get(3).getCoins() : 0));
 
                 scoreboard.getTeam("§a").setSuffix(formatSeconds(time));

@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.gameplay.listener;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
+import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import org.bukkit.event.EventHandler;
@@ -16,7 +17,7 @@ public class PreGameListener implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        if (userManager.isFull()) {
+        if (userManager.isFull() || !userManager.canJoin) {
             event.getPlayer().kickPlayer("Server is already full.");
             return;
         }
@@ -24,6 +25,7 @@ public class PreGameListener implements Listener {
 
         if (userManager.isFull()) {
             gameManager.gameStart();
+            userManager.canJoin = false;
         }
 
         event.getPlayer().setScoreboard(scoreboardManager.getScoreboard());
@@ -33,8 +35,12 @@ public class PreGameListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        userManager.removePlayer(event.getPlayer().getUniqueId());
-        gameManager.interruptGameStart();
         event.setQuitMessage("");
+        userManager.removePlayer(event.getPlayer().getUniqueId());
+
+        if (gameManager.getCurrentPhase() != GamePhase.PRE_GAME) return;
+
+        userManager.canJoin = true;
+        gameManager.interruptGameStart();
     }
 }

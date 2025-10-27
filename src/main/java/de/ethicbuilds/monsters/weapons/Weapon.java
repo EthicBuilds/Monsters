@@ -105,4 +105,8 @@ public abstract class Weapon {
             }
         }
     }
+
+    public void refill() {
+        amo = maxAmmo;
+    }
 }

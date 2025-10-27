@@ -22,9 +22,9 @@ import java.util.Objects;
 
 public final class Main extends JavaPlugin {
     /*** Todolist:
-     * TODO: ADD Money Management
      * TODO: Connect Map with Weapons
      * TODO: Connect Map with Doors
+     * TODO: Configure Weapons
      * TODO: Death Handling
      * TODO: Last Details
      */
@@ -65,6 +65,6 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(injector.getInstance(PreGameListener.class), this);
         pm.registerEvents(injector.getInstance(AfterGameListener.class), this);
         pm.registerEvents(injector.getInstance(WaveListener.class), this);
-//        pm.registerEvents(injector.getInstance(GameListener.class), this);
+        pm.registerEvents(injector.getInstance(GameListener.class), this);
     }
 }
