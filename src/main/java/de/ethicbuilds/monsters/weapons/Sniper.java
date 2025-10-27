@@ -4,7 +4,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 public class Sniper extends Weapon {
-    private Sniper() {
+    Sniper() {
         this.item = new ItemStack(Material.ARROW);
         this.name = "Sniper";
         this.damage = 2.0;
