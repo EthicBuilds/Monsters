@@ -95,16 +95,24 @@ public class ScoreboardManager {
                 scoreboard.getTeam("§2").setSuffix(String.format("§e%d", waveManager.getCurrentWave()));
                 scoreboard.getTeam("§3").setSuffix(String.format("§c%d", monsterManager.getMonsters().size()));
 
-                scoreboard.getTeam("§5").setPrefix(String.format("%s: ", !gamePlayers.isEmpty() ? gamePlayers.getFirst().getPlayer().getName() : "§c- §r"));
+                scoreboard.getTeam("§5").setPrefix(String.format("%s: ", !gamePlayers.isEmpty() ?
+                        String.format("§%s", userManager.isPlayerDead(gamePlayers.getFirst().getPlayer().getUniqueId()) ? "c" : "a") + gamePlayers.getFirst().getPlayer().getName() :
+                        "§c- §r"));
                 scoreboard.getTeam("§5").setSuffix(String.format("§6%d", !gamePlayers.isEmpty() ? gamePlayers.getFirst().getCoins() : 0));
 
-                scoreboard.getTeam("§6").setPrefix(String.format("%s: ", gamePlayers.size() >= 2 ? gamePlayers.get(1).getPlayer().getName() : "§c- §r"));
+                scoreboard.getTeam("§6").setPrefix(String.format("%s: ", gamePlayers.size() >= 2 ?
+                        String.format("§%s", userManager.isPlayerDead(gamePlayers.get(1).getPlayer().getUniqueId()) ? "c" : "a") + gamePlayers.get(1).getPlayer().getName()
+                        : "§c- §r"));
                 scoreboard.getTeam("§6").setSuffix(String.format("§6%d", gamePlayers.size() >= 2 ? gamePlayers.get(1).getCoins() : 0));
 
-                scoreboard.getTeam("§7").setPrefix(String.format("%s: ", gamePlayers.size() >= 3 ? gamePlayers.get(2).getPlayer().getName() : "§c- §r"));
+                scoreboard.getTeam("§7").setPrefix(String.format("%s: ", gamePlayers.size() >= 3 ?
+                        String.format("§%s", userManager.isPlayerDead(gamePlayers.get(2).getPlayer().getUniqueId()) ? "c" : "a") + gamePlayers.get(2).getPlayer().getName() :
+                        "§c- §r"));
                 scoreboard.getTeam("§7").setSuffix(String.format("§6%d", gamePlayers.size() >= 3 ? gamePlayers.get(2).getCoins() : 0));
 
-                scoreboard.getTeam("§8").setPrefix(String.format("%s: ", gamePlayers.size() >= 4 ? gamePlayers.get(3).getPlayer().getName() : "§c- §r"));
+                scoreboard.getTeam("§8").setPrefix(String.format("%s: ", gamePlayers.size() >= 4 ?
+                        String.format("§%s", userManager.isPlayerDead(gamePlayers.get(3).getPlayer().getUniqueId()) ? "c" : "a") + gamePlayers.get(3).getPlayer().getName()
+                        : "§c- §r"));
                 scoreboard.getTeam("§8").setSuffix(String.format("§6%d", gamePlayers.size() >= 4 ? gamePlayers.get(3).getCoins() : 0));
 
                 scoreboard.getTeam("§a").setSuffix(formatSeconds(time));

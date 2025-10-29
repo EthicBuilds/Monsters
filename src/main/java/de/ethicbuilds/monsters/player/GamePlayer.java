@@ -22,6 +22,7 @@ public class GamePlayer extends GameUser {
 
     @Override
     public void intialize() {
+        player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
         player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, Integer.MAX_VALUE, 3));
 
         initInventory();
@@ -29,6 +30,8 @@ public class GamePlayer extends GameUser {
 
     @Override
     protected void initInventory() {
+        player.getInventory().clear();
+
         ItemStack melee = new ItemStack(Material.WOODEN_AXE);
         ItemMeta meleeMeta = melee.getItemMeta();
         meleeMeta.setDisplayName("§aAxt");
@@ -39,10 +42,10 @@ public class GamePlayer extends GameUser {
         ItemStack weaponSlot2 = new ItemStack(Material.LIGHT_GRAY_DYE);
 
         ItemMeta weaponSlot1Meta = weaponSlot1.getItemMeta();
-        weaponSlot1Meta.setDisplayName("Waffen Slot 1");
+        weaponSlot1Meta.setDisplayName("§aWaffen Slot 1");
 
         ItemMeta weaponSlot2Meta = weaponSlot2.getItemMeta();
-        weaponSlot1Meta.setDisplayName("Waffen Slot 2");
+        weaponSlot1Meta.setDisplayName("§aWaffen Slot 2");
 
         player.getInventory().setItem(0, melee);
         player.getInventory().setItem(2, weaponSlot1);

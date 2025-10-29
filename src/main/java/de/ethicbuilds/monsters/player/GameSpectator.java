@@ -22,11 +22,5 @@ public class GameSpectator extends GameUser {
 
     @Override
     protected void initInventory() {
-        ItemStack navigator = new ItemStack(Material.COMPASS);
-        ItemMeta navigatorMeta = navigator.getItemMeta();
-        navigatorMeta.setDisplayName("§cNavigator");
-        navigator.setItemMeta(navigatorMeta);
-
-        player.getInventory().setItem(4, navigator);
     }
 }

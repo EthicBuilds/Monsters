@@ -4,7 +4,6 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
-import de.ethicbuilds.monsters.gameplay.repository.GameStates;
 import de.ethicbuilds.monsters.map.MapConfiguration;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.elements.Door;
@@ -19,18 +18,15 @@ import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.entity.ArmorStand;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Monster;
-import org.bukkit.entity.Player;
+import org.bukkit.World;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.ItemType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.lang.reflect.InvocationTargetException;
@@ -52,6 +48,11 @@ public class WaveListener implements Listener {
         GamePlayer gamePlayer = userManager.getGamePlayer(player.getUniqueId());
         if (gamePlayer == null) return;
 
+        if (userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
+            return;
+        }
+
         EnemyMonster enemyMonster = monsterManager.getEnemyMonster(monster);
         if (enemyMonster == null) return;
 
@@ -72,6 +73,15 @@ public class WaveListener implements Listener {
         monsterManager.removeMonster(enemyMonster);
     }
 
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerDeath(EntityDeathEvent event) {
+        if (gameManager.getCurrentPhase() != GamePhase.WAVE || !(event.getEntity() instanceof Player player)) return;
+
+        userManager.killPlayer(player.getUniqueId());
+        event.setCancelled(true);
+    }
+
+
     @EventHandler
     public void onPlayerInteractWithMap(PlayerInteractEvent event) {
         event.setCancelled(true);
@@ -81,7 +91,7 @@ public class WaveListener implements Listener {
         MapConfiguration mapConfiguration = mapManager.getMapConfiguration();
 
         GamePlayer gamePlayer = userManager.getGamePlayer(event.getPlayer().getUniqueId());
-        if (gamePlayer == null) return;
+        if (gamePlayer == null || userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) return;
 
         Location location = event.getClickedBlock().getLocation();
 
@@ -93,16 +103,35 @@ public class WaveListener implements Listener {
                 }
             }
         }
-
-        for (WeaponPoint weaponPoint : mapConfiguration.getWeaponPoints()) {
-            for (Location loc : weaponPoint.getLocation()) {
-                if (loc.equals(location)) {
-                    buyOrReloadWeapon(gamePlayer, weaponPoint);
-                    return;
-                }
-            }
-        }
     }
+
+    @EventHandler
+    public void onPlayerInteractWithWeaponPoint(PlayerInteractAtEntityEvent event) {
+        if (!(event.getRightClicked() instanceof ArmorStand armorStand)) return;
+
+        GamePlayer gamePlayer = userManager.getGamePlayer(event.getPlayer().getUniqueId());
+
+        if (gamePlayer == null || userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) return;
+
+        WeaponPoint weaponPoint = mapManager.getMapConfiguration().getWeaponPoints().stream()
+                .filter(wp -> wp.getLocation().stream()
+                        .anyMatch(loc -> isSameBlockLocation(loc, armorStand.getLocation())))
+                .findFirst()
+                .orElse(null);
+
+        if (weaponPoint == null) return;
+
+        buyOrReloadWeapon(gamePlayer, weaponPoint);
+    }
+
+    private boolean isSameBlockLocation(Location loc1, Location loc2) {
+        if (loc1 == null || loc2 == null) return false;
+        if (!loc1.getWorld().equals(loc2.getWorld())) return false;
+        return loc1.getBlockX() == loc2.getBlockX()
+                && loc1.getBlockY() == loc2.getBlockY()
+                && loc1.getBlockZ() == loc2.getBlockZ();
+    }
+
 
     private void openDoor(GamePlayer gamePlayer, Door door) {
         if (gamePlayer.getCoins() < 1000) {
@@ -123,10 +152,28 @@ public class WaveListener implements Listener {
 
             location.getBlock().setType(Material.AIR);
         }
+        door.getClickableLocations().clear();
+        removeHolo(door.getHoloLocation());
+
+        Bukkit.broadcastMessage(String.format("%s§a%s hat den Bereich §7%s freigeschaltet!", plugin.getMonstersPrefix(), gamePlayer.getPlayer().getDisplayName(), door.getName()));
 
         for (MonsterSpawner monsterSpawner : mapManager.getMapConfiguration().getSpawners()) {
             if (monsterSpawner.getAreaName().equalsIgnoreCase(door.getName())) {
                 monsterSpawner.setActive(true);
+            }
+        }
+    }
+
+    private void removeHolo(Location loc) {
+        int x = loc.getBlockX();
+        int y = loc.getBlockY();
+        int z = loc.getBlockZ();
+        World world = loc.getWorld();
+
+        for (Entity e : world.getNearbyEntities(loc, 0.6, 0.6, 0.6)) {
+            Location eloc = e.getLocation();
+            if (eloc.getBlockX() == x && eloc.getBlockY() == y && eloc.getBlockZ() == z && eloc.getWorld().equals(world)) {
+                if (e instanceof ArmorStand) ((ArmorStand) e).setHealth(0.0);
             }
         }
     }
@@ -166,6 +213,7 @@ public class WaveListener implements Listener {
 
                 gamePlayer.addWeapon(weaponPointWeapon);
                 gamePlayer.setCoins(gamePlayer.getCoins() - 1000);
+                gamePlayer.getPlayer().sendMessage(String.format("§a%s §7freigeschaltet!", playerWeapon.getName()));
             } else if (gamePlayer.getWeapon(itemInHand) == null) {
                 gamePlayer.getPlayer().sendMessage("§cBitte verwende einen Waffen Slot um eine neue Waffe zu kaufen!");
             }
@@ -177,6 +225,7 @@ public class WaveListener implements Listener {
             gamePlayer.setCoins(gamePlayer.getCoins() - 500);
             playerWeapon.reload(gamePlayer.getPlayer());
             playerWeapon.refill();
+            gamePlayer.getPlayer().sendMessage(String.format("§7Munition von §a%s §7aufgefüllt", playerWeapon.getName()));
         }
     }
 

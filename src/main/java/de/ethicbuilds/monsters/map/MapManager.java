@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-@Slf4j
 public class MapManager {
     private final Gson gson;
 
@@ -125,7 +124,6 @@ public class MapManager {
         hologram.setCustomName(text);
         hologram.setCustomNameVisible(true);
         hologram.setInvisible(true);
-        hologram.setMarker(true);
         hologram.setGravity(false);
         hologram.setInvulnerable(true);
         hologram.setCollidable(false);

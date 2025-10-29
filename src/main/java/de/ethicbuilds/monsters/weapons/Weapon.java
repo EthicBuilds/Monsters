@@ -19,13 +19,19 @@ public abstract class Weapon {
     protected String name;
     protected double damage;
     protected int fireRate;
-    protected int amo;
+    protected int ammu;
     protected int magazine;
-    protected int maxAmmo;
+    protected int maxAmmu;
     protected int maxMagazine;
 
+    protected int maxDistance = 50;
+
+    protected Particle particle;
+
+    protected boolean isCoolDown = false;
+
     protected void initialize() {
-        amo = maxAmmo;
+        ammu = maxAmmu;
         magazine = maxMagazine;
 
         ItemMeta meta = item.getItemMeta();
@@ -35,10 +41,17 @@ public abstract class Weapon {
     }
 
     public void shoot(Player player) {
+        if (isCoolDown) return;
+
+        startCoolDown();
+
         Location start = player.getEyeLocation();
         Vector direction = start.getDirection().normalize();
 
         magazine--;
+        player.setLevel(Math.max((ammu + magazine), 0));
+        float current = Math.max(ammu + magazine, 0);
+        player.setExp(current / (maxAmmu + maxMagazine));
 
         if (magazine <= 0) {
             reload(player);
@@ -51,15 +64,13 @@ public abstract class Weapon {
         new BukkitRunnable() {
             double distanceTravelled = 0;
             final double stepSize = 2.0;
-
-
             @Override
             public void run() {
                 distanceTravelled += stepSize;
                 Location current = start.clone().add(direction.clone().multiply(distanceTravelled));
 
                 player.getWorld().spawnParticle(
-                        Particle.FLAME,
+                        particle,
                         current,
                         5,
                         0, 0, 0,
@@ -80,7 +91,7 @@ public abstract class Weapon {
                     }
                 }
 
-                if (distanceTravelled > 20) {
+                if (distanceTravelled > maxDistance) {
                     this.cancel();
                 }
             }
@@ -90,23 +101,33 @@ public abstract class Weapon {
     public void reload(Player player) {
         int itemSlot = player.getInventory().getHeldItemSlot();
 
-        if (!item.equals(player.getInventory().getItem(itemSlot)) || amo <= 0) {
+        if (!item.equals(player.getInventory().getItem(itemSlot)) || ammu <= 0) {
             return;
         }
 
         while (magazine < maxMagazine) {
             magazine++;
-            amo--;
+            ammu--;
             item.setAmount(magazine);
             player.getInventory().setItem(itemSlot, item);
 
-            if (amo <= 0) {
+            if (ammu <= 0) {
                 break;
             }
         }
     }
 
     public void refill() {
-        amo = maxAmmo;
+        ammu = maxAmmu;
+    }
+
+    protected void startCoolDown() {
+        isCoolDown = true;
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                isCoolDown = false;
+            }
+        }.runTaskTimer(Main.getINSTANCE(), fireRate, 1);
     }
 }

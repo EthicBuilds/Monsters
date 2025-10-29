@@ -38,28 +38,17 @@ public class WaveManager {
 
     private void startWave() {
         currentWave++;
-        broadCastMessage(String.format("Starting Wave %d", currentWave));
+        broadCastMessage(String.format("%s§aStarte Welle §4%d", plugin.getMonstersPrefix(), currentWave));
+
+        startOnMinecraftThread(() -> userManager.getGamePlayers()
+                .forEach(gamePlayer -> userManager.revivePlayer(gamePlayer.getPlayer().getUniqueId())));
 
         int monsterCount = userManager.getGamePlayers().size() + 10 * currentWave;
 
         monsterManager.createMonsters(monsterCount);
 
-        CountDownLatch latch = new CountDownLatch(1);
 
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            try {
-                monsterManager.summonMonsters();
-            } finally {
-                latch.countDown();
-            }
-        });
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            e.printStackTrace();
-        }
+        startOnMinecraftThread(() -> monsterManager.summonMonsters());
 
         while (true) {
             if (monsterManager.getMonsters().isEmpty()) {
@@ -71,6 +60,23 @@ public class WaveManager {
     private void broadCastMessage(String message) {
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.sendMessage(message);
+        }
+    }
+
+    private void startOnMinecraftThread(Runnable action) {
+        CountDownLatch latch = new CountDownLatch(1);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            try {
+                action.run();
+            } finally {
+                latch.countDown();
+            }
+        });
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            e.printStackTrace();
         }
     }
 }
