@@ -158,7 +158,7 @@ public class WaveListener implements Listener {
         door.getClickableLocations().clear();
         removeHolo(door.getHoloLocation());
 
-        Bukkit.broadcastMessage(String.format("%s§a%s hat den Bereich §7%s freigeschaltet!", plugin.getMonstersPrefix(), gamePlayer.getPlayer().getDisplayName(), door.getName()));
+        Bukkit.broadcastMessage(String.format("%s§a%s hat den Bereich §7%s §afreigeschaltet!", plugin.getMonstersPrefix(), gamePlayer.getPlayer().getDisplayName(), door.getName()));
 
         for (MonsterSpawner monsterSpawner : mapManager.getMapConfiguration().getSpawners()) {
             if (monsterSpawner.getAreaName().equalsIgnoreCase(door.getName())) {

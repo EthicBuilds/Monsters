@@ -1,8 +1,11 @@
 package de.ethicbuilds.monsters;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import de.ethicbuilds.monsters.di.DiModule;
+import de.ethicbuilds.monsters.dto.StopServerDto;
 import de.ethicbuilds.monsters.gameplay.listener.AfterGameListener;
 import de.ethicbuilds.monsters.gameplay.listener.GameListener;
 import de.ethicbuilds.monsters.gameplay.listener.PreGameListener;
@@ -19,6 +22,11 @@ import org.bukkit.entity.Entity;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.Objects;
 
 /***
@@ -32,9 +40,10 @@ public final class Main extends JavaPlugin {
      * TODO: Sounds
      */
 
+    private Gson gson;
+
     @Getter
     private Injector injector;
-
     @Getter
     private static Main INSTANCE;
     @Getter
@@ -47,6 +56,8 @@ public final class Main extends JavaPlugin {
         // Plugin startup logic
         INSTANCE = this;
         injector = Guice.createInjector(new DiModule(INSTANCE));
+
+        gson = new GsonBuilder().setPrettyPrinting().create();
 
         saveDefaultConfig();
         world = Bukkit.getWorld("world");
@@ -65,7 +76,22 @@ public final class Main extends JavaPlugin {
         // Plugin shutdown logic
         killAllEntities();
 
+        HttpClient client = HttpClient.newHttpClient();
 
+        var dto = new StopServerDto(getConfig().getString("server-name"));
+
+        var request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/gameManager/api/server/stop"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(dto)))
+                .build();
+
+        try {
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println(response);
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void registerCommandsAndListeners() {
