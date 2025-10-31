@@ -17,6 +17,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 
 import java.io.FileReader;
@@ -51,6 +52,10 @@ public class MapManager {
             mapConfiguration = gson.fromJson(reader, MapConfiguration.class);
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+
+        for (Entity entity : plugin.getWorld().getEntities()) {
+            entity.remove();
         }
 
         createDoorHolos();
@@ -134,12 +139,12 @@ public class MapManager {
         World world = center.getWorld();
         List<Location> targets = new ArrayList<>();
 
-        int startX = center.getBlockX() - 150;
-        int endX = center.getBlockX() + 150;
+        int startX = center.getBlockX() - 500;
+        int endX = center.getBlockX() + 500;
         int startY = Math.max(center.getBlockY() - 50, world.getMinHeight());
         int endY = Math.min(center.getBlockY() + 50, world.getMaxHeight());
-        int startZ = center.getBlockZ() - 150;
-        int endZ = center.getBlockZ() + 150;
+        int startZ = center.getBlockZ() - 500;
+        int endZ = center.getBlockZ() + 500;
 
         for (int x = startX; x <= endX; x++) {
             for (int y = startY; y <= endY; y++) {

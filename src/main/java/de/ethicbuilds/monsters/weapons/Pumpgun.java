@@ -13,8 +13,8 @@ public class Pumpgun extends Weapon {
     public Pumpgun() {
         this.item = new ItemStack(Material.FLINT);
         this.name = "Schrotflinte";
-        this.damage = 5.0;
-        this.fireRate = 30;
+        this.damage = 7.5;
+        this.fireRate = 20;
         this.maxAmmu = 100;
         this.maxMagazine = 5;
         this.particle = Particle.SQUID_INK;
@@ -47,7 +47,7 @@ public class Pumpgun extends Weapon {
         player.getInventory().setItem(player.getInventory().getHeldItemSlot(), item);
 
         int pelletCount = 8;
-        double spread = 0.2;
+        double spread = 0.5;
 
         for (int i = 0; i < pelletCount; i++) {
             Vector pelletDirection = direction.clone();

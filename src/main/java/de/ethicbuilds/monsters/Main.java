@@ -11,8 +11,7 @@ import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import de.ethicbuilds.monsters.test.LocateMonsters;
-import de.ethicbuilds.monsters.test.TestCommand;
-import de.ethicbuilds.monsters.test.TestListener;
+import de.ethicbuilds.monsters.commands.CreateMapConfigCommand;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -28,9 +27,9 @@ import java.util.Objects;
 
 public final class Main extends JavaPlugin {
     /*** Todolist:
-     * TODO: GameConfig
      * TODO: Configure Weapons
      * TODO: Last Details
+     * TODO: Sounds
      */
 
     @Getter
@@ -49,6 +48,7 @@ public final class Main extends JavaPlugin {
         INSTANCE = this;
         injector = Guice.createInjector(new DiModule(INSTANCE));
 
+        saveDefaultConfig();
         world = Bukkit.getWorld("world");
 
         killAllEntities();
@@ -64,14 +64,15 @@ public final class Main extends JavaPlugin {
     public void onDisable() {
         // Plugin shutdown logic
         killAllEntities();
+
+
     }
 
     private void registerCommandsAndListeners() {
-        Objects.requireNonNull(getCommand("monstersTest")).setExecutor(injector.getInstance(TestCommand.class));
+        Objects.requireNonNull(getCommand("createMapConfig")).setExecutor(injector.getInstance(CreateMapConfigCommand.class));
         Objects.requireNonNull(getCommand("locateMonsters")).setExecutor(injector.getInstance(LocateMonsters.class));
 
         PluginManager pm = getServer().getPluginManager();
-        pm.registerEvents(injector.getInstance(TestListener.class), this);
 
         pm.registerEvents(injector.getInstance(PreGameListener.class), this);
         pm.registerEvents(injector.getInstance(AfterGameListener.class), this);

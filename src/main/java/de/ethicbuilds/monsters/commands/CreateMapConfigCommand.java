@@ -1,18 +1,14 @@
-package de.ethicbuilds.monsters.test;
+package de.ethicbuilds.monsters.commands;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.map.MapManager;
-import de.ethicbuilds.monsters.player.GamePlayer;
-import de.ethicbuilds.monsters.player.manager.UserManager;
-import de.ethicbuilds.monsters.weapons.Pistol;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-public class TestCommand implements CommandExecutor {
+public class CreateMapConfigCommand implements CommandExecutor {
     @Inject
     private MapManager mapManager;
     @Inject
@@ -21,15 +17,9 @@ public class TestCommand implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String @NotNull [] args) {
 
+        if (!sender.hasPermission("*")) return true;
+
         mapManager.createMapConfig();
-
-//        GamePlayer gamePlayer = userManager.getGamePlayer(player.getUniqueId());
-//        Pistol pistol = new Pistol();
-//        gamePlayer.addWeapon(pistol);
-//
-//        gamePlayer.getPlayer().getInventory().setItem(1, pistol.getItem());
-
-
 
         return false;
     }

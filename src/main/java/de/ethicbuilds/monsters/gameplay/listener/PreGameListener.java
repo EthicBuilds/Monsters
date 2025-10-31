@@ -35,8 +35,13 @@ public class PreGameListener implements Listener {
             userManager.canJoin = false;
         }
 
-        event.getPlayer().setScoreboard(scoreboardManager.getScoreboard());
-        event.getPlayer().teleport(mapManager.getMapConfiguration().getSpawn());
+        Player player = event.getPlayer();
+
+        player.setScoreboard(scoreboardManager.getScoreboard());
+        player.teleport(mapManager.getMapConfiguration().getSpawn());
+
+        player.sendMessage(String.format("%sMap: §6%s", plugin.getMonstersPrefix(), gameManager.getGameConfig().getMapName()));
+        player.sendMessage(String.format("%s§aGebaut von §2%s", plugin.getMonstersPrefix(),  String.join("§7, §2", gameManager.getGameConfig().getMapBuilder())));
 
         Bukkit.broadcastMessage(String.format("%s§a%s §7hat die Runde betreten!", plugin.getMonstersPrefix(), event.getPlayer().getDisplayName()));
 

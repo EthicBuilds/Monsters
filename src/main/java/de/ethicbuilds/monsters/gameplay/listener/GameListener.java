@@ -39,6 +39,8 @@ public class GameListener implements Listener {
 
         var weapon = gamePlayer.getWeapon(event.getItem());
 
+        if (weapon == null) return;
+
         if (event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK) {
             weapon.reload(gamePlayer.getPlayer());
             return;
@@ -46,7 +48,6 @@ public class GameListener implements Listener {
 
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
 
-        if (weapon == null) return;
 
         if (event.getItem().equals(gamePlayer.getWeapon(item).getItem())) {
             weapon.shoot(gamePlayer.getPlayer());

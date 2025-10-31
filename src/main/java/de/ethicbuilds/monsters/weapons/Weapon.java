@@ -128,6 +128,6 @@ public abstract class Weapon {
             public void run() {
                 isCoolDown = false;
             }
-        }.runTaskTimer(Main.getINSTANCE(), fireRate, 1);
+        }.runTaskLater(Main.getINSTANCE(), fireRate);
     }
 }

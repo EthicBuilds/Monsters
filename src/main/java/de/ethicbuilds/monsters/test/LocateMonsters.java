@@ -17,6 +17,8 @@ public class LocateMonsters implements CommandExecutor {
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String @NotNull [] strings) {
         commandSender.sendMessage(String.valueOf(monsterManager.getMonsters().size()));
 
+        if (!commandSender.hasPermission("*")) return true;
+
         for (EnemyMonster monster : monsterManager.getMonsters().values()) {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 player.sendMessage(monster.getMonster().getLocation().toString());

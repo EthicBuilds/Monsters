@@ -56,6 +56,8 @@ public class WaveListener implements Listener {
         EnemyMonster enemyMonster = monsterManager.getEnemyMonster(monster);
         if (enemyMonster == null) return;
 
+        if (player.getInventory().getItemInMainHand().getType() == Material.AIR) return;
+
         gamePlayer.addCoins(enemyMonster.getCoin());
         createFloatingHologram(enemyMonster.getMonster().getLocation(), String.format("§6+ %d Coins", enemyMonster.getCoin()));
     }
@@ -63,6 +65,7 @@ public class WaveListener implements Listener {
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
         event.getDrops().clear();
+        event.setDroppedExp(0);
 
         if (gameManager.getCurrentPhase() != GamePhase.WAVE
                 || !(event.getEntity() instanceof Monster monster)) return;

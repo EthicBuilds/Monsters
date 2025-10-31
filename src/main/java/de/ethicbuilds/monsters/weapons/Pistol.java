@@ -9,7 +9,7 @@ public class Pistol extends Weapon {
         this.item = new ItemStack(Material.NETHERITE_HOE);
         this.name = "Pistole";
         this.damage = 3.0;
-        this.fireRate = 20;
+        this.fireRate = 15;
         this.maxAmmu = 1000;
         this.maxMagazine = 10;
         this.particle = Particle.WAX_ON;

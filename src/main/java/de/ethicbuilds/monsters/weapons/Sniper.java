@@ -8,8 +8,8 @@ public class Sniper extends Weapon {
     public Sniper() {
         this.item = new ItemStack(Material.ARROW);
         this.name = "Sniper";
-        this.damage = 10.0;
-        this.fireRate = 40;
+        this.damage = 17.0;
+        this.fireRate = 35;
         this.maxAmmu = 100;
         this.maxMagazine = 10;
         this.particle = Particle.WAX_ON;

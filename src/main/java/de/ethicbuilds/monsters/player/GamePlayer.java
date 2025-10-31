@@ -40,6 +40,7 @@ public class GamePlayer extends GameUser {
 
         ItemStack weaponSlot1 = new ItemStack(Material.LIGHT_GRAY_DYE);
         ItemStack weaponSlot2 = new ItemStack(Material.LIGHT_GRAY_DYE);
+        ItemStack monsterTracker = new ItemStack(Material.COMPASS);
 
         ItemMeta weaponSlot1Meta = weaponSlot1.getItemMeta();
         weaponSlot1Meta.setDisplayName("§aWaffen Slot 1");
@@ -47,9 +48,13 @@ public class GamePlayer extends GameUser {
         ItemMeta weaponSlot2Meta = weaponSlot2.getItemMeta();
         weaponSlot1Meta.setDisplayName("§aWaffen Slot 2");
 
+        ItemMeta monsterTrackerMeta = monsterTracker.getItemMeta();
+        monsterTrackerMeta.setDisplayName("§cMonster Tracker");
+
         player.getInventory().setItem(0, melee);
         player.getInventory().setItem(2, weaponSlot1);
         player.getInventory().setItem(3, weaponSlot2);
+        player.getInventory().setItem(5, monsterTracker);
 
         Pistol pistol = new Pistol();
         addWeapon(pistol);

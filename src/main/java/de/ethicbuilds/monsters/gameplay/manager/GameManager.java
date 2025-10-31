@@ -64,6 +64,8 @@ public class GameManager {
 
                     broadcastTitle(plugin.getMonstersPrefix(), "§cÜberlebe so lange wie möglich!");
 
+                    userManager.startMonsterTrackerTask();
+
                     this.cancel();
                 }
 
