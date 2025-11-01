@@ -4,12 +4,13 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.dto.StopServerDto;
 import de.ethicbuilds.monsters.gameplay.model.GameConfig;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.gameplay.repository.GameStates;
-import de.ethicbuilds.monsters.map.MapConfiguration;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.adapter.LocationAdapter;
+import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import lombok.Getter;
@@ -20,6 +21,11 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.io.FileReader;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 
 public class GameManager {
@@ -29,6 +35,7 @@ public class GameManager {
     @Inject private WaveManager waveManager;
     @Inject private ScoreboardManager scoreboardManager;
     @Inject private MapManager mapManager;
+    @Inject private MonsterManager monsterManager;
 
     private final Gson gson;
 
@@ -56,11 +63,19 @@ public class GameManager {
                 }
 
                 if (i <= 1) {
+                    monsterManager.startMonsterCheck();
                     gameConfig.setPlayerCount(Bukkit.getOnlinePlayers().size());
                     waveManager.start();
 
                     gameStates.setCurrentPhase(GamePhase.WAVE);
                     scoreboardManager.startTime();
+
+                    for (var gamePlayer : userManager.getGamePlayers()) {
+                        for (var weapon : gamePlayer.getWeapons().values()) {
+                            weapon.refill();
+                            weapon.reload(gamePlayer.getPlayer());
+                        }
+                    }
 
                     broadcastTitle(plugin.getMonstersPrefix(), "§cÜberlebe so lange wie möglich!");
 
@@ -83,6 +98,23 @@ public class GameManager {
     public void gameEnd() {
         gameStates.setCurrentPhase(GamePhase.AFTER_GAME);
 
+        HttpClient client = HttpClient.newHttpClient();
+
+        var dto = new StopServerDto(plugin.getConfig().getString("server-name"));
+
+        var request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/gameManager/api/server/stop"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(dto)))
+                .build();
+
+        try {
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println(response);
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.sendTitle("§4Spiel Vorbei", String.format("§cIhr habt es bis Runde §7%d §cgeschaft!", waveManager.getCurrentWave()));
         }
@@ -99,8 +131,10 @@ public class GameManager {
                 }
 
                 if(Bukkit.getOnlinePlayers().isEmpty() || i <= 1) {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "minecraft:kill @e");
+
                     broadcastMessage(String.format("%s§cDer Server staret §4jetzt §cneu!", plugin.getMonstersPrefix()));
-                    Bukkit.spigot().restart();
+                    Bukkit.shutdown();
                 }
                 i--;
             }

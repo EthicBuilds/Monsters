@@ -44,12 +44,15 @@ public class GamePlayer extends GameUser {
 
         ItemMeta weaponSlot1Meta = weaponSlot1.getItemMeta();
         weaponSlot1Meta.setDisplayName("§aWaffen Slot 1");
+        weaponSlot1.setItemMeta(weaponSlot1Meta);
 
         ItemMeta weaponSlot2Meta = weaponSlot2.getItemMeta();
-        weaponSlot1Meta.setDisplayName("§aWaffen Slot 2");
+        weaponSlot2Meta.setDisplayName("§aWaffen Slot 2");
+        weaponSlot2.setItemMeta(weaponSlot2Meta);
 
         ItemMeta monsterTrackerMeta = monsterTracker.getItemMeta();
         monsterTrackerMeta.setDisplayName("§cMonster Tracker");
+        monsterTracker.setItemMeta(monsterTrackerMeta);
 
         player.getInventory().setItem(0, melee);
         player.getInventory().setItem(2, weaponSlot1);

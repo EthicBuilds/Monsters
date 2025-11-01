@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.gameplay.manager;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import lombok.Getter;
@@ -46,7 +47,6 @@ public class WaveManager {
         int monsterCount = userManager.getGamePlayers().size() + 10 * currentWave;
 
         monsterManager.createMonsters(monsterCount);
-
 
         startOnMinecraftThread(() -> monsterManager.summonMonsters());
 

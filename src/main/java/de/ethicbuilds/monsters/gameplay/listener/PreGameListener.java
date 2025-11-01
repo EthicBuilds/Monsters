@@ -24,6 +24,7 @@ public class PreGameListener implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
+        event.getPlayer().teleport(mapManager.getMapConfiguration().getSpawn());
         if (userManager.isFull() || !userManager.canJoin) {
             event.getPlayer().kickPlayer("§cDer Server ist Bereits voll!");
             return;
@@ -38,17 +39,18 @@ public class PreGameListener implements Listener {
         Player player = event.getPlayer();
 
         player.setScoreboard(scoreboardManager.getScoreboard());
-        player.teleport(mapManager.getMapConfiguration().getSpawn());
 
         player.sendMessage(String.format("%sMap: §6%s", plugin.getMonstersPrefix(), gameManager.getGameConfig().getMapName()));
         player.sendMessage(String.format("%s§aGebaut von §2%s", plugin.getMonstersPrefix(),  String.join("§7, §2", gameManager.getGameConfig().getMapBuilder())));
+        player.setHealth(20);
+        player.setFlying(false);
 
         Bukkit.broadcastMessage(String.format("%s§a%s §7hat die Runde betreten!", plugin.getMonstersPrefix(), event.getPlayer().getDisplayName()));
 
         event.setJoinMessage("");
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         event.setQuitMessage("");
         userManager.removePlayer(event.getPlayer().getUniqueId());
@@ -56,7 +58,7 @@ public class PreGameListener implements Listener {
         if (gameManager.getCurrentPhase() != GamePhase.PRE_GAME) return;
 
         userManager.canJoin = true;
-//        gameManager.interruptGameStart();
+        gameManager.interruptGameStart();
         Bukkit.broadcastMessage(String.format("%s§a%s §7hat die Runde verlassen!", plugin.getMonstersPrefix(), event.getPlayer().getDisplayName()));
     }
 

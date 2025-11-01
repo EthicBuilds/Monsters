@@ -12,14 +12,14 @@ import org.bukkit.util.Vector;
 public class Pumpgun extends Weapon {
     public Pumpgun() {
         this.item = new ItemStack(Material.FLINT);
-        this.name = "Schrotflinte";
-        this.damage = 7.5;
+        this.name = "§6Schrotflinte";
+        this.damage = 10.0;
         this.fireRate = 20;
         this.maxAmmu = 100;
         this.maxMagazine = 5;
         this.particle = Particle.SQUID_INK;
 
-        this.maxDistance = 5;
+        this.maxDistance = 7;
 
         initialize();
     }

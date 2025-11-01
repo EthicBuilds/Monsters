@@ -11,6 +11,7 @@ import de.ethicbuilds.monsters.map.elements.WeaponPoint;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -53,6 +54,8 @@ public class MapManager {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "minecraft:kill @e");
 
         for (Entity entity : plugin.getWorld().getEntities()) {
             entity.remove();
@@ -107,6 +110,7 @@ public class MapManager {
             for (Location location : weaponPoint.getLocation()) {
                 try {
                     location.getBlock().setType(Material.AIR);
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "minecraft:kill @e[type=minecraft:item]");
                     if (i == 0) {
                         createHolo(String.format("§aKaufe Monition für §4%s §afür §6500 Coins", weaponManager.getWeaponNames().get(weaponPoint.getWeaponName().toLowerCase()).getDeclaredConstructor().newInstance().getName()), location);
                         i++;

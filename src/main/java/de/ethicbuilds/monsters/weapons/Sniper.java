@@ -7,8 +7,8 @@ import org.bukkit.inventory.ItemStack;
 public class Sniper extends Weapon {
     public Sniper() {
         this.item = new ItemStack(Material.ARROW);
-        this.name = "Sniper";
-        this.damage = 17.0;
+        this.name = "§6Sniper";
+        this.damage = 25.0;
         this.fireRate = 35;
         this.maxAmmu = 100;
         this.maxMagazine = 10;

@@ -75,23 +75,6 @@ public final class Main extends JavaPlugin {
     public void onDisable() {
         // Plugin shutdown logic
         killAllEntities();
-
-        HttpClient client = HttpClient.newHttpClient();
-
-        var dto = new StopServerDto(getConfig().getString("server-name"));
-
-        var request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/gameManager/api/server/stop"))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(dto)))
-                .build();
-
-        try {
-            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            System.out.println(response);
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private void registerCommandsAndListeners() {

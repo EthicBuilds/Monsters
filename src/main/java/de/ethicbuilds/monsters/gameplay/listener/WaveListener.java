@@ -26,7 +26,10 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.lang.reflect.InvocationTargetException;
@@ -38,6 +41,8 @@ public class WaveListener implements Listener {
     @Inject private MapManager mapManager;
     @Inject private WeaponManager weaponManager;
     @Inject private Main plugin;
+
+    private boolean isAxeCooldDown;
 
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
@@ -58,6 +63,11 @@ public class WaveListener implements Listener {
 
         if (player.getInventory().getItemInMainHand().getType() == Material.AIR) return;
 
+        if (player.getInventory().getItemInMainHand().getType() == Material.WOODEN_AXE && isAxeCooldDown) return;
+
+        if (player.getInventory().getItemInMainHand().getType() == Material.WOODEN_AXE) {
+            startAxeCoolDown();
+        }
         gamePlayer.addCoins(enemyMonster.getCoin());
         createFloatingHologram(enemyMonster.getMonster().getLocation(), String.format("§6+ %d Coins", enemyMonster.getCoin()));
     }
@@ -74,6 +84,11 @@ public class WaveListener implements Listener {
         if (enemyMonster == null) return;
 
         monsterManager.removeMonster(enemyMonster);
+        if (monsterManager.getMonsters().size() <= 3) {
+            for (EnemyMonster m : monsterManager.getMonsters().values()) {
+                m.getMonster().addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Integer.MAX_VALUE, 1));
+            }
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -127,6 +142,18 @@ public class WaveListener implements Listener {
         buyOrReloadWeapon(gamePlayer, weaponPoint);
     }
 
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        if (gameManager.getCurrentPhase() != GamePhase.WAVE) return;
+
+        userManager.removePlayer(event.getPlayer().getUniqueId());
+
+        if (userManager.getGamePlayers().size() == userManager.getSpectators().size()) {
+            gameManager.gameEnd();
+        }
+    }
+
+
     private boolean isSameBlockLocation(Location loc1, Location loc2) {
         if (loc1 == null || loc2 == null) return false;
         if (!loc1.getWorld().equals(loc2.getWorld())) return false;
@@ -157,6 +184,7 @@ public class WaveListener implements Listener {
         }
         door.getClickableLocations().clear();
         removeHolo(door.getHoloLocation());
+        removeHolo(door.getHoloLocation().clone().subtract(0, 1, 0));
 
         Bukkit.broadcastMessage(String.format("%s§a%s hat den Bereich §7%s §afreigeschaltet!", plugin.getMonstersPrefix(), gamePlayer.getPlayer().getDisplayName(), door.getName()));
 
@@ -173,7 +201,7 @@ public class WaveListener implements Listener {
         int z = loc.getBlockZ();
         World world = loc.getWorld();
 
-        for (Entity e : world.getNearbyEntities(loc, 0.6, 0.6, 0.6)) {
+        for (Entity e : world.getNearbyEntities(loc, 2.0, 2.0, 2.0)) {
             Location eloc = e.getLocation();
             if (eloc.getBlockX() == x && eloc.getBlockY() == y && eloc.getBlockZ() == z && eloc.getWorld().equals(world)) {
                 if (e instanceof ArmorStand) ((ArmorStand) e).setHealth(0.0);
@@ -261,5 +289,14 @@ public class WaveListener implements Listener {
                 }
             }.runTaskTimer(plugin, 0L, 1L);
         });
+    }
+    private void startAxeCoolDown() {
+        isAxeCooldDown = true;
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                isAxeCooldDown = false;
+            }
+        }.runTaskLater(Main.getINSTANCE(), 40);
     }
 }
