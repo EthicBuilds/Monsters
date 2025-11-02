@@ -10,6 +10,7 @@ import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
+import de.ethicbuilds.monsters.statistic.manager.StatisticManager;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 
 public class DiModule extends AbstractModule {
@@ -33,6 +34,7 @@ public class DiModule extends AbstractModule {
         bind(MonsterManager.class).asEagerSingleton();
         bind(ScoreboardManager.class).asEagerSingleton();
         bind(WeaponManager.class).asEagerSingleton();
+        bind(StatisticManager.class).asEagerSingleton();
 
         //Repositories
         bind(GameStates.class).asEagerSingleton();

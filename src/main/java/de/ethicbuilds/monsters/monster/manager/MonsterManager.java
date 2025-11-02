@@ -11,9 +11,7 @@ import de.ethicbuilds.monsters.player.manager.UserManager;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
@@ -40,10 +38,13 @@ public class MonsterManager {
     private final Map<EnemyMonster, Location> lastLocation = new HashMap<>();
     private final Map<EnemyMonster, Long> lastMoveTime = new HashMap<>();;
 
-    public void createMonsters(int amount) {
+    public void createMonsters(int wave) {
         monsters.clear();
         initialMonsters.clear();
-        for (int i = 0; i < amount; i++) {
+
+        int monsterCount = userManager.getGamePlayers().size() + 10 * wave;
+
+        for (int i = 0; i < monsterCount; i++) {
             initialMonsters.add(new MonsterZombie());
         }
     }

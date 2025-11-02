@@ -11,8 +11,10 @@ import de.ethicbuilds.monsters.gameplay.repository.GameStates;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.adapter.LocationAdapter;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
+import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
+import de.ethicbuilds.monsters.statistic.manager.StatisticManager;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -36,6 +38,7 @@ public class GameManager {
     @Inject private ScoreboardManager scoreboardManager;
     @Inject private MapManager mapManager;
     @Inject private MonsterManager monsterManager;
+    @Inject private StatisticManager statisticManager;
 
     private final Gson gson;
 
@@ -97,6 +100,9 @@ public class GameManager {
 
     public void gameEnd() {
         gameStates.setCurrentPhase(GamePhase.AFTER_GAME);
+        for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
+            statisticManager.saveStats(gamePlayer);
+        }
 
         HttpClient client = HttpClient.newHttpClient();
 

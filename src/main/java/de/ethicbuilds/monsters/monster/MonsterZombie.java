@@ -7,7 +7,7 @@ public class MonsterZombie extends EnemyMonster {
         this.health = 20;
         this.damage = 2;
         this.speed = 1;
-        this.name = "Zombie";
+        this.name = "§7Zombie";
         this.type = EntityType.ZOMBIE;
         this.coin = 20;
     }

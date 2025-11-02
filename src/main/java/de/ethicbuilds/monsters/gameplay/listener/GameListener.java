@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.gameplay.listener;
 
+import com.destroystokyo.paper.event.block.AnvilDamagedEvent;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.inject.Inject;
@@ -12,6 +13,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -22,6 +24,7 @@ import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
+import org.eclipse.sisu.Priority;
 
 import java.io.IOException;
 import java.net.URI;
@@ -146,9 +149,10 @@ public class GameListener implements Listener {
         }
     }
 
-    @EventHandler
+
+    @EventHandler(priority = EventPriority.LOW)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        if (Bukkit.getOnlinePlayers().isEmpty()) {
+        if (Bukkit.getOnlinePlayers().size() == 1) {
             HttpClient client = HttpClient.newHttpClient();
 
             var dto = new StopServerDto(plugin.getConfig().getString("server-name"));

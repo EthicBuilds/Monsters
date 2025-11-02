@@ -44,9 +44,8 @@ public class WaveManager {
         startOnMinecraftThread(() -> userManager.getGamePlayers()
                 .forEach(gamePlayer -> userManager.revivePlayer(gamePlayer.getPlayer().getUniqueId())));
 
-        int monsterCount = userManager.getGamePlayers().size() + 10 * currentWave;
 
-        monsterManager.createMonsters(monsterCount);
+        monsterManager.createMonsters(currentWave);
 
         startOnMinecraftThread(() -> monsterManager.summonMonsters());
 

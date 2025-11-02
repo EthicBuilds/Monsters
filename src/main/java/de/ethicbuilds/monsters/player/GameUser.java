@@ -22,6 +22,8 @@ public abstract class GameUser {
     protected GameMode mode;
     @Getter @Setter
     protected int coins;
+    @Getter @Setter
+    protected int killedZombies;
 
     public GameUser(Player player, GameMode mode) {
         this.player = player;

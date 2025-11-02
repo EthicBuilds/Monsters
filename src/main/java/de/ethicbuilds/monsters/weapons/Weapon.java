@@ -101,7 +101,11 @@ public abstract class Weapon {
     public void reload(Player player) {
         int itemSlot = player.getInventory().getHeldItemSlot();
 
-        if (!item.equals(player.getInventory().getItem(itemSlot)) || ammu <= 0) {
+        if (!item.equals(player.getInventory().getItem(itemSlot))) {
+            return;
+        }
+        if (ammu <= 0) {
+            player.sendTitle("§4Keine Munition", String.format("Kaufe Munition bei der %s Waffenstation", name), 0, 20, 0);
             return;
         }
 

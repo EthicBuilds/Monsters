@@ -68,6 +68,9 @@ public class WaveListener implements Listener {
         if (player.getInventory().getItemInMainHand().getType() == Material.WOODEN_AXE) {
             startAxeCoolDown();
         }
+
+        if (event.getFinalDamage() < monster.getHealth()) gamePlayer.setKilledZombies(gamePlayer.getKilledZombies() + 1);
+
         gamePlayer.addCoins(enemyMonster.getCoin());
         createFloatingHologram(enemyMonster.getMonster().getLocation(), String.format("§6+ %d Coins", enemyMonster.getCoin()));
     }
@@ -234,6 +237,7 @@ public class WaveListener implements Listener {
 
                     gamePlayer.addWeapon(weaponPointWeapon);
                     gamePlayer.setCoins(gamePlayer.getCoins() - 1000);
+                    gamePlayer.getPlayer().sendMessage(String.format("%s§7Du hast §a%s §7gekauft! §c-1000 Coins!", plugin.getMonstersPrefix(), weaponPointWeapon.getName()));
                     return;
                 }
             }
@@ -254,9 +258,9 @@ public class WaveListener implements Listener {
                 return;
             }
             gamePlayer.setCoins(gamePlayer.getCoins() - 500);
-            playerWeapon.reload(gamePlayer.getPlayer());
             playerWeapon.refill();
-            gamePlayer.getPlayer().sendMessage(String.format("§7Munition von §a%s §7aufgefüllt", playerWeapon.getName()));
+            playerWeapon.reload(gamePlayer.getPlayer());
+            gamePlayer.getPlayer().sendMessage(String.format("§7Munition von §a%s §7aufgefüllt! §c-500 Coins", playerWeapon.getName()));
         }
     }
 
