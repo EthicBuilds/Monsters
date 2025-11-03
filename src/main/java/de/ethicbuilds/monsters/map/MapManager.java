@@ -8,6 +8,7 @@ import de.ethicbuilds.monsters.map.adapter.LocationAdapter;
 import de.ethicbuilds.monsters.map.elements.Door;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.map.elements.WeaponPoint;
+import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -100,13 +101,23 @@ public class MapManager {
 
             createHolo("§aÖffne", base.clone().add(0.5, 0.3, 0.5));
             createHolo(String.format("§4%s", door.getName()), base.clone().add(0.5, 0, 0.5));
-            createHolo("§afür §61000 Coins", base.clone().add(0.5, -0.3, 0.5));
+            createHolo("§afür §62500 Coins", base.clone().add(0.5, -0.3, 0.5));
         }
     }
 
     private void createWeaponPointHolos() {
         int i = 0;
         for (WeaponPoint weaponPoint : mapConfiguration.getWeaponPoints()) {
+            Weapon weaponPointWeapon;
+
+            try {
+                weaponPointWeapon = weaponManager.getWeaponNames()
+                        .get(weaponPoint.getWeaponName().toLowerCase())
+                        .getDeclaredConstructor().newInstance();
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
+
             for (Location location : weaponPoint.getLocation()) {
                 try {
                     location.getBlock().setType(Material.AIR);
@@ -117,7 +128,7 @@ public class MapManager {
                         continue;
                     }
                     if (i == 1) {
-                        createHolo(String.format("§aKaufe %s für §afür §61000 Coins", weaponManager.getWeaponNames().get(weaponPoint.getWeaponName().toLowerCase()).getDeclaredConstructor().newInstance().getName()), location);
+                        createHolo(String.format("§aKaufe %s für §afür §6%d Coins", weaponManager.getWeaponNames().get(weaponPoint.getWeaponName().toLowerCase()).getDeclaredConstructor().newInstance().getName(), weaponPointWeapon.getPrice()), location);
                         i = 0;
                     }
                 } catch (InstantiationException | IllegalAccessException | InvocationTargetException |

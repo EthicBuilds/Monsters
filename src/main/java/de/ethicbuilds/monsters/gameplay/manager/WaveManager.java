@@ -7,6 +7,7 @@ import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import lombok.Getter;
 import org.bukkit.Bukkit;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
 import java.util.concurrent.CountDownLatch;
@@ -40,6 +41,7 @@ public class WaveManager {
     private void startWave() {
         currentWave++;
         broadCastMessage(String.format("%s§aStarte Welle §4%d", plugin.getMonstersPrefix(), currentWave));
+        userManager.broadcastSound(Sound.BLOCK_TRIAL_SPAWNER_AMBIENT_OMINOUS, 2.0F, 1.0F);
 
         startOnMinecraftThread(() -> userManager.getGamePlayers()
                 .forEach(gamePlayer -> userManager.revivePlayer(gamePlayer.getPlayer().getUniqueId())));

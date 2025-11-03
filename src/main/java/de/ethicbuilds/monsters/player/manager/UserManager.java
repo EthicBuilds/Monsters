@@ -9,8 +9,7 @@ import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.GameSpectator;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
+import org.bukkit.*;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
@@ -73,6 +72,7 @@ public class UserManager {
             player.heal(20);
             player.teleport(mapManager.getMapConfiguration().getSpawn());
             player.sendTitle("§aWiederbelebt!", "");
+            player.playSound(player.getLocation(), Sound.BLOCK_CONDUIT_ACTIVATE, 2.0F, 1.0F);
         }
     }
 
@@ -140,5 +140,11 @@ public class UserManager {
                 }
             }
         }.runTaskTimer(plugin, 0L, 20L);
+    }
+
+    public void broadcastSound(Sound sound, float volume, float pitch) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.playSound(player.getLocation(), sound, SoundCategory.MASTER, volume, pitch);
+        }
     }
 }

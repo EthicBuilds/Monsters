@@ -4,6 +4,7 @@ import de.ethicbuilds.monsters.Main;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -18,6 +19,10 @@ public class Pumpgun extends Weapon {
         this.maxAmmu = 100;
         this.maxMagazine = 5;
         this.particle = Particle.SQUID_INK;
+        this.price = 2500;
+
+        this.sound = Sound.ENTITY_FIREWORK_ROCKET_BLAST;
+        this.pitch = 0.6F;
 
         this.maxDistance = 7;
 
@@ -45,6 +50,7 @@ public class Pumpgun extends Weapon {
 
         item.setAmount(magazine);
         player.getInventory().setItem(player.getInventory().getHeldItemSlot(), item);
+        player.playSound(player.getLocation(), sound, 0.5F, pitch);
 
         int pelletCount = 8;
         double spread = 0.5;

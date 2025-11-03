@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Location;
 import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -23,6 +24,10 @@ public abstract class Weapon {
     protected int magazine;
     protected int maxAmmu;
     protected int maxMagazine;
+    protected int price;
+
+    protected Sound sound = Sound.ENTITY_FIREWORK_ROCKET_BLAST_FAR;
+    protected float pitch = 2.0F;
 
     protected int maxDistance = 50;
 
@@ -60,6 +65,7 @@ public abstract class Weapon {
 
         item.setAmount(magazine);
         player.getInventory().setItem(player.getInventory().getHeldItemSlot(), item);
+        player.playSound(player.getLocation(), sound, 0.5F, pitch);
 
         new BukkitRunnable() {
             double distanceTravelled = 0;

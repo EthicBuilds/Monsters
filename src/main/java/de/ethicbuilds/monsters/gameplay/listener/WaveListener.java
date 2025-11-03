@@ -15,10 +15,7 @@ import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -71,8 +68,11 @@ public class WaveListener implements Listener {
 
         if (event.getFinalDamage() < monster.getHealth()) gamePlayer.setKilledZombies(gamePlayer.getKilledZombies() + 1);
 
-        gamePlayer.addCoins(enemyMonster.getCoin());
-        createFloatingHologram(enemyMonster.getMonster().getLocation(), String.format("§6+ %d Coins", enemyMonster.getCoin()));
+//        int coins = (int)Math.round(event.getDamage());
+        int coins = 20;
+
+        gamePlayer.addCoins(coins);
+        createFloatingHologram(enemyMonster.getMonster().getLocation(), String.format("§6+ %d Coins", coins));
     }
 
     @EventHandler
@@ -167,12 +167,15 @@ public class WaveListener implements Listener {
 
 
     private void openDoor(GamePlayer gamePlayer, Door door) {
-        if (gamePlayer.getCoins() < 1000) {
-            gamePlayer.getPlayer().sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum diese Türe zu öffnen", 1000 - gamePlayer.getCoins()));
+        Player player = gamePlayer.getPlayer();
+
+        if (gamePlayer.getCoins() < 2500) {
+            player.sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum diese Türe zu öffnen", 2500 - gamePlayer.getCoins()));
+            player.playSound(player.getLocation(), Sound.BLOCK_IRON_TRAPDOOR_CLOSE, 1.5F, 0.0F);
             return;
         }
 
-        gamePlayer.setCoins(gamePlayer.getCoins() - 1000);
+        gamePlayer.setCoins(gamePlayer.getCoins() - 2500);
 
         int i = 0;
         for (Location location : door.getClickableLocations()) {
@@ -189,7 +192,8 @@ public class WaveListener implements Listener {
         removeHolo(door.getHoloLocation());
         removeHolo(door.getHoloLocation().clone().subtract(0, 1, 0));
 
-        Bukkit.broadcastMessage(String.format("%s§a%s hat den Bereich §7%s §afreigeschaltet!", plugin.getMonstersPrefix(), gamePlayer.getPlayer().getDisplayName(), door.getName()));
+        Bukkit.broadcastMessage(String.format("%s§a%s hat den Bereich §7%s §afreigeschaltet!", plugin.getMonstersPrefix(), player.getDisplayName(), door.getName()));
+        userManager.broadcastSound(Sound.BLOCK_BEACON_POWER_SELECT, 3.0F, 1.0F);
 
         for (MonsterSpawner monsterSpawner : mapManager.getMapConfiguration().getSpawners()) {
             if (monsterSpawner.getAreaName().equalsIgnoreCase(door.getName())) {
@@ -224,43 +228,57 @@ public class WaveListener implements Listener {
         }
 
         Weapon playerWeapon = gamePlayer.getWeapons().get(weaponPointWeapon.getItem().getType());
+        Player player = gamePlayer.getPlayer();
 
         if (playerWeapon == null) {
-            if (gamePlayer.getCoins() < 1000) {
-                gamePlayer.getPlayer().sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum diese Waffe zu kaufen", 1000 - gamePlayer.getCoins()));
+            if (gamePlayer.getCoins() < weaponPointWeapon.getPrice()) {
+                player.sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum diese Waffe zu kaufen", weaponPointWeapon.getPrice() - gamePlayer.getCoins()));
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
                 return;
             }
 
             for (int i : gamePlayer.getWeaponSlots()) {
-                if (gamePlayer.getPlayer().getInventory().getItem(i).getType().equals(Material.LIGHT_GRAY_DYE)) {
-                    gamePlayer.getPlayer().getInventory().setItem(i, weaponPointWeapon.getItem());
+                if (player.getInventory().getItem(i).getType().equals(Material.LIGHT_GRAY_DYE)) {
+                    player.getInventory().setItem(i, weaponPointWeapon.getItem());
 
                     gamePlayer.addWeapon(weaponPointWeapon);
-                    gamePlayer.setCoins(gamePlayer.getCoins() - 1000);
-                    gamePlayer.getPlayer().sendMessage(String.format("%s§7Du hast §a%s §7gekauft! §c-1000 Coins!", plugin.getMonstersPrefix(), weaponPointWeapon.getName()));
+                    gamePlayer.setCoins(gamePlayer.getCoins() - weaponPointWeapon.getPrice());
+                    player.sendMessage(String.format("%s§7Du hast §a%s §7gekauft! §c-%d Coins!", plugin.getMonstersPrefix(), weaponPointWeapon.getName(), weaponPointWeapon.getPrice()));
+                    player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_YES, 1.0F, 1.0F);
                     return;
                 }
             }
-            ItemStack itemInHand = gamePlayer.getPlayer().getInventory().getItemInMainHand();
+            ItemStack itemInHand = player.getInventory().getItemInMainHand();
             if (gamePlayer.getWeapon(itemInHand) != null) {
                 gamePlayer.removeWeapon(gamePlayer.getWeapon(itemInHand));
-                gamePlayer.getPlayer().getInventory().setItemInMainHand(weaponPointWeapon.getItem());
+                player.getInventory().setItemInMainHand(weaponPointWeapon.getItem());
 
                 gamePlayer.addWeapon(weaponPointWeapon);
-                gamePlayer.setCoins(gamePlayer.getCoins() - 1000);
-                gamePlayer.getPlayer().sendMessage(String.format("§a%s §7freigeschaltet!", playerWeapon.getName()));
+                gamePlayer.setCoins(gamePlayer.getCoins() - weaponPointWeapon.getPrice());
+                player.sendMessage(String.format("%s§7Du hast §a%s §7gekauft! §c-%d Coins!", plugin.getMonstersPrefix(), weaponPointWeapon.getName(), weaponPointWeapon.getPrice()));
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_YES, 1.0F, 1.0F);
             } else if (gamePlayer.getWeapon(itemInHand) == null) {
-                gamePlayer.getPlayer().sendMessage("§cBitte verwende einen Waffen Slot um eine neue Waffe zu kaufen!");
+                player.sendMessage("§cBitte verwende einen Waffen Slot um eine neue Waffe zu kaufen!");
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
             }
         } else {
             if (gamePlayer.getCoins() < 500) {
-                gamePlayer.getPlayer().sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum die Munition aufzufüllen", 500 - gamePlayer.getCoins()));
+                player.sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum die Munition aufzufüllen", 500 - gamePlayer.getCoins()));
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
                 return;
             }
+
+            if (playerWeapon.getAmmu() >= playerWeapon.getMaxAmmu() - 2) {
+                player.sendMessage("§cMunition bereits voll!");
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
+                return;
+            }
+
             gamePlayer.setCoins(gamePlayer.getCoins() - 500);
             playerWeapon.refill();
-            playerWeapon.reload(gamePlayer.getPlayer());
-            gamePlayer.getPlayer().sendMessage(String.format("§7Munition von §a%s §7aufgefüllt! §c-500 Coins", playerWeapon.getName()));
+            playerWeapon.reload(player);
+            player.sendMessage(String.format("§7Munition von §a%s §7aufgefüllt! §c-500 Coins", playerWeapon.getName()));
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_YES, 1.0F, 1.0F);
         }
     }
 
