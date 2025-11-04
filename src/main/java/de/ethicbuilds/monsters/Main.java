@@ -27,12 +27,6 @@ import java.util.Objects;
  */
 
 public final class Main extends JavaPlugin {
-    /*** Todolist:
-     * TODO: Configure Weapons
-     * TODO: Last Details
-     * TODO: Sounds
-     */
-
     private Gson gson;
 
     @Getter
@@ -55,8 +49,6 @@ public final class Main extends JavaPlugin {
         saveDefaultConfig();
         world = Bukkit.getWorld("world");
 
-        killAllEntities();
-
         injector.getInstance(MapManager.class).loadMapConfig();
         injector.getInstance(GameManager.class).loadGameConfig();
         injector.getInstance(GameManager.class).startPlayerCheck();
@@ -68,7 +60,6 @@ public final class Main extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
-        killAllEntities();
     }
 
     private void registerCommandsAndListeners() {
@@ -82,9 +73,4 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(injector.getInstance(GameListener.class), this);
     }
 
-    private void killAllEntities() {
-        for (Entity entity : world.getEntities()) {
-            entity.remove();
-        }
-    }
 }

@@ -74,7 +74,6 @@ public class GamePlayer extends GameUser {
     }
 
     public void removeWeapon(Weapon weapon) {
-        if (weapons.containsKey(weapon.getItem().getType())) return;
         weapons.remove(weapon.getItem().getType());
     }
 
