@@ -46,11 +46,45 @@ public class GameManager {
     private GameConfig gameConfig;
     private BukkitTask gameStartTask;
 
+    private long lastPlayerOnlineTime = System.currentTimeMillis();
+
     public GameManager() {
         gson = new GsonBuilder()
                 .registerTypeAdapter(Location.class, new LocationAdapter())
                 .setPrettyPrinting()
                 .create();
+    }
+
+    public void startPlayerCheck() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (getCurrentPhase() != GamePhase.PRE_GAME) this.cancel();
+                if (Bukkit.getOnlinePlayers().isEmpty()) {
+                    if (System.currentTimeMillis() - lastPlayerOnlineTime >= 30_000) {
+                        HttpClient client = HttpClient.newHttpClient();
+
+                        var dto = new StopServerDto(plugin.getConfig().getString("server-name"));
+
+                        var request = HttpRequest.newBuilder()
+                                .uri(URI.create("http://localhost:8080/gameManager/api/server/stop"))
+                                .header("Content-Type", "application/json")
+                                .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(dto)))
+                                .build();
+
+                        try {
+                            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                            System.out.println(response);
+                        } catch (IOException | InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                        Bukkit.shutdown();
+                    }
+                } else {
+                    lastPlayerOnlineTime = System.currentTimeMillis();
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 20L);
     }
 
     public void gameStart() {

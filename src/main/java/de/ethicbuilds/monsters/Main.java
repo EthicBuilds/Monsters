@@ -5,8 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import de.ethicbuilds.monsters.di.DiModule;
-import de.ethicbuilds.monsters.dto.StopServerDto;
-import de.ethicbuilds.monsters.gameplay.listener.AfterGameListener;
 import de.ethicbuilds.monsters.gameplay.listener.GameListener;
 import de.ethicbuilds.monsters.gameplay.listener.PreGameListener;
 import de.ethicbuilds.monsters.gameplay.listener.WaveListener;
@@ -22,11 +20,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.Objects;
 
 /***
@@ -66,6 +59,7 @@ public final class Main extends JavaPlugin {
 
         injector.getInstance(MapManager.class).loadMapConfig();
         injector.getInstance(GameManager.class).loadGameConfig();
+        injector.getInstance(GameManager.class).startPlayerCheck();
         injector.getInstance(ScoreboardManager.class).init();
 
         registerCommandsAndListeners();
@@ -84,7 +78,6 @@ public final class Main extends JavaPlugin {
         PluginManager pm = getServer().getPluginManager();
 
         pm.registerEvents(injector.getInstance(PreGameListener.class), this);
-        pm.registerEvents(injector.getInstance(AfterGameListener.class), this);
         pm.registerEvents(injector.getInstance(WaveListener.class), this);
         pm.registerEvents(injector.getInstance(GameListener.class), this);
     }
