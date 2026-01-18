@@ -16,7 +16,7 @@ public class Pumpgun extends Weapon {
         this.name = "§6Schrotflinte";
         this.damage = 10.0;
         this.fireRate = 20;
-        this.maxAmmu = 100;
+        this.maxAmmu = 300;
         this.maxMagazine = 5;
         this.particle = Particle.SQUID_INK;
         this.price = 2500;
