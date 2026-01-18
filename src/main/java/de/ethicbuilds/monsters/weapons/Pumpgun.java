@@ -53,7 +53,7 @@ public class Pumpgun extends Weapon {
         player.playSound(player.getLocation(), sound, 0.5F, pitch);
 
         int pelletCount = 8;
-        double spread = 0.5;
+        double spread = 0.7;
 
         for (int i = 0; i < pelletCount; i++) {
             Vector pelletDirection = direction.clone();
