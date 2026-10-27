@@ -17,6 +17,7 @@ import java.util.List;
 public abstract class EnemyMonster {
     private static final double FOLLOW_RANGE = 128;
     private static final int TRAIL_TRIES = 6;
+    private static final double SWITCH_MARGIN = 3;
 
     protected int health;
     protected int damage;
@@ -65,9 +66,19 @@ public abstract class EnemyMonster {
                     target = monsterManager().leastChasedPlayer();
                 }
                 if (target == null) return;
+                // Spread over all players, but a clearly closer player always comes first
+                Player nearest = monsterManager().nearestPlayer(monster.getLocation());
+                if (nearest != null && !nearest.equals(target)
+                        && distance(nearest) + SWITCH_MARGIN < distance(target)) {
+                    target = nearest;
+                }
                 chase(pathfinder);
             }
         }.runTaskTimer(plugin, 0L, 20L);
+    }
+
+    private double distance(Player player) {
+        return player.getWorld().equals(monster.getWorld()) ? player.getLocation().distance(monster.getLocation()) : Double.MAX_VALUE;
     }
 
     // Full path to the player, else along the trail the player walked, else as close as it gets

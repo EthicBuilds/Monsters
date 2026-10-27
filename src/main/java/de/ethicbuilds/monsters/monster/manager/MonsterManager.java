@@ -207,6 +207,20 @@ public class MonsterManager {
     }
 
 
+    public Player nearestPlayer(Location location) {
+        Player best = null;
+        double closest = Double.MAX_VALUE;
+        for (Player player : livingPlayers()) {
+            if (!player.getWorld().equals(location.getWorld())) continue;
+            double distance = player.getLocation().distanceSquared(location);
+            if (distance < closest) {
+                closest = distance;
+                best = player;
+            }
+        }
+        return best;
+    }
+
     private List<Player> livingPlayers() {
         return userManager.getGamePlayers().stream().map(GamePlayer::getPlayer)
                 .filter(p -> p.isOnline() && !userManager.isPlayerDead(p.getUniqueId())).toList();
