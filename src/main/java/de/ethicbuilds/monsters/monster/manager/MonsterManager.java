@@ -119,11 +119,6 @@ public class MonsterManager {
                     lastMoveTime.put(enemyMonster, now);
                     lastLocation.put(enemyMonster, loc.clone());
                 }
-
-                Block block = loc.getBlock();
-                if (block.getType().isSolid()) {
-                    entity.teleport(new Location(plugin.getWorld(), 0, 73, 0));
-                }
             }
 
             for (EnemyMonster monster : toRemove) {

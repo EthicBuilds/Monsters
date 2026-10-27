@@ -16,7 +16,7 @@ public class Pumpgun extends Weapon {
         this.name = "§6Schrotflinte";
         this.damage = 10.0;
         this.fireRate = 20;
-        this.maxAmmu = 100;
+        this.maxAmmu = 300;
         this.maxMagazine = 5;
         this.particle = Particle.SQUID_INK;
         this.model = "schrot_v1";
@@ -54,7 +54,7 @@ public class Pumpgun extends Weapon {
         player.playSound(player.getLocation(), sound, 0.5F, pitch);
 
         int pelletCount = 8;
-        double spread = 0.5;
+        double spread = 0.7;
 
         for (int i = 0; i < pelletCount; i++) {
             Vector pelletDirection = direction.clone();
