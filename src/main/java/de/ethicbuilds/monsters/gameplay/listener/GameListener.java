@@ -86,14 +86,11 @@ public class GameListener implements Listener {
         if (gamePlayer == null) return;
 
         ItemStack item = gamePlayer.getPlayer().getInventory().getItem(event.getNewSlot());
-
-        if (item == null) return;
-
-        Weapon weapon = gamePlayer.getWeapon(item);
-
-        AmmoHud.clear(gamePlayer.getPlayer());
-
-        if (weapon == null) return;
+        Weapon weapon = item != null ? gamePlayer.getWeapon(item) : null;
+        if (weapon == null) {
+            AmmoHud.clear(gamePlayer.getPlayer());
+            return;
+        }
 
         AmmoHud.show(gamePlayer.getPlayer(), weapon);
     }

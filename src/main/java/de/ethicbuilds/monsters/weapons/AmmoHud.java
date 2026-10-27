@@ -34,9 +34,11 @@ public final class AmmoHud {
         player.sendActionBar(panel(weapon.getMagazine(), weapon.getMaxMagazine(), weapon.getAmmu()));
     }
 
+    /** No weapon in hand: the panel goes away right away instead of fading out after 3 seconds */
     public static void clear(Player player) {
         player.setLevel(0);
         player.setExp(0);
+        if (pausedUntil.getOrDefault(player.getUniqueId(), 0L) <= System.currentTimeMillis()) player.sendActionBar(Component.empty());
     }
 
     static Component panel(int magazine, int maxMagazine, int stock) {
