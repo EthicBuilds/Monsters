@@ -22,6 +22,8 @@ public class MonsterSpiderBoss extends MonsterSpider {
         this.coin = 500;
         this.modelSize = 1.0F;
         this.hitboxScale = 3.0;
+        this.room = 2;
+        this.attackCooldown = 30;
     }
 
     @Override

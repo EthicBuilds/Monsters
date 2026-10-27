@@ -1,9 +1,12 @@
 package de.ethicbuilds.monsters.monster;
 
+import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.monster.model.AnimatedModel;
 import de.ethicbuilds.monsters.monster.model.BoneModel;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.IOException;
 
@@ -15,8 +18,12 @@ public class MonsterSpider extends EnemyMonster {
 
     protected AnimatedModel model;
     // Model size and hitbox of the spider underneath
-    protected float modelSize = 0.45F;
-    protected double hitboxScale = 1.3;
+    protected float modelSize = 0.28F;
+    protected double hitboxScale = 0.8;
+    // Room the spider needs around and above it
+    protected int room = 1;
+    protected int attackCooldown = 20;
+    private int nextAttack;
 
     public MonsterSpider() {
         this.health = 40;
@@ -44,6 +51,27 @@ public class MonsterSpider extends EnemyMonster {
         var scale = monster.getAttribute(Attribute.SCALE);
         if (scale != null) scale.setBaseValue(hitboxScale);
         model = new AnimatedModel(weaver(), monster, modelSize);
+        var attack = monster.getAttribute(Attribute.ATTACK_DAMAGE);
+        if (attack != null) attack.setBaseValue(damage);
+        // Spiders do not attack while something rides on them, the model parts do, so the bite is done here
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!monster.isValid() || monster.isDead()) {
+                    cancel();
+                    return;
+                }
+                if (--nextAttack > 0) return;
+                if (!(monster.getTarget() instanceof Player player) || !player.isValid() || !player.getWorld().equals(monster.getWorld())) return;
+                if (!monster.getBoundingBox().expand(0.6).overlaps(player.getBoundingBox())) return;
+                nextAttack = attackCooldown / 5;
+                monster.attack(player);
+            }
+        }.runTaskTimer(Main.getINSTANCE(), 5L, 5L);
+    }
+
+    public int getRoom() {
+        return room;
     }
 
     @Override

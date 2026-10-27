@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /***
- * Medkits that spawn now and then on spots where players have been
+ * Medkits that spawn now and then on spots where players have been, and that monsters drop with luck
  */
 public class PowerupManager {
     private static final int MAX_MEDKITS = 2;
@@ -37,6 +37,8 @@ public class PowerupManager {
     private static final int MAX_SPOTS = 60;
     private static final double MIN_PLAYER_DISTANCE = 8.0;
     private static final double PICKUP_DISTANCE = 1.3;
+    private static final double DROP_CHANCE = 0.04;
+    private static final int MAX_DROPPED = 3;
 
     @Inject private Main plugin;
     @Inject private UserManager userManager;
@@ -81,12 +83,22 @@ public class PowerupManager {
         }
     }
 
+    /** A monster died there, with luck it leaves a medkit */
+    public void dropFrom(Location location) {
+        if (gameManager.getCurrentPhase() != GamePhase.WAVE || medkits.size() >= MAX_DROPPED) return;
+        if (ThreadLocalRandom.current().nextDouble() >= DROP_CHANCE) return;
+        spawnMedkit(location.toBlockLocation().add(0.5, 0.8, 0.5));
+    }
+
     private void spawnMedkit() {
         if (medkits.size() >= MAX_MEDKITS || spots.isEmpty()) return;
 
         List<Location> away = spots.stream().filter(this::isAwayFromPlayers).toList();
         List<Location> candidates = away.isEmpty() ? spots : away;
-        Location spot = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size())).clone().add(0, 0.8, 0);
+        spawnMedkit(candidates.get(ThreadLocalRandom.current().nextInt(candidates.size())).clone().add(0, 0.8, 0));
+    }
+
+    private void spawnMedkit(Location spot) {
 
         ItemDisplay medkit = spot.getWorld().spawn(spot, ItemDisplay.class, display -> {
             display.setItemStack(GameItems.medkit());

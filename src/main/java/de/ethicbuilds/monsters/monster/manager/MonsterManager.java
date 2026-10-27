@@ -9,6 +9,7 @@ import de.ethicbuilds.monsters.monster.HealthBars;
 import de.ethicbuilds.monsters.monster.MonsterSpider;
 import de.ethicbuilds.monsters.monster.MonsterSpiderBoss;
 import de.ethicbuilds.monsters.monster.MonsterZombie;
+import de.ethicbuilds.monsters.monster.OpenGround;
 import de.ethicbuilds.monsters.monster.PlayerTrail;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -93,6 +94,11 @@ public class MonsterManager {
 
         for (EnemyMonster enemyMonster : initialMonsters) {
             Location location = activeSpawners.get(index % spawnerCount).clone().add(0, 1, 0);
+            // Spiders are too big for the spawner windows, they come out on open ground in the play area
+            if (enemyMonster instanceof MonsterSpider spider) {
+                Location open = spiderSpot(spider, players);
+                if (open != null) location = open;
+            }
             Player player = players.get(index % playerCount);
             enemyMonster.summon(player, location);
             newMonsters.put(enemyMonster.getMonster(), enemyMonster);
@@ -104,6 +110,12 @@ public class MonsterManager {
         initialMonsters.clear();
     }
 
+
+    private Location spiderSpot(MonsterSpider spider, List<Player> players) {
+        int height = spider.getRoom() + 1;
+        if (spider instanceof MonsterSpiderBoss) return OpenGround.middle(players, spider.getRoom(), height);
+        return OpenGround.random(players, spider.getRoom(), height);
+    }
 
     /** The living player that the fewest monsters are chasing */
     public Player leastChasedPlayer() {
@@ -159,6 +171,13 @@ public class MonsterManager {
 
                 if (lastLoc != null && lastLoc.equals(loc)) {
                     long lastMoved = lastMoveTime.getOrDefault(enemyMonster, now);
+                    // A stuck spider gets free ground instead of being removed, the boss ends the wave
+                    if (now - lastMoved >= 10_000 && enemyMonster instanceof MonsterSpider spider) {
+                        Location open = spiderSpot(spider, livingPlayers());
+                        if (open != null) entity.teleport(open);
+                        lastMoveTime.put(enemyMonster, now);
+                        continue;
+                    }
                     if (now - lastMoved >= 30_000) {
                         toRemove.add(enemyMonster);
                         continue;
@@ -187,6 +206,11 @@ public class MonsterManager {
         }, 0L, 40L);
     }
 
+
+    private List<Player> livingPlayers() {
+        return userManager.getGamePlayers().stream().map(GamePlayer::getPlayer)
+                .filter(p -> p.isOnline() && !userManager.isPlayerDead(p.getUniqueId())).toList();
+    }
 
     private List<Location> getActiveSpawnerLocations() {
         List<Location> activeSpawnerLocations = new ArrayList<>();

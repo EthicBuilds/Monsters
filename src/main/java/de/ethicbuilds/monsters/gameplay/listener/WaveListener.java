@@ -44,6 +44,8 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import de.ethicbuilds.monsters.powerup.PowerupManager;
+
 import java.lang.reflect.InvocationTargetException;
 
 public class WaveListener implements Listener {
@@ -56,6 +58,7 @@ public class WaveListener implements Listener {
     @Inject private DecorationManager decorationManager;
     @Inject private GrenadeManager grenadeManager;
     @Inject private WorkbenchManager workbenchManager;
+    @Inject private PowerupManager powerupManager;
     @Inject private Main plugin;
 
     public static final int AMMO_PRICE = 500;
@@ -121,6 +124,7 @@ public class WaveListener implements Listener {
 
         enemyMonster.onDeath();
         monsterManager.removeMonster(enemyMonster);
+        powerupManager.dropFrom(monster.getLocation());
         if (monsterManager.getMonsters().size() <= 3) {
             for (EnemyMonster m : monsterManager.getMonsters().values()) {
                 m.getMonster().addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Integer.MAX_VALUE, 1));
