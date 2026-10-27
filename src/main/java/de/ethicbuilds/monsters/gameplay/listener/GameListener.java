@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.gameplay.manager.RoundLoader;
 import de.ethicbuilds.monsters.dto.StopServerDto;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -42,6 +43,8 @@ public class GameListener implements Listener {
     private UserManager userManager;
     @Inject
     private Main plugin;
+    @Inject
+    private RoundLoader roundLoader;
 
     private final Gson gson;
     public GameListener() {
@@ -151,7 +154,8 @@ public class GameListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        if (Bukkit.getOnlinePlayers().size() == 1) {
+        // A waiting server without a round keeps running
+        if (Bukkit.getOnlinePlayers().size() == 1 && roundLoader.isLoaded()) {
             HttpClient client = HttpClient.newHttpClient();
 
             var dto = new StopServerDto(plugin.getConfig().getString("server-name"));

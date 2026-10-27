@@ -9,6 +9,7 @@ import de.ethicbuilds.monsters.gameplay.listener.GameListener;
 import de.ethicbuilds.monsters.gameplay.listener.PreGameListener;
 import de.ethicbuilds.monsters.gameplay.listener.WaveListener;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
+import de.ethicbuilds.monsters.gameplay.manager.RoundLoader;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.decoration.CrateManager;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
@@ -23,6 +24,7 @@ import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import de.ethicbuilds.monsters.test.LocateMonsters;
 import de.ethicbuilds.monsters.commands.CreateMapConfigCommand;
 import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -42,7 +44,7 @@ public final class Main extends JavaPlugin {
     private Injector injector;
     @Getter
     private static Main INSTANCE;
-    @Getter
+    @Getter @Setter
     private World world;
     @Getter
     private final String monstersPrefix = "§7[§x§0§B§7§2§1§2M§x§0§B§8§1§1§4o§x§0§A§9§1§1§6n§x§0§A§A§0§1§8s§x§0§A§B§0§1§At§x§0§A§B§F§1§Ce§x§0§9§C§F§1§Er§x§0§9§D§E§2§0s§7] ";
@@ -56,15 +58,12 @@ public final class Main extends JavaPlugin {
         gson = new GsonBuilder().setPrettyPrinting().create();
 
         saveDefaultConfig();
-        world = Bukkit.getWorld("world");
-
-        injector.getInstance(MapManager.class).loadMapConfig();
-        injector.getInstance(GameManager.class).loadGameConfig();
-        injector.getInstance(GameManager.class).startPlayerCheck();
         injector.getInstance(ScoreboardManager.class).init();
 
         registerCommandsAndListeners();
         startAmmoHud();
+        // Waits for the GameManager to hand over a round, then loads its map
+        injector.getInstance(RoundLoader.class).start();
     }
 
     // Ammo panel refreshed every second while a weapon is in hand

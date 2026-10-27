@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.gameplay.listener;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
+import de.ethicbuilds.monsters.gameplay.manager.RoundLoader;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -21,11 +22,16 @@ public class PreGameListener implements Listener {
     @Inject private ScoreboardManager scoreboardManager;
     @Inject private MapManager mapManager;
     @Inject private Main plugin;
+    @Inject private RoundLoader roundLoader;
 
     private static final java.util.UUID PACK_ID = java.util.UUID.nameUUIDFromBytes("monsters-pack".getBytes());
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
+        if (!roundLoader.isLoaded()) {
+            event.getPlayer().kickPlayer("§cDie Runde wird gerade vorbereitet, versuch es gleich nochmal!");
+            return;
+        }
         event.getPlayer().teleport(mapManager.getMapConfiguration().getSpawn());
         if (userManager.isFull() || !userManager.canJoin) {
             event.getPlayer().kickPlayer("§cDer Server ist Bereits voll!");

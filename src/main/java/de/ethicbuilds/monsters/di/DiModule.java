@@ -4,6 +4,7 @@ import com.google.inject.AbstractModule;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.DoorManager;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
+import de.ethicbuilds.monsters.gameplay.manager.RoundLoader;
 import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.gameplay.repository.GameStates;
@@ -37,6 +38,7 @@ public class DiModule extends AbstractModule {
         bind(UserManager.class).asEagerSingleton();
         bind(ReviveManager.class).asEagerSingleton();
         bind(GameManager.class).asEagerSingleton();
+        bind(RoundLoader.class).asEagerSingleton();
         bind(WaveManager.class).asEagerSingleton();
         bind(MapManager.class).asEagerSingleton();
         bind(MonsterManager.class).asEagerSingleton();

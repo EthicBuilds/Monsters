@@ -3,7 +3,7 @@ package de.ethicbuilds.monsters.map.adapter;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import org.bukkit.Bukkit;
+import de.ethicbuilds.monsters.Main;
 import org.bukkit.Location;
 
 import java.io.IOException;
@@ -34,6 +34,7 @@ public class LocationAdapter extends TypeAdapter<Location> {
             }
         }
         in.endObject();
-        return new Location(Bukkit.getWorld(worldName), x, y, z);
+        // Every location of the map config belongs to the loaded round world
+        return new Location(Main.getINSTANCE().getWorld(), x, y, z);
     }
 }

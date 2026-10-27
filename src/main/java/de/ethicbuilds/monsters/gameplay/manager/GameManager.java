@@ -58,6 +58,7 @@ public class GameManager {
     }
 
     public void startPlayerCheck() {
+        lastPlayerOnlineTime = System.currentTimeMillis();
         new BukkitRunnable() {
             @Override
             public void run() {
