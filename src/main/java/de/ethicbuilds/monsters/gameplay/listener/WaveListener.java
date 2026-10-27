@@ -67,6 +67,14 @@ public class WaveListener implements Listener {
 
     private boolean isAxeCooldDown;
 
+    // Insta-kill powerup: every hit by a player kills, only the boss keeps its health
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onInstakill(EntityDamageByEntityEvent event) {
+        if (!powerupManager.isInstakill() || !(event.getEntity() instanceof Monster monster) || !(event.getDamager() instanceof Player)) return;
+        if (monsterManager.getEnemyMonster(monster) instanceof de.ethicbuilds.monsters.monster.MonsterSpiderBoss) return;
+        event.setDamage(monster.getHealth() + 100);
+    }
+
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         if (gameManager.getCurrentPhase() != GamePhase.WAVE
