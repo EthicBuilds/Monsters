@@ -37,12 +37,15 @@ public class ReviveManager implements Listener {
     private static final int BASE_COST = 1000;
     private static final double DOWN_SCALE = 0.15;
     private static final int EMPTY_SLOT = 8;
+    // A lying body has its feet at its position, the head this far along the body
+    private static final double HEAD_DISTANCE = 1.3;
 
     @Inject private Main plugin;
     @Inject private UserManager userManager;
 
     private final Map<UUID, Mannequin> bodies = new HashMap<>();
     private final Map<UUID, Location> spots = new HashMap<>();
+    private final Map<UUID, Location> views = new HashMap<>();
     private final Map<UUID, Integer> revives = new HashMap<>();
     // Own values of the player before going down (the attribute default of movement speed is 0.7, players walk with 0.1)
     private final Map<UUID, Map<Attribute, Double>> savedBases = new HashMap<>();
@@ -58,9 +61,12 @@ public class ReviveManager implements Listener {
 
     public void down(Player player) {
         Location spot = player.getLocation().clone();
+        spot.setYaw(freeYaw(spot));
+        spot.setPitch(0);
         int cost = cost(player.getUniqueId());
 
         Mannequin body = spot.getWorld().spawn(spot, Mannequin.class, mannequin -> {
+            mannequin.setBodyYaw(spot.getYaw());
             mannequin.setProfile(ResolvableProfile.resolvableProfile(player.getPlayerProfile()));
             mannequin.setPose(Pose.SLEEPING, true);
             mannequin.setInvulnerable(true);
@@ -97,9 +103,27 @@ public class ReviveManager implements Listener {
             if (player.equals(monster.getTarget())) monster.setTarget(null);
         }
 
-        Location view = spot.clone();
+        // The camera sits at the head of the body and looks up
+        Location view = headOf(spot);
         view.setPitch(-90);
+        views.put(player.getUniqueId(), view);
         player.teleport(view);
+    }
+
+    // Lying direction where the head is not inside a wall
+    private float freeYaw(Location spot) {
+        for (int turn = 0; turn < 4; turn++) {
+            Location at = spot.clone();
+            at.setYaw(spot.getYaw() + turn * 90);
+            if (headOf(at).getBlock().isPassable()) return at.getYaw();
+        }
+        return spot.getYaw();
+    }
+
+    // Matches how the client lays a sleeping body without bed along its body yaw
+    private static Location headOf(Location spot) {
+        double yaw = Math.toRadians(spot.getYaw());
+        return spot.clone().add(-Math.cos(yaw) * HEAD_DISTANCE, 0, Math.sin(yaw) * HEAD_DISTANCE);
     }
 
     /** Ends the downed state: mannequin away, player visible and normal again */
@@ -107,6 +131,7 @@ public class ReviveManager implements Listener {
         Mannequin body = bodies.remove(player.getUniqueId());
         if (body != null) body.remove();
         spots.remove(player.getUniqueId());
+        views.remove(player.getUniqueId());
 
         player.removePotionEffect(PotionEffectType.INVISIBILITY);
         player.getInventory().setHeldItemSlot(1);
@@ -158,10 +183,10 @@ public class ReviveManager implements Listener {
     @EventHandler
     public void onDownedMove(PlayerMoveEvent event) {
         if (!isDown(event.getPlayer().getUniqueId()) || !event.hasChangedPosition()) return;
-        Location spot = spots.get(event.getPlayer().getUniqueId()).clone();
-        spot.setYaw(event.getTo().getYaw());
-        spot.setPitch(event.getTo().getPitch());
-        event.setTo(spot);
+        Location view = views.getOrDefault(event.getPlayer().getUniqueId(), spots.get(event.getPlayer().getUniqueId())).clone();
+        view.setYaw(event.getTo().getYaw());
+        view.setPitch(event.getTo().getPitch());
+        event.setTo(view);
     }
 
     @EventHandler
