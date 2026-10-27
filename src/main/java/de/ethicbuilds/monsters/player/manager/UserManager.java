@@ -64,7 +64,10 @@ public class UserManager {
 
             Player player = gamePlayers.get(uuid).getPlayer();
 
-            player.setGameMode(GameMode.SURVIVAL);
+            player.setGameMode(GameMode.ADVENTURE);
+            player.setFlying(false);
+            player.setAllowFlight(false);
+            player.setInvulnerable(false);
             player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
             player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, Integer.MAX_VALUE, 3));
 

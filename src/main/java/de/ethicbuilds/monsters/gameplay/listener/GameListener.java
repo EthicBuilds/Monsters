@@ -10,6 +10,7 @@ import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -92,6 +93,12 @@ public class GameListener implements Listener {
         if (weapon == null) return;
 
         setPlayerXPToWeaponAmo(gamePlayer.getPlayer(), weapon);
+    }
+
+    // Everyone stays in adventure mode, no other game mode, also not for the team
+    @EventHandler
+    public void onGameModeChange(PlayerGameModeChangeEvent event) {
+        if (event.getNewGameMode() != GameMode.ADVENTURE) event.setCancelled(true);
     }
 
     @EventHandler

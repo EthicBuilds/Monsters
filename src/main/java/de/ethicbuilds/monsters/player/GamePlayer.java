@@ -18,7 +18,7 @@ public class GamePlayer extends GameUser {
 
 
     public GamePlayer(Player player) {
-        super(player, GameMode.SURVIVAL);
+        super(player, GameMode.ADVENTURE);
     }
 
     @Override

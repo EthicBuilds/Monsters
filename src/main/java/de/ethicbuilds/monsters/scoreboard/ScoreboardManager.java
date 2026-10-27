@@ -81,7 +81,7 @@ public class ScoreboardManager {
         addLine(scoreboard, objective, "§9", " ", "", scoreValue--);
         addLine(scoreboard, objective, "§a", "Zeit: ", formatSeconds(time), scoreValue--);
         addLine(scoreboard, objective, "§b", " ", "", scoreValue--);
-        addLine(scoreboard, objective, "§c", "§x§2§A§E§2§F§CE§x§3§A§D§D§E§Bt§x§4§A§D§8§D§Ah§x§5§A§D§3§C§9i§x§6§A§C§E§B§8c§x§7§A§C§9§A§7B§x§8§A§C§4§9§6u§x§9§9§B§F§8§4i§x§A§9§B§A§7§3l§x§B§9§B§5§6§2d§x§C§9§B§0§5§1s§x§D§9§A§B§4§0.§x§E§9§A§6§2§Fd§x§F§9§A§1§1§Ee", "", scoreValue--);
+        addLine(scoreboard, objective, "§c", "§x§2§2§D§3§E§6E§x§0§D§D§6§D§3t§x§2§8§D§7§B§Dh§x§4§A§D§7§A§5i§x§6§A§D§4§8§Bc§x§8§9§C§F§6§FB§x§A§5§C§9§5§3u§x§B§E§C§1§3§6i§x§D§5§B§7§1§8l§x§E§9§A§C§0§4d§x§F§9§A§1§1§Es§x§F§9§A§1§1§E.§x§F§9§A§1§1§Ed§x§F§9§A§1§1§Ee", "", scoreValue--);
     }
 
     private void startScoreBoardUpdater() {

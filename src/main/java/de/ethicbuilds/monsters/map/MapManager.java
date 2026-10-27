@@ -66,6 +66,11 @@ public class MapManager {
         }
         decorationManager.registerLoaded(plugin.getWorld());
         plugin.getWorld().setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
+        // Always night
+        plugin.getWorld().setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+        plugin.getWorld().setGameRule(GameRule.DO_WEATHER_CYCLE, false);
+        plugin.getWorld().setStorm(false);
+        plugin.getWorld().setTime(18000);
 
         createDoorHolos();
         createWeaponPointHolos();
