@@ -26,6 +26,7 @@ import org.bukkit.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -53,6 +54,10 @@ public class WaveListener implements Listener {
     @Inject private DecorationManager decorationManager;
     @Inject private GrenadeManager grenadeManager;
     @Inject private Main plugin;
+
+    public static final int AMMO_PRICE = 500;
+    private static final long AMMO_COOLDOWN = 1500;
+    private final java.util.Map<java.util.UUID, Long> ammoCooldowns = new java.util.HashMap<>();
 
     private boolean isAxeCooldDown;
 
@@ -181,8 +186,26 @@ public class WaveListener implements Listener {
         GamePlayer gamePlayer = userManager.getGamePlayer(event.getPlayer().getUniqueId());
         if (gamePlayer == null || userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) return;
 
-        if (station.equals(DecorationManager.GRENADE_STATION)) {
-            grenadeManager.buy(gamePlayer);
+        if (station.equals(DecorationManager.AMMO_STATION)) {
+            refillHeldWeapon(gamePlayer);
+        } else {
+            buyOrReloadWeapon(gamePlayer, station);
+        }
+    }
+
+    // Hitting a station works like right-clicking it
+    @EventHandler
+    public void onPlayerHitStation(PrePlayerAttackEntityEvent event) {
+        if (!(event.getAttacked() instanceof Interaction interaction)) return;
+        String station = decorationManager.getStation(interaction);
+        if (station == null) return;
+        event.setCancelled(true);
+
+        GamePlayer gamePlayer = userManager.getGamePlayer(event.getPlayer().getUniqueId());
+        if (gamePlayer == null || userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) return;
+
+        if (station.equals(DecorationManager.AMMO_STATION)) {
+            refillHeldWeapon(gamePlayer);
         } else {
             buyOrReloadWeapon(gamePlayer, station);
         }
@@ -217,6 +240,37 @@ public class WaveListener implements Listener {
                 && loc1.getBlockZ() == loc2.getBlockZ();
     }
 
+
+    // Ammo crate: fills the weapon in hand once, short cooldown so nobody pays twice
+    private void refillHeldWeapon(GamePlayer gamePlayer) {
+        Player player = gamePlayer.getPlayer();
+        long now = System.currentTimeMillis();
+        if (now - ammoCooldowns.getOrDefault(player.getUniqueId(), 0L) < AMMO_COOLDOWN) return;
+
+        Weapon weapon = gamePlayer.getWeapon(player.getInventory().getItemInMainHand());
+        AmmoHud.pause(player);
+        if (weapon == null) {
+            player.sendActionBar("§7Halte die Waffe in der Hand, die du auffüllen willst");
+            return;
+        }
+        if (weapon.isFull()) {
+            player.sendActionBar("§cMunition bereits voll!");
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
+            return;
+        }
+        if (gamePlayer.getCoins() < AMMO_PRICE) {
+            player.sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum die Munition aufzufüllen", AMMO_PRICE - gamePlayer.getCoins()));
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
+            return;
+        }
+
+        ammoCooldowns.put(player.getUniqueId(), now);
+        gamePlayer.setCoins(gamePlayer.getCoins() - AMMO_PRICE);
+        weapon.refill();
+        weapon.reload(player);
+        player.sendMessage(String.format("§7Munition von §a%s §7aufgefüllt! §c-%d Coins", weapon.getName(), AMMO_PRICE));
+        player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_YES, 1.0F, 1.0F);
+    }
 
     private void breakDoor(GamePlayer gamePlayer, Door door) {
         Player player = gamePlayer.getPlayer();
@@ -337,7 +391,7 @@ public class WaveListener implements Listener {
                 return;
             }
 
-            if (playerWeapon.getAmmu() >= playerWeapon.getMaxAmmu() - 2) {
+            if (playerWeapon.isFull()) {
                 player.sendMessage("§cMunition bereits voll!");
                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
                 return;

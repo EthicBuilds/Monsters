@@ -126,8 +126,13 @@ public abstract class Weapon {
         AmmoHud.show(player, this);
     }
 
+    /** Full again: after the next reload both magazine and stock are at their maximum */
     public void refill() {
-        ammu = maxAmmu;
+        ammu = maxAmmu + (maxMagazine - magazine);
+    }
+
+    public boolean isFull() {
+        return ammu >= maxAmmu && magazine >= maxMagazine;
     }
 
     protected void startCoolDown() {

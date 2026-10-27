@@ -3,7 +3,6 @@ package de.ethicbuilds.monsters.weapons.manager;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.items.GameItems;
-import de.ethicbuilds.monsters.player.GamePlayer;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -17,37 +16,14 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 public class GrenadeManager {
-    public static final int PRICE = 750;
     public static final int MAX_GRENADES = 4;
 
-    private static final int FUSE_TICKS = 50;
+    private static final int FUSE_TICKS = 40;
     private static final double RADIUS = 5.0;
     private static final double DAMAGE = 30.0;
-    private static final java.util.Set<Integer> TICKS = java.util.Set.of(10, 25, 35, 42, 46, 49);
+    private static final java.util.Set<Integer> TICKS = java.util.Set.of(8, 20, 28, 34, 37, 39);
 
     @Inject private Main plugin;
-
-    public void buy(GamePlayer gamePlayer) {
-        Player player = gamePlayer.getPlayer();
-        ItemStack current = player.getInventory().getItem(GameItems.GRENADE_SLOT);
-        int amount = GameItems.isGrenade(current) ? current.getAmount() : 0;
-
-        if (amount >= MAX_GRENADES) {
-            player.sendMessage(String.format("§cDu kannst höchstens %d Granaten tragen!", MAX_GRENADES));
-            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
-            return;
-        }
-        if (gamePlayer.getCoins() < PRICE) {
-            player.sendMessage(String.format("§cDu brauchst noch §6%d Coins §cfür eine Granate", PRICE - gamePlayer.getCoins()));
-            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
-            return;
-        }
-
-        gamePlayer.setCoins(gamePlayer.getCoins() - PRICE);
-        give(player);
-        player.sendMessage(String.format("%s§7Du hast eine §aGranate §7gekauft! §c-%d Coins!", plugin.getMonstersPrefix(), PRICE));
-        player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_YES, 1.0F, 1.0F);
-    }
 
     /** One more grenade in the grenade slot, false when the player already carries the maximum */
     public boolean give(Player player) {
@@ -78,7 +54,6 @@ public class GrenadeManager {
 
         new BukkitRunnable() {
             int ticks = 0;
-            int groundTicks = 0;
 
             @Override
             public void run() {
@@ -95,9 +70,7 @@ public class GrenadeManager {
                     grenade.getWorld().playSound(at, Sound.BLOCK_NOTE_BLOCK_HAT, 1.0F, 1.0F + ticks / (float) FUSE_TICKS);
                     grenade.getWorld().spawnParticle(Particle.DUST, at, 4, 0.05, 0.05, 0.05, new Particle.DustOptions(Color.RED, 1.0F));
                 }
-                // Goes off right after it lands
-                if (grenade.isOnGround()) groundTicks++;
-                if (groundTicks >= 3 || ticks >= FUSE_TICKS) {
+                if (ticks >= FUSE_TICKS) {
                     explode(player, grenade.getLocation());
                     grenade.remove();
                     cancel();

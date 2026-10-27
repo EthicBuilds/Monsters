@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.weapons.Weapon;
-import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
+import de.ethicbuilds.monsters.gameplay.listener.WaveListener;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -42,7 +42,7 @@ import java.util.UUID;
  */
 public class DecorationManager implements Listener {
     public static final NamespacedKey FURNITURE = new NamespacedKey("nexo", "furniture");
-    public static final String GRENADE_STATION = "granate";
+    public static final String AMMO_STATION = "munition";
 
     private static final Map<String, String> WEAPON_CRATES = Map.of(
             "waffenkiste_schrot_1", "schrot",
@@ -97,7 +97,7 @@ public class DecorationManager implements Listener {
         } else if (WEAPON_CRATES.containsKey(id)) {
             createWeaponStation(block, WEAPON_CRATES.get(id));
         } else if (AMMO_CRATE.equals(id)) {
-            createStation(block, GRENADE_STATION, "Granate", price(GrenadeManager.PRICE));
+            createStation(block, AMMO_STATION, "Munition", price(WaveListener.AMMO_PRICE) + "\n<#9AA6B8>für die Waffe in der Hand");
         }
     }
 
