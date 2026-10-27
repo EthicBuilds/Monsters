@@ -34,7 +34,7 @@ public final class GameItems {
     }
 
     public static ItemStack crowbar() {
-        return create(Material.STICK, "§aBrechstange", "brechstange");
+        return create(Material.BLAZE_ROD, "§aBrechstange", "brechstange");
     }
 
     public static ItemStack grenade(int amount) {
@@ -48,7 +48,7 @@ public final class GameItems {
     }
 
     public static boolean isCrowbar(ItemStack item) {
-        return item != null && item.getType() == Material.STICK;
+        return item != null && item.getType() == Material.BLAZE_ROD;
     }
 
     public static boolean isGrenade(ItemStack item) {
