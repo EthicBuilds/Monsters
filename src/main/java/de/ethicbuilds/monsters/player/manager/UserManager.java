@@ -45,6 +45,39 @@ public class UserManager {
         }
     }
 
+    /** Left during the round: stays in it as spectator and can come back */
+    public void leave(UUID uuid) {
+        GamePlayer gamePlayer = gamePlayers.get(uuid);
+        if (gamePlayer == null || spectators.containsKey(uuid)) return;
+        spectators.put(uuid, new GameSpectator(gamePlayer.getPlayer()));
+    }
+
+    /** Players of this round may always come back, new ones while there is a free slot */
+    public boolean canJoinRunning(UUID uuid) {
+        return gamePlayers.containsKey(uuid) || gamePlayers.size() < gameManager.getGameConfig().getPlayerCount();
+    }
+
+    /** Joins or rejoins a running round: watches until the next wave, then plays again */
+    public void joinRunning(Player player) {
+        GamePlayer gamePlayer = gamePlayers.get(player.getUniqueId());
+        if (gamePlayer == null) {
+            gamePlayer = new GamePlayer(player);
+            gamePlayers.put(player.getUniqueId(), gamePlayer);
+        } else {
+            gamePlayer.setPlayer(player);
+        }
+        spectators.put(player.getUniqueId(), new GameSpectator(player));
+
+        player.teleport(mapManager.getMapConfiguration().getSpawn());
+        player.setAllowFlight(true);
+        player.setFlying(true);
+        player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, PotionEffect.INFINITE_DURATION, 0, false, false, false));
+        for (Player other : Bukkit.getOnlinePlayers()) {
+            if (!other.equals(player)) other.hidePlayer(plugin, player);
+        }
+        player.sendTitle("§7Du schaust zu", "§aAb der nächsten Welle spielst du mit", 10, 60, 10);
+    }
+
     public void killPlayer(UUID uuid) {
         if (isGamePlayer(uuid)) {
             GamePlayer gamePlayer = gamePlayers.get(uuid);

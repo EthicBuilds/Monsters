@@ -25,6 +25,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -43,6 +44,8 @@ public class ReviveManager implements Listener {
     private final Map<UUID, Mannequin> bodies = new HashMap<>();
     private final Map<UUID, Location> spots = new HashMap<>();
     private final Map<UUID, Integer> revives = new HashMap<>();
+    // Own values of the player before going down (the attribute default of movement speed is 0.7, players walk with 0.1)
+    private final Map<UUID, Map<Attribute, Double>> savedBases = new HashMap<>();
 
     /** Every revive of the same player costs 1000 more */
     public int cost(UUID uuid) {
@@ -79,6 +82,12 @@ public class ReviveManager implements Listener {
         // Not even the downed player sees the small body (F5) or an item in hand
         player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, PotionEffect.INFINITE_DURATION, 0, false, false, false));
         player.getInventory().setHeldItemSlot(EMPTY_SLOT);
+        Map<Attribute, Double> saved = new HashMap<>();
+        for (Attribute attribute : List.of(Attribute.SCALE, Attribute.MOVEMENT_SPEED, Attribute.JUMP_STRENGTH)) {
+            AttributeInstance instance = player.getAttribute(attribute);
+            if (instance != null) saved.put(attribute, instance.getBaseValue());
+        }
+        savedBases.putIfAbsent(player.getUniqueId(), saved);
         setBase(player, Attribute.SCALE, DOWN_SCALE);
         setBase(player, Attribute.MOVEMENT_SPEED, 0);
         setBase(player, Attribute.JUMP_STRENGTH, 0);
@@ -101,9 +110,10 @@ public class ReviveManager implements Listener {
 
         player.removePotionEffect(PotionEffectType.INVISIBILITY);
         player.getInventory().setHeldItemSlot(1);
-        resetBase(player, Attribute.SCALE);
-        resetBase(player, Attribute.MOVEMENT_SPEED);
-        resetBase(player, Attribute.JUMP_STRENGTH);
+        Map<Attribute, Double> saved = savedBases.remove(player.getUniqueId());
+        setBase(player, Attribute.SCALE, saved != null ? saved.getOrDefault(Attribute.SCALE, 1.0) : 1.0);
+        setBase(player, Attribute.MOVEMENT_SPEED, saved != null ? saved.getOrDefault(Attribute.MOVEMENT_SPEED, 0.1) : 0.1);
+        setBase(player, Attribute.JUMP_STRENGTH, saved != null ? saved.getOrDefault(Attribute.JUMP_STRENGTH, 0.42) : 0.42);
 
         for (Player other : Bukkit.getOnlinePlayers()) {
             other.showPlayer(plugin, player);
@@ -174,8 +184,4 @@ public class ReviveManager implements Listener {
         if (instance != null) instance.setBaseValue(value);
     }
 
-    private static void resetBase(Player player, Attribute attribute) {
-        AttributeInstance instance = player.getAttribute(attribute);
-        if (instance != null) instance.setBaseValue(instance.getDefaultValue());
-    }
 }

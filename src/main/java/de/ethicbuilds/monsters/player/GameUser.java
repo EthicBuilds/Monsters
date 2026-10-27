@@ -16,7 +16,7 @@ public abstract class GameUser {
     @Getter
     protected int[] weaponSlots = {1, 2, 3};
 
-    @Getter
+    @Getter @Setter
     protected Player player;
     @Getter @Setter
     protected GameMode mode;

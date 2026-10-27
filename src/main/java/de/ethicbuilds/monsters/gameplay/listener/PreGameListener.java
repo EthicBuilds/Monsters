@@ -32,6 +32,14 @@ public class PreGameListener implements Listener {
             event.getPlayer().kickPlayer("§cDie Runde wird gerade vorbereitet, versuch es gleich nochmal!");
             return;
         }
+        if (gameManager.getCurrentPhase() == GamePhase.WAVE) {
+            joinRunning(event);
+            return;
+        }
+        if (gameManager.getCurrentPhase() != GamePhase.PRE_GAME) {
+            event.getPlayer().kickPlayer("§cDie Runde ist gerade vorbei!");
+            return;
+        }
         event.getPlayer().teleport(mapManager.getMapConfiguration().getSpawn());
         if (userManager.isFull() || !userManager.canJoin) {
             event.getPlayer().kickPlayer("§cDer Server ist Bereits voll!");
@@ -45,13 +53,7 @@ public class PreGameListener implements Listener {
         }
 
         Player player = event.getPlayer();
-        // Own pack for Monsters models (workbench), the lobby pack stays active
-        String packUrl = plugin.getConfig().getString("resource-pack.url");
-        String packSha1 = plugin.getConfig().getString("resource-pack.sha1");
-        if (packUrl != null && !packUrl.isBlank() && packSha1 != null && packSha1.length() == 40) {
-            player.addResourcePack(PACK_ID, packUrl, java.util.HexFormat.of().parseHex(packSha1), null, false);
-        }
-
+        sendPack(player);
         player.setScoreboard(scoreboardManager.getScoreboard());
 
         player.sendMessage(String.format("%sMap: §6%s", plugin.getMonstersPrefix(), gameManager.getGameConfig().getMapName()));
@@ -64,12 +66,35 @@ public class PreGameListener implements Listener {
         event.setJoinMessage("");
     }
 
+    // Rejoin or late join during the waves
+    private void joinRunning(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        event.setJoinMessage("");
+        if (!userManager.canJoinRunning(player.getUniqueId())) {
+            player.kickPlayer("§cDer Server ist Bereits voll!");
+            return;
+        }
+        userManager.joinRunning(player);
+        sendPack(player);
+        player.setScoreboard(scoreboardManager.getScoreboard());
+        Bukkit.broadcastMessage(String.format("%s§a%s §7ist wieder dabei und spielt ab der nächsten Welle mit!", plugin.getMonstersPrefix(), player.getName()));
+    }
+
+    // Own pack for Monsters models (workbench, HUD), the lobby pack stays active
+    private void sendPack(Player player) {
+        String packUrl = plugin.getConfig().getString("resource-pack.url");
+        String packSha1 = plugin.getConfig().getString("resource-pack.sha1");
+        if (packUrl != null && !packUrl.isBlank() && packSha1 != null && packSha1.length() == 40) {
+            player.addResourcePack(PACK_ID, packUrl, java.util.HexFormat.of().parseHex(packSha1), null, false);
+        }
+    }
+
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         event.setQuitMessage("");
-        userManager.removePlayer(event.getPlayer().getUniqueId());
-
         if (gameManager.getCurrentPhase() != GamePhase.PRE_GAME) return;
+
+        userManager.removePlayer(event.getPlayer().getUniqueId());
 
         userManager.canJoin = true;
         gameManager.interruptGameStart();

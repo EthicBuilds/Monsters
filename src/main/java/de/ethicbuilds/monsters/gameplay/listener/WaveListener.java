@@ -230,9 +230,10 @@ public class WaveListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         if (gameManager.getCurrentPhase() != GamePhase.WAVE) return;
 
-        userManager.removePlayer(event.getPlayer().getUniqueId());
+        // Stays in the round and may come back, the others play on
+        userManager.leave(event.getPlayer().getUniqueId());
 
-        if (userManager.getGamePlayers().size() == userManager.getSpectators().size()) {
+        if (userManager.allPlayersDead()) {
             gameManager.gameEnd();
         }
     }
