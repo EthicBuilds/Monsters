@@ -14,6 +14,7 @@ import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.bukkit.Bukkit;
+import org.bukkit.GameRule;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -64,6 +65,7 @@ public class MapManager {
             if (!(entity instanceof Player) && !DecorationManager.isFurniture(entity)) entity.remove();
         }
         decorationManager.registerLoaded(plugin.getWorld());
+        plugin.getWorld().setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
 
         createDoorHolos();
         createWeaponPointHolos();
