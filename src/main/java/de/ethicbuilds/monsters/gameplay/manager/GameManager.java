@@ -10,6 +10,7 @@ import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.gameplay.repository.GameStates;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.adapter.LocationAdapter;
+import de.ethicbuilds.monsters.monster.TrackerGlow;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -121,6 +122,9 @@ public class GameManager {
                     broadcastTitle(plugin.getMonstersPrefix(), "§cÜberlebe so lange wie möglich!");
 
                     userManager.startMonsterTrackerTask();
+                    if (Bukkit.getPluginManager().isPluginEnabled("ProtocolLib")) {
+                        plugin.getInjector().getInstance(TrackerGlow.class).start();
+                    }
 
                     this.cancel();
                 }
