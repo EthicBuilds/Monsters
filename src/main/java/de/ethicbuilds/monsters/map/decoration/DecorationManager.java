@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.map.decoration;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
@@ -14,10 +15,12 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.EntitiesLoadEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.HashMap;
@@ -72,6 +75,13 @@ public class DecorationManager implements Listener {
 
         String id = entity.getPersistentDataContainer().get(FURNITURE, PersistentDataType.STRING);
         Block block = entity.getLocation().getBlock();
+
+        // Nexo sends the item only via packets
+        if (entity instanceof ItemDisplay display && (display.getItemStack() == null || display.getItemStack().getType().isAir())) {
+            ItemStack item = new ItemStack(Material.PAPER);
+            GameItems.setModel(item, id);
+            display.setItemStack(item);
+        }
 
         if (SOLID.contains(id) && block.getType().isAir()) {
             block.setType(Material.BARRIER, false);
