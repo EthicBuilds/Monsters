@@ -146,6 +146,14 @@ public abstract class Weapon {
         maxMagazine = (int) Math.round(baseMagazine * (1 + 0.25 * level));
     }
 
+    public double nextDamage() {
+        return baseDamage * (1 + 0.25 * Math.min(level + 1, MAX_LEVEL));
+    }
+
+    public int nextMagazine() {
+        return (int) Math.round(baseMagazine * (1 + 0.25 * Math.min(level + 1, MAX_LEVEL)));
+    }
+
     public boolean isFull() {
         return ammu >= maxAmmu && magazine >= maxMagazine;
     }
