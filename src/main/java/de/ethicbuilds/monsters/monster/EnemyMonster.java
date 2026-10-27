@@ -11,7 +11,6 @@ import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.Collection;
 
 public abstract class EnemyMonster {
     protected int health;
@@ -23,6 +22,8 @@ public abstract class EnemyMonster {
     protected EntityType type;
     @Getter
     protected int coin;
+    @Getter
+    private Player target;
 
     private final Main plugin = Main.getINSTANCE();
 
@@ -38,6 +39,7 @@ public abstract class EnemyMonster {
         monster.setHealth(health);
         if (plugin.getConfig().getBoolean("health-bars", true)) HealthBars.attach(monster);
 
+        target = player;
         Pathfinder pathfinder = monster.getPathfinder();
         new BukkitRunnable() {
             @Override
@@ -47,29 +49,18 @@ public abstract class EnemyMonster {
                     return;
                 }
 
-                if (!player.isOnline() || userManager.isPlayerDead(player.getUniqueId())) {
-                    Player target = getNearestPlayer(monster.getLocation());
-                    if (target != null) pathfinder.moveTo(target, speed);
-                } else {
-                    pathfinder.moveTo(player, speed);
+                // Every monster keeps its own player, a dead one hands it to the least chased living player
+                if (target == null || !target.isOnline() || userManager.isPlayerDead(target.getUniqueId())) {
+                    target = monsterManager().leastChasedPlayer();
                 }
+                if (target == null) return;
+                monster.setTarget(target);
+                pathfinder.moveTo(target, speed);
             }
         }.runTaskTimer(plugin, 0L, 20L);
     }
 
-    private Player getNearestPlayer(Location origin) {
-        Collection<Player> nearbyPlayers = origin.getWorld().getNearbyPlayers(origin, 1000);
-        Player closest = null;
-        double minDist = Double.MAX_VALUE;
-
-        for (Player player : nearbyPlayers) {
-            if (userManager.isPlayerDead(player.getUniqueId())) continue;
-            double dist = player.getLocation().distanceSquared(origin);
-            if (dist < minDist) {
-                minDist = dist;
-                closest = player;
-            }
-        }
-        return closest;
+    private de.ethicbuilds.monsters.monster.manager.MonsterManager monsterManager() {
+        return plugin.getInjector().getInstance(de.ethicbuilds.monsters.monster.manager.MonsterManager.class);
     }
 }

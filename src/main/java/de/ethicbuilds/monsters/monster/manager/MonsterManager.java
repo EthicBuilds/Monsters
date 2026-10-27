@@ -44,7 +44,7 @@ public class MonsterManager {
         initialMonsters.clear();
 
         int players = Math.max(1, userManager.getGamePlayers().size());
-        int monsterCount = players * (8 + 4 * (wave - 1));
+        int monsterCount = players * (2 + 4 * (wave - 1));
 
         for (int i = 0; i < monsterCount; i++) {
             initialMonsters.add(new MonsterZombie());
@@ -81,6 +81,22 @@ public class MonsterManager {
         initialMonsters.clear();
     }
 
+
+    /** The living player that the fewest monsters are chasing */
+    public Player leastChasedPlayer() {
+        Player best = null;
+        long fewest = Long.MAX_VALUE;
+        for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
+            Player player = gamePlayer.getPlayer();
+            if (!player.isOnline() || userManager.isPlayerDead(player.getUniqueId())) continue;
+            long chasing = monsters.values().stream().filter(m -> player.equals(m.getTarget())).count();
+            if (chasing < fewest) {
+                fewest = chasing;
+                best = player;
+            }
+        }
+        return best;
+    }
 
     public EnemyMonster getEnemyMonster(Monster monster) {
         return monsters.get(monster);

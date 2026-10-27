@@ -46,9 +46,9 @@ public class PreGameListener implements Listener {
 
         Player player = event.getPlayer();
         // Own pack for Monsters models (workbench), the lobby pack stays active
-        String packUrl = plugin.getConfig().getString("resource-pack.url", "");
-        String packSha1 = plugin.getConfig().getString("resource-pack.sha1", "");
-        if (!packUrl.isBlank() && packSha1.length() == 40) {
+        String packUrl = plugin.getConfig().getString("resource-pack.url");
+        String packSha1 = plugin.getConfig().getString("resource-pack.sha1");
+        if (packUrl != null && !packUrl.isBlank() && packSha1 != null && packSha1.length() == 40) {
             player.addResourcePack(PACK_ID, packUrl, java.util.HexFormat.of().parseHex(packSha1), null, false);
         }
 

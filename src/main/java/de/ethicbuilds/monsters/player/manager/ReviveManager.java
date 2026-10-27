@@ -21,6 +21,8 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +35,7 @@ import java.util.UUID;
 public class ReviveManager implements Listener {
     private static final int BASE_COST = 1000;
     private static final double DOWN_SCALE = 0.15;
+    private static final int EMPTY_SLOT = 8;
 
     @Inject private Main plugin;
     @Inject private UserManager userManager;
@@ -73,6 +76,9 @@ public class ReviveManager implements Listener {
             if (!other.equals(player)) other.hidePlayer(plugin, player);
         }
 
+        // Not even the downed player sees the small body (F5) or an item in hand
+        player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, PotionEffect.INFINITE_DURATION, 0, false, false, false));
+        player.getInventory().setHeldItemSlot(EMPTY_SLOT);
         setBase(player, Attribute.SCALE, DOWN_SCALE);
         setBase(player, Attribute.MOVEMENT_SPEED, 0);
         setBase(player, Attribute.JUMP_STRENGTH, 0);
@@ -93,6 +99,8 @@ public class ReviveManager implements Listener {
         if (body != null) body.remove();
         spots.remove(player.getUniqueId());
 
+        player.removePotionEffect(PotionEffectType.INVISIBILITY);
+        player.getInventory().setHeldItemSlot(1);
         resetBase(player, Attribute.SCALE);
         resetBase(player, Attribute.MOVEMENT_SPEED);
         resetBase(player, Attribute.JUMP_STRENGTH);
@@ -144,6 +152,11 @@ public class ReviveManager implements Listener {
         spot.setYaw(event.getTo().getYaw());
         spot.setPitch(event.getTo().getPitch());
         event.setTo(spot);
+    }
+
+    @EventHandler
+    public void onDownedSlotChange(org.bukkit.event.player.PlayerItemHeldEvent event) {
+        if (isDown(event.getPlayer().getUniqueId())) event.setCancelled(true);
     }
 
     @EventHandler
