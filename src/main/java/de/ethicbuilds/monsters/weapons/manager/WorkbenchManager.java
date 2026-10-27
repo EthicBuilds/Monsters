@@ -38,18 +38,25 @@ import java.util.UUID;
 
 /***
  * Weapon workbench: opens from wave 5 for 5000 coins, then every weapon can be upgraded 4 times
- * (15000, then double each time). Menu design from the design session (font monsters:menu, 5 rows).
+ * (price per weapon, then double each time). Menu design from the design session: one background,
+ * tab, stars, button and texts are drawn into the title (WorkbenchTitle).
  */
 public class WorkbenchManager implements Listener {
     public static final int UNLOCK_WAVE = 5;
     public static final int UNLOCK_PRICE = 5000;
 
-    private static final int[] WEAPON_SLOTS = {10, 19, 28};
-    private static final int BIG_SLOT = 22, DAMAGE_SLOT = 16, MAGAZINE_SLOT = 25, ACTION_SLOT = 34, CLOSE_SLOT = 36;
+    private static final int[] WEAPON_SLOTS = {0, 9, 18};
+    private static final int[] BUTTON_SLOTS = {32, 33, 34, 35, 41, 42, 43, 44};
+    private static final int BIG_SLOT = 11, LEVEL_SLOT = 5, DAMAGE_SLOT = 14, MAGAZINE_SLOT = 23, CLOSE_SLOT = 36;
 
-    private static final Key MENU_FONT = Key.key("monsters", "menu");
-    private static final Key UI_FONT = Key.key("ethicbuilds", "ui");
     private static final Key HUD_FONT = Key.key("monsters", "hud");
+    private static final String COIN = "\uE017", ARROW = " \u2192 ";
+    private static final TextColor WHITE = TextColor.color(0xFFFFFF);
+    private static final TextColor NEW_VALUE = TextColor.color(0x6CF09A);
+    private static final TextColor BUTTON_GREY = TextColor.color(0xC8CED8);
+    private static final TextColor TOO_EXPENSIVE = TextColor.color(0xFF8A80);
+    // Level colours of the ammo bar: I green, II blue, III purple, IV gold
+    private static final int[] LEVEL_COLORS = {0x3BDB9A, 0x49A2E8, 0x9678F0, 0xFFCD28};
     private static final TextColor LIGHT = TextColor.color(0xF2F5F8);
     private static final TextColor GREY = TextColor.color(0x9AA6B8);
     private static final TextColor GREEN = TextColor.color(0x3BDB9A);
@@ -81,7 +88,7 @@ public class WorkbenchManager implements Listener {
         Weapon weapon = weapons.isEmpty() ? null : weapons.get(index);
 
         Menu menu = new Menu(weapons);
-        Inventory inventory = Bukkit.createInventory(menu, 45, title(weapon != null ? weapon.getLevel() : 0));
+        Inventory inventory = Bukkit.createInventory(menu, 45, title(gamePlayer, weapon, index));
         menu.inventory = inventory;
 
         for (int i = 0; i < WEAPON_SLOTS.length && i < weapons.size(); i++) {
@@ -91,7 +98,6 @@ public class WorkbenchManager implements Listener {
             item.editMeta(meta -> {
                 meta.displayName(text(weapons.get(finalI).getName().replaceAll("§.", ""), LIGHT));
                 meta.lore(List.of(text("Stufe " + weapons.get(finalI).getLevel() + "/" + Weapon.MAX_LEVEL, GREY)));
-                meta.setEnchantmentGlintOverride(finalI == index);
             });
             inventory.setItem(WEAPON_SLOTS[i], item);
         }
@@ -99,11 +105,14 @@ public class WorkbenchManager implements Listener {
         if (weapon != null) {
             boolean max = weapon.getLevel() >= Weapon.MAX_LEVEL;
             inventory.setItem(BIG_SLOT, icon(Material.PAPER, "waffe_" + weapon.getModel(), text(weapon.getName().replaceAll("§.", ""), LIGHT)));
+            inventory.setItem(LEVEL_SLOT, icon(Material.PAPER, "werkbank_stufe", text("Stufe", GREY),
+                    change(weapon.getLevel() + "/" + Weapon.MAX_LEVEL, (weapon.getLevel() + 1) + "/" + Weapon.MAX_LEVEL, max)));
             inventory.setItem(DAMAGE_SLOT, icon(Material.PAPER, "werkbank_schaden", text("Schaden", GREY),
                     change(number(weapon.getDamage()), number(weapon.nextDamage()), max)));
             inventory.setItem(MAGAZINE_SLOT, icon(Material.PAPER, "werkbank_magazin", text("Magazin", GREY),
                     change(String.valueOf(weapon.getMaxMagazine()), String.valueOf(weapon.nextMagazine()), max)));
-            inventory.setItem(ACTION_SLOT, actionButton(gamePlayer, weapon));
+            ItemStack button = actionButton(gamePlayer, weapon);
+            for (int slot : BUTTON_SLOTS) inventory.setItem(slot, button);
         }
 
         ItemStack close = new ItemStack(Material.BARRIER);
@@ -119,18 +128,17 @@ public class WorkbenchManager implements Listener {
 
     private ItemStack actionButton(GamePlayer gamePlayer, Weapon weapon) {
         if (waveManager.getCurrentWave() < UNLOCK_WAVE) {
-            return icon(Material.PAPER, "werkbank_gesperrt", text("Freischalten", LIGHT), text("Ab Welle " + UNLOCK_WAVE, RED));
+            return icon(Material.PAPER, "leer", text("Gesperrt", LIGHT), text("Ab Welle " + UNLOCK_WAVE, RED));
         }
         if (!unlocked.contains(gamePlayer.getPlayer().getUniqueId())) {
-            return icon(Material.PAPER, "werkbank_gesperrt", text("Freischalten", LIGHT), price(UNLOCK_PRICE, gamePlayer.getCoins() >= UNLOCK_PRICE));
+            return icon(Material.PAPER, "leer", text("Freischalten", LIGHT), price(UNLOCK_PRICE, gamePlayer.getCoins() >= UNLOCK_PRICE));
         }
         if (weapon.getLevel() >= Weapon.MAX_LEVEL) {
-            return icon(Material.PAPER, "werkbank_maximal", text("Maximal", GOLD));
+            return icon(Material.PAPER, "leer", text("Maximal", GOLD));
         }
         int price = upgradePrice(weapon);
         boolean affordable = gamePlayer.getCoins() >= price;
-        return icon(Material.PAPER, affordable ? "werkbank_verbessern" : "werkbank_verbessern_aus",
-                text("Verbessern", GREEN).decoration(TextDecoration.BOLD, true), price(price, affordable));
+        return icon(Material.PAPER, "leer", text("Verbessern", GREEN).decoration(TextDecoration.BOLD, true), price(price, affordable));
     }
 
     // Back in the round: the sign without the unlock price again
@@ -162,7 +170,7 @@ public class WorkbenchManager implements Listener {
         }
         if (slot == CLOSE_SLOT) {
             player.closeInventory();
-        } else if (slot == ACTION_SLOT) {
+        } else if (java.util.Arrays.stream(BUTTON_SLOTS).anyMatch(s -> s == slot)) {
             clickAction(gamePlayer, menu);
         }
     }
@@ -214,12 +222,68 @@ public class WorkbenchManager implements Listener {
         return true;
     }
 
-    // Background per level as glyph in the title, the text in the HUD font
-    private static Component title(int level) {
-        return Component.text()
-                .append(Component.text("" + (char) ('' + level) + "", NamedTextColor.WHITE).font(MENU_FONT))
-                .append(Component.text("Werkbank", LIGHT).font(UI_FONT))
-                .build();
+    // Everything that changes is drawn into the title: tab, stars, button, card and balance
+    private Component title(GamePlayer gamePlayer, Weapon weapon, int row) {
+        WorkbenchTitle title = new WorkbenchTitle().name("Werkbank");
+        int coins = gamePlayer.getCoins();
+        title.centered("guthaben_name", 52, new WorkbenchTitle.Part("Guthaben", GREY))
+                .centered("guthaben", 52, new WorkbenchTitle.Part(COIN + " " + coins(coins), ORANGE));
+        if (weapon == null) return title.build();
+
+        int level = weapon.getLevel();
+        boolean max = level >= Weapon.MAX_LEVEL;
+        boolean locked = waveManager.getCurrentWave() < UNLOCK_WAVE;
+        boolean open = unlocked.contains(gamePlayer.getPlayer().getUniqueId());
+        boolean values = open && !max || locked;
+
+        title.glyph((char) (0xE010 + row), 6, 21)
+                .glyph((char) (0xE030 + level), level == 0 ? 25 : 22, level == 0 ? 56 : level == Weapon.MAX_LEVEL ? 62 : 59);
+
+        // Card: what you get
+        title.left("name_0", 117, new WorkbenchTitle.Part("Stufe", GREY));
+        if (max) title.left("wert_0", 117, new WorkbenchTitle.Part(level + "/" + Weapon.MAX_LEVEL, LIGHT));
+        else if (values) title.left("wert_0", 117, new WorkbenchTitle.Part(String.valueOf(level), LIGHT),
+                new WorkbenchTitle.Part(ARROW, ORANGE), new WorkbenchTitle.Part(String.valueOf(level + 1), TextColor.color(LEVEL_COLORS[level])));
+        else title.left("wert_0", 117, new WorkbenchTitle.Part("-", LIGHT));
+        title.left("name_1", 117, new WorkbenchTitle.Part("Schaden", GREY));
+        cardValue(title, "wert_1", number(weapon.getDamage()), number(weapon.nextDamage()), values);
+        title.left("name_2", 117, new WorkbenchTitle.Part("Magazin", GREY));
+        cardValue(title, "wert_2", String.valueOf(weapon.getMaxMagazine()), String.valueOf(weapon.nextMagazine()), values);
+
+        // Button with price
+        if (locked) {
+            title.glyph('\uE024', 95, 74)
+                    .centered("knopf", 132, new WorkbenchTitle.Part("Gesperrt", BUTTON_GREY))
+                    .centered("knopf_2", 132, new WorkbenchTitle.Part("Ab Welle " + UNLOCK_WAVE, ORANGE));
+        } else if (!open) {
+            title.glyph('\uE022', 93, 78)
+                    .centered("knopf", 132, new WorkbenchTitle.Part("Freischalten", WHITE))
+                    .centered("preis", 132, new WorkbenchTitle.Part(COIN + " " + coins(UNLOCK_PRICE), WHITE));
+        } else if (max) {
+            title.glyph('\uE023', 93, 78)
+                    .centered("knopf", 132, new WorkbenchTitle.Part("Maximal", TextColor.color(0x3B2A00)))
+                    .centered("knopf_2", 132, new WorkbenchTitle.Part("Stufe " + level + "/" + Weapon.MAX_LEVEL, TextColor.color(0x5A4200)));
+        } else {
+            int price = upgradePrice(weapon);
+            boolean affordable = coins >= price;
+            title.glyph(affordable ? '\uE020' : '\uE021', affordable ? 93 : 95, affordable ? 78 : 74)
+                    .centered("knopf", 132, new WorkbenchTitle.Part("Verbessern", affordable ? WHITE : BUTTON_GREY))
+                    .centered("preis", 132, new WorkbenchTitle.Part(COIN, affordable ? TextColor.color(0xFFD36B) : TOO_EXPENSIVE),
+                            new WorkbenchTitle.Part(" " + coins(price), affordable ? WHITE : TOO_EXPENSIVE));
+        }
+        return title.build();
+    }
+
+    private static void cardValue(WorkbenchTitle title, String line, String now, String next, boolean arrow) {
+        if (arrow) {
+            title.left(line, 117, new WorkbenchTitle.Part(now, LIGHT), new WorkbenchTitle.Part(ARROW, ORANGE), new WorkbenchTitle.Part(next, NEW_VALUE));
+        } else {
+            title.left(line, 117, new WorkbenchTitle.Part(now, LIGHT));
+        }
+    }
+
+    private static String coins(int coins) {
+        return String.format(Locale.GERMANY, "%,d", coins);
     }
 
     private static ItemStack icon(Material material, String model, Component name, Component... lore) {

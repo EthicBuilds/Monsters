@@ -4,5 +4,5 @@ health-bars: true
 
 # Monsters-Paket (Werkbank, Lebensanzeige, Munition, Scoreboard-Icons), wird beim Betreten zusaetzlich zum Lobby-Paket geschickt
 resource-pack:
-  url: "http://136.243.146.245:25567/Monsters-pack-2.zip"
-  sha1: "c8670c5da5f991b2760236617a34160b2d6dcd38"
+  url: "http://136.243.146.245:25567/Monsters-pack-3.zip"
+  sha1: "b0d8f42339e310e7813786906b6d4bfd519e3b77"
