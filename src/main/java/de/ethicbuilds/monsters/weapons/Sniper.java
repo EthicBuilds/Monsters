@@ -17,6 +17,7 @@ public class Sniper extends Weapon {
         this.particle = Particle.WAX_ON;
         this.model = "sniper_3";
         this.price = 10000;
+        this.upgradePrice = 30000;
 
         initialize();
     }

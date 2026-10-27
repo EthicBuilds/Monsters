@@ -30,6 +30,8 @@ public abstract class Weapon {
     protected int maxAmmu;
     protected int maxMagazine;
     protected int price;
+    // First workbench upgrade, then double each level
+    protected int upgradePrice = 10000;
     protected String model;
 
     protected Sound sound = Sound.ENTITY_FIREWORK_ROCKET_BLAST_FAR;

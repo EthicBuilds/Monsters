@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.weapons.manager;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
+import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.weapons.AmmoHud;
@@ -20,6 +21,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -41,7 +43,6 @@ import java.util.UUID;
 public class WorkbenchManager implements Listener {
     public static final int UNLOCK_WAVE = 5;
     public static final int UNLOCK_PRICE = 5000;
-    private static final int FIRST_UPGRADE_PRICE = 15000;
 
     private static final int[] WEAPON_SLOTS = {10, 19, 28};
     private static final int BIG_SLOT = 22, DAMAGE_SLOT = 16, MAGAZINE_SLOT = 25, ACTION_SLOT = 34, CLOSE_SLOT = 36;
@@ -59,12 +60,13 @@ public class WorkbenchManager implements Listener {
     @Inject private Main plugin;
     @Inject private UserManager userManager;
     @Inject private WaveManager waveManager;
+    @Inject private DecorationManager decorationManager;
 
     private final Set<UUID> unlocked = new HashSet<>();
     private final Map<UUID, Integer> selected = new HashMap<>();
 
-    public static int upgradePrice(int level) {
-        return FIRST_UPGRADE_PRICE * (1 << level);
+    public static int upgradePrice(Weapon weapon) {
+        return weapon.getUpgradePrice() * (1 << weapon.getLevel());
     }
 
     public void use(GamePlayer gamePlayer) {
@@ -125,10 +127,19 @@ public class WorkbenchManager implements Listener {
         if (weapon.getLevel() >= Weapon.MAX_LEVEL) {
             return icon(Material.PAPER, "werkbank_maximal", text("Maximal", GOLD));
         }
-        int price = upgradePrice(weapon.getLevel());
+        int price = upgradePrice(weapon);
         boolean affordable = gamePlayer.getCoins() >= price;
         return icon(Material.PAPER, affordable ? "werkbank_verbessern" : "werkbank_verbessern_aus",
                 text("Verbessern", GREEN).decoration(TextDecoration.BOLD, true), price(price, affordable));
+    }
+
+    // Back in the round: the sign without the unlock price again
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        if (unlocked.contains(player.getUniqueId())) {
+            Bukkit.getScheduler().runTaskLater(plugin, () -> decorationManager.showWorkbenchOpen(player), 5L);
+        }
     }
 
     @EventHandler
@@ -165,6 +176,7 @@ public class WorkbenchManager implements Listener {
         if (!unlocked.contains(player.getUniqueId())) {
             if (!pay(gamePlayer, UNLOCK_PRICE)) return;
             unlocked.add(player.getUniqueId());
+            decorationManager.showWorkbenchOpen(player);
             player.sendMessage(String.format("%s§7Werkbank §afreigeschaltet! §c-%d Coins", plugin.getMonstersPrefix(), UNLOCK_PRICE));
             player.playSound(player.getLocation(), Sound.BLOCK_SMITHING_TABLE_USE, 1.0F, 1.0F);
             open(gamePlayer);
@@ -178,7 +190,7 @@ public class WorkbenchManager implements Listener {
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
             return;
         }
-        int price = upgradePrice(weapon.getLevel());
+        int price = upgradePrice(weapon);
         if (!pay(gamePlayer, price)) return;
 
         weapon.upgrade();

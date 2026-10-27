@@ -21,6 +21,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
@@ -32,7 +33,9 @@ import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -62,6 +65,8 @@ public class DecorationManager implements Listener {
 
     private final Set<UUID> registered = new HashSet<>();
     private final Map<UUID, String> stations = new HashMap<>();
+    private final List<TextDisplay> workbenchLocked = new ArrayList<>();
+    private final List<TextDisplay> workbenchOpen = new ArrayList<>();
 
     public static boolean isFurniture(Entity entity) {
         return entity.getPersistentDataContainer().has(FURNITURE, PersistentDataType.STRING);
@@ -99,8 +104,11 @@ public class DecorationManager implements Listener {
         } else if (WEAPON_CRATES.containsKey(id)) {
             createWeaponStation(block, WEAPON_CRATES.get(id));
         } else if (WORKBENCH_STATION.equals(id)) {
-            createStation(block, WORKBENCH_STATION, "Werkbank", "<#9AA6B8>ab Welle " + WorkbenchManager.UNLOCK_WAVE + " · " + price(WorkbenchManager.UNLOCK_PRICE)
-                    + "\n<#9AA6B8>Waffen verbessern", 2.6F, 1.4F);
+            workbenchLocked.add(createStation(block, WORKBENCH_STATION, "Werkbank", "<#9AA6B8>ab Welle " + WorkbenchManager.UNLOCK_WAVE + " · "
+                    + price(WorkbenchManager.UNLOCK_PRICE) + "\n<#9AA6B8>Waffen verbessern", "Rechtsklick zum Kaufen", 2.6F, 1.4F));
+            TextDisplay open = signAbove(block, "Werkbank", "<#9AA6B8>Waffen verbessern", "Rechtsklick zum Öffnen");
+            open.setVisibleByDefault(false);
+            workbenchOpen.add(open);
         } else if (AMMO_CRATE.equals(id)) {
             createStation(block, AMMO_STATION, "Munition", price(WaveListener.AMMO_PRICE) + "\n<#9AA6B8>für die Waffe in der Hand");
         }
@@ -120,24 +128,33 @@ public class DecorationManager implements Listener {
         return "<white><font:monsters:hud>\uE017</font></white> <#F9A11E>" + coins + " <#9AA6B8>Coins";
     }
 
-    private void createStation(Block block, String station, String name, String prices) {
-        createStation(block, station, name, prices, 1.2F, 1.1F);
+    /** The player unlocked the workbench: from now on the sign without the price */
+    public void showWorkbenchOpen(Player player) {
+        workbenchLocked.removeIf(holo -> !holo.isValid());
+        workbenchOpen.removeIf(holo -> !holo.isValid());
+        workbenchLocked.forEach(holo -> player.hideEntity(plugin, holo));
+        workbenchOpen.forEach(holo -> player.showEntity(plugin, holo));
     }
 
-    private void createStation(Block block, String station, String name, String prices, float width, float height) {
-        Component text = MiniMessage.miniMessage().deserialize("<#F2F5F8><name>\n" + prices + "\n<#9AA6B8>Rechtsklick zum Kaufen",
-                Placeholder.unparsed("name", name));
-        Location base = block.getLocation().add(0.5, 0, 0.5);
-        World world = block.getWorld();
+    private void createStation(Block block, String station, String name, String prices) {
+        createStation(block, station, name, prices, "Rechtsklick zum Kaufen", 1.2F, 1.1F);
+    }
 
-        Interaction hitbox = world.spawn(base, Interaction.class, interaction -> {
+    private TextDisplay createStation(Block block, String station, String name, String prices, String hint, float width, float height) {
+        Interaction hitbox = block.getWorld().spawn(block.getLocation().add(0.5, 0, 0.5), Interaction.class, interaction -> {
             interaction.setInteractionWidth(width);
             interaction.setInteractionHeight(height);
             interaction.setPersistent(false);
         });
         stations.put(hitbox.getUniqueId(), station);
+        return signAbove(block, name, prices, hint);
+    }
 
-        world.spawn(base.clone().add(0, 1.6, 0), TextDisplay.class, holo -> {
+    private TextDisplay signAbove(Block block, String name, String prices, String hint) {
+        Component text = MiniMessage.miniMessage().deserialize("<#F2F5F8><name>\n" + prices + "\n<#9AA6B8><hint>",
+                Placeholder.unparsed("name", name), Placeholder.unparsed("hint", hint));
+        Location base = block.getLocation().add(0.5, 0, 0.5);
+        return block.getWorld().spawn(base.clone().add(0, 1.6, 0), TextDisplay.class, holo -> {
             holo.text(text);
             holo.setBillboard(Display.Billboard.CENTER);
             holo.setBackgroundColor(Color.fromARGB(0xB3, 0x14, 0x10, 0x0C));

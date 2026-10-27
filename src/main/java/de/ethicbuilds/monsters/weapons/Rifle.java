@@ -15,6 +15,7 @@ public class Rifle extends Weapon {
         this.particle = Particle.WAX_ON;
         this.model = "sturm_v2";
         this.price = 5000;
+        this.upgradePrice = 20000;
 
         initialize();
     }
