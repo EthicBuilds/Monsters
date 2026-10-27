@@ -17,6 +17,7 @@ public class Pistol extends Weapon {
         this.maxAmmu = 1000;
         this.maxMagazine = 10;
         this.particle = Particle.WAX_ON;
+        this.model = "pistole_v1";
         initialize();
     }
 }

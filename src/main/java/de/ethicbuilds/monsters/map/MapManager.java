@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.map.adapter.LocationAdapter;
+import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.map.elements.Door;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.map.elements.WeaponPoint;
@@ -20,6 +21,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.EntityType;
 
 import java.io.FileReader;
@@ -41,6 +43,8 @@ public class MapManager {
     public Main plugin;
     @Inject
     private WeaponManager weaponManager;
+    @Inject
+    private DecorationManager decorationManager;
 
     public MapManager() {
         gson = new GsonBuilder()
@@ -56,11 +60,10 @@ public class MapManager {
             throw new RuntimeException(e);
         }
 
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "minecraft:kill @e");
-
         for (Entity entity : plugin.getWorld().getEntities()) {
-            entity.remove();
+            if (!(entity instanceof Player) && !DecorationManager.isFurniture(entity)) entity.remove();
         }
+        decorationManager.registerLoaded(plugin.getWorld());
 
         createDoorHolos();
         createWeaponPointHolos();

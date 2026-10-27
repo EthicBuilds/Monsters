@@ -13,6 +13,7 @@ public class Rifle extends Weapon {
         this.maxAmmu = 800;
         this.maxMagazine = 50;
         this.particle = Particle.WAX_ON;
+        this.model = "sturm_v2";
         this.price = 5000;
 
         initialize();

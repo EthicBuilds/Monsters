@@ -2,15 +2,19 @@ package de.ethicbuilds.monsters.di;
 
 import com.google.inject.AbstractModule;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.gameplay.manager.DoorManager;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.gameplay.repository.GameStates;
 import de.ethicbuilds.monsters.map.MapManager;
+import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import de.ethicbuilds.monsters.powerup.PowerupManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import de.ethicbuilds.monsters.statistic.manager.StatisticManager;
+import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 
 public class DiModule extends AbstractModule {
@@ -35,6 +39,10 @@ public class DiModule extends AbstractModule {
         bind(ScoreboardManager.class).asEagerSingleton();
         bind(WeaponManager.class).asEagerSingleton();
         bind(StatisticManager.class).asEagerSingleton();
+        bind(DoorManager.class).asEagerSingleton();
+        bind(DecorationManager.class).asEagerSingleton();
+        bind(GrenadeManager.class).asEagerSingleton();
+        bind(PowerupManager.class).asEagerSingleton();
 
         //Repositories
         bind(GameStates.class).asEagerSingleton();

@@ -13,6 +13,7 @@ public class Sniper extends Weapon {
         this.maxAmmu = 100;
         this.maxMagazine = 10;
         this.particle = Particle.WAX_ON;
+        this.model = "sniper_3";
         this.price = 10000;
 
         initialize();

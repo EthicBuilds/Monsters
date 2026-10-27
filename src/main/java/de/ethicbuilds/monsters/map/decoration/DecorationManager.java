@@ -1,0 +1,112 @@
+package de.ethicbuilds.monsters.map.decoration;
+
+import com.google.inject.Inject;
+import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.weapons.Weapon;
+import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
+import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.entity.Display;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Interaction;
+import org.bukkit.entity.TextDisplay;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.world.EntitiesLoadEvent;
+import org.bukkit.persistence.PersistentDataType;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+/***
+ * Nexo furniture placed in the map (the game servers run without Nexo)
+ */
+public class DecorationManager implements Listener {
+    public static final NamespacedKey FURNITURE = new NamespacedKey("nexo", "furniture");
+    public static final String GRENADE_STATION = "granate";
+
+    private static final Map<String, String> WEAPON_CRATES = Map.of(
+            "waffenkiste_schrot_1", "schrot",
+            "waffenkiste_sniper_1", "sniper",
+            "waffenkiste_sturm_1", "sturmgewehr"
+    );
+    private static final String AMMO_CRATE = "munitionskiste_v1";
+    private static final Set<String> SOLID = Set.of(
+            "fass_1", "fass_2", "fass_3", "kiste_leer_2", "kiste_leer_3", "kiste_voll_1", "kiste_voll_2"
+    );
+
+    @Inject private Main plugin;
+    @Inject private WeaponManager weaponManager;
+
+    private final Set<UUID> registered = new HashSet<>();
+    private final Map<UUID, String> stations = new HashMap<>();
+
+    public static boolean isFurniture(Entity entity) {
+        return entity.getPersistentDataContainer().has(FURNITURE, PersistentDataType.STRING);
+    }
+
+    public String getStation(Entity entity) {
+        return stations.get(entity.getUniqueId());
+    }
+
+    public void registerLoaded(World world) {
+        world.getEntities().forEach(this::register);
+    }
+
+    @EventHandler
+    public void onEntitiesLoad(EntitiesLoadEvent event) {
+        var entities = event.getEntities();
+        Bukkit.getScheduler().runTask(plugin, () -> entities.forEach(this::register));
+    }
+
+    private void register(Entity entity) {
+        if (!entity.isValid() || !isFurniture(entity) || !registered.add(entity.getUniqueId())) return;
+
+        String id = entity.getPersistentDataContainer().get(FURNITURE, PersistentDataType.STRING);
+        Block block = entity.getLocation().getBlock();
+
+        if (SOLID.contains(id) && block.getType().isAir()) {
+            block.setType(Material.BARRIER, false);
+        } else if (WEAPON_CRATES.containsKey(id)) {
+            createWeaponStation(block, WEAPON_CRATES.get(id));
+        } else if (AMMO_CRATE.equals(id)) {
+            createStation(block, GRENADE_STATION, String.format("§aGranate\n§6%d Coins", GrenadeManager.PRICE));
+        }
+    }
+
+    private void createWeaponStation(Block block, String weaponName) {
+        Weapon weapon;
+        try {
+            weapon = weaponManager.getWeaponNames().get(weaponName).getDeclaredConstructor().newInstance();
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+        createStation(block, weaponName, String.format("%s\n§6%d Coins\n§7Munition §6500 Coins", weapon.getName(), weapon.getPrice()));
+    }
+
+    private void createStation(Block block, String station, String text) {
+        Location base = block.getLocation().add(0.5, 0, 0.5);
+        World world = block.getWorld();
+
+        Interaction hitbox = world.spawn(base, Interaction.class, interaction -> {
+            interaction.setInteractionWidth(1.2F);
+            interaction.setInteractionHeight(1.1F);
+            interaction.setPersistent(false);
+        });
+        stations.put(hitbox.getUniqueId(), station);
+
+        world.spawn(base.clone().add(0, 1.6, 0), TextDisplay.class, holo -> {
+            holo.setText(text);
+            holo.setBillboard(Display.Billboard.CENTER);
+            holo.setPersistent(false);
+        });
+    }
+}

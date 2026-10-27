@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.player;
 
+import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.weapons.Pistol;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import org.bukkit.GameMode;
@@ -32,11 +33,7 @@ public class GamePlayer extends GameUser {
     protected void initInventory() {
         player.getInventory().clear();
 
-        ItemStack melee = new ItemStack(Material.WOODEN_AXE);
-        ItemMeta meleeMeta = melee.getItemMeta();
-        meleeMeta.setDisplayName("§aAxt");
-        meleeMeta.setUnbreakable(true);
-        melee.setItemMeta(meleeMeta);
+        ItemStack melee = GameItems.knife();
 
         ItemStack weaponSlot1 = new ItemStack(Material.LIGHT_GRAY_DYE);
         ItemStack weaponSlot2 = new ItemStack(Material.LIGHT_GRAY_DYE);
@@ -58,6 +55,7 @@ public class GamePlayer extends GameUser {
         player.getInventory().setItem(2, weaponSlot1);
         player.getInventory().setItem(3, weaponSlot2);
         player.getInventory().setItem(5, monsterTracker);
+        player.getInventory().setItem(GameItems.CROWBAR_SLOT, GameItems.crowbar());
 
         Pistol pistol = new Pistol();
         addWeapon(pistol);

@@ -19,6 +19,7 @@ public class Pumpgun extends Weapon {
         this.maxAmmu = 100;
         this.maxMagazine = 5;
         this.particle = Particle.SQUID_INK;
+        this.model = "schrot_v1";
         this.price = 2500;
 
         this.sound = Sound.ENTITY_FIREWORK_ROCKET_BLAST;

@@ -13,6 +13,7 @@ import de.ethicbuilds.monsters.map.adapter.LocationAdapter;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import de.ethicbuilds.monsters.powerup.PowerupManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import de.ethicbuilds.monsters.statistic.manager.StatisticManager;
 import lombok.Getter;
@@ -39,6 +40,7 @@ public class GameManager {
     @Inject private MapManager mapManager;
     @Inject private MonsterManager monsterManager;
     @Inject private StatisticManager statisticManager;
+    @Inject private PowerupManager powerupManager;
 
     private final Gson gson;
 
@@ -105,6 +107,7 @@ public class GameManager {
                     waveManager.start();
 
                     gameStates.setCurrentPhase(GamePhase.WAVE);
+                    powerupManager.start();
                     scoreboardManager.startTime();
 
                     for (var gamePlayer : userManager.getGamePlayers()) {

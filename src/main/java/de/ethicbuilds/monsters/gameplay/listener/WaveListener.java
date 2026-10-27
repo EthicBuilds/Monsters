@@ -2,10 +2,13 @@ package de.ethicbuilds.monsters.gameplay.listener;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.gameplay.manager.DoorManager;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.map.MapConfiguration;
+import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.map.MapManager;
+import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.map.elements.Door;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.map.elements.WeaponPoint;
@@ -14,6 +17,7 @@ import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.weapons.Weapon;
+import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 import org.bukkit.*;
 import org.bukkit.entity.*;
@@ -21,9 +25,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -37,6 +44,9 @@ public class WaveListener implements Listener {
     @Inject private UserManager userManager;
     @Inject private MapManager mapManager;
     @Inject private WeaponManager weaponManager;
+    @Inject private DoorManager doorManager;
+    @Inject private DecorationManager decorationManager;
+    @Inject private GrenadeManager grenadeManager;
     @Inject private Main plugin;
 
     private boolean isAxeCooldDown;
@@ -107,7 +117,7 @@ public class WaveListener implements Listener {
     public void onPlayerInteractWithMap(PlayerInteractEvent event) {
         event.setCancelled(true);
 
-        if (gameManager.getCurrentPhase() != GamePhase.WAVE || event.getClickedBlock() == null) return;
+        if (gameManager.getCurrentPhase() != GamePhase.WAVE || event.getClickedBlock() == null || event.getHand() != EquipmentSlot.HAND) return;
 
         MapConfiguration mapConfiguration = mapManager.getMapConfiguration();
 
@@ -119,7 +129,7 @@ public class WaveListener implements Listener {
         for (Door door : mapConfiguration.getDoors()) {
             for (Location loc : door.getClickableLocations()) {
                 if (loc.equals(location)) {
-                    openDoor(gamePlayer, door);
+                    breakDoor(gamePlayer, door);
                     return;
                 }
             }
@@ -142,7 +152,33 @@ public class WaveListener implements Listener {
 
         if (weaponPoint == null) return;
 
-        buyOrReloadWeapon(gamePlayer, weaponPoint);
+        buyOrReloadWeapon(gamePlayer, weaponPoint.getWeaponName());
+    }
+
+    @EventHandler
+    public void onPlayerInteractWithStation(PlayerInteractEntityEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND || !(event.getRightClicked() instanceof Interaction interaction)) return;
+
+        String station = decorationManager.getStation(interaction);
+        if (station == null) return;
+
+        GamePlayer gamePlayer = userManager.getGamePlayer(event.getPlayer().getUniqueId());
+        if (gamePlayer == null || userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) return;
+
+        if (station.equals(DecorationManager.GRENADE_STATION)) {
+            grenadeManager.buy(gamePlayer);
+        } else {
+            buyOrReloadWeapon(gamePlayer, station);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerThrowGrenade(PlayerInteractEvent event) {
+        if (gameManager.getCurrentPhase() != GamePhase.WAVE || event.getHand() != EquipmentSlot.HAND) return;
+        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        if (!GameItems.isGrenade(event.getItem()) || userManager.isPlayerDead(event.getPlayer().getUniqueId())) return;
+
+        grenadeManager.throwGrenade(event.getPlayer());
     }
 
     @EventHandler
@@ -165,6 +201,22 @@ public class WaveListener implements Listener {
                 && loc1.getBlockZ() == loc2.getBlockZ();
     }
 
+
+    private void breakDoor(GamePlayer gamePlayer, Door door) {
+        Player player = gamePlayer.getPlayer();
+
+        if (!GameItems.isCrowbar(player.getInventory().getItemInMainHand())) {
+            player.sendActionBar("§cBrich die Tür mit der §6Brechstange §cauf!");
+            player.playSound(player.getLocation(), Sound.BLOCK_IRON_TRAPDOOR_CLOSE, 1.5F, 0.0F);
+            return;
+        }
+        if (gamePlayer.getCoins() < 2500) {
+            openDoor(gamePlayer, door);
+            return;
+        }
+
+        doorManager.breakOpen(gamePlayer, door, () -> openDoor(gamePlayer, door));
+    }
 
     private void openDoor(GamePlayer gamePlayer, Door door) {
         Player player = gamePlayer.getPlayer();
@@ -216,12 +268,12 @@ public class WaveListener implements Listener {
         }
     }
 
-    private void buyOrReloadWeapon(GamePlayer gamePlayer, WeaponPoint weaponPoint) {
+    private void buyOrReloadWeapon(GamePlayer gamePlayer, String weaponName) {
         Weapon weaponPointWeapon;
 
         try {
             weaponPointWeapon = weaponManager.getWeaponNames()
-                    .get(weaponPoint.getWeaponName().toLowerCase())
+                    .get(weaponName.toLowerCase())
                     .getDeclaredConstructor().newInstance();
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new RuntimeException(e);

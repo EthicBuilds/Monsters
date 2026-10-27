@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.weapons;
 
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.items.GameItems;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Location;
@@ -25,6 +26,7 @@ public abstract class Weapon {
     protected int maxAmmu;
     protected int maxMagazine;
     protected int price;
+    protected String model;
 
     protected Sound sound = Sound.ENTITY_FIREWORK_ROCKET_BLAST_FAR;
     protected float pitch = 2.0F;
@@ -42,6 +44,7 @@ public abstract class Weapon {
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(name);
         item.setItemMeta(meta);
+        if (model != null) GameItems.setModel(item, model);
         item.setAmount(magazine);
     }
 

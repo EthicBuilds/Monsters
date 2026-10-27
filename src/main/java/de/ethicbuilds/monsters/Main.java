@@ -10,6 +10,7 @@ import de.ethicbuilds.monsters.gameplay.listener.PreGameListener;
 import de.ethicbuilds.monsters.gameplay.listener.WaveListener;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.map.MapManager;
+import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import de.ethicbuilds.monsters.test.LocateMonsters;
 import de.ethicbuilds.monsters.commands.CreateMapConfigCommand;
@@ -71,6 +72,7 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(injector.getInstance(PreGameListener.class), this);
         pm.registerEvents(injector.getInstance(WaveListener.class), this);
         pm.registerEvents(injector.getInstance(GameListener.class), this);
+        pm.registerEvents(injector.getInstance(DecorationManager.class), this);
     }
 
 }

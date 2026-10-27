@@ -1,5 +1,5 @@
 name: Monsters
-version: '1.0'
+version: '${project.version}'
 main: de.ethicbuilds.monsters.Main
 api-version: '1.21'
 authors: [ codedByGruba ]
