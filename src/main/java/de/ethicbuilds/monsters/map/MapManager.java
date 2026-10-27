@@ -67,6 +67,7 @@ public class MapManager {
         }
         decorationManager.registerLoaded(plugin.getWorld());
         plugin.getWorld().setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
+        plugin.getWorld().setGameRule(GameRule.MAX_ENTITY_CRAMMING, 0);
         // Always night
         plugin.getWorld().setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
         plugin.getWorld().setGameRule(GameRule.DO_WEATHER_CYCLE, false);

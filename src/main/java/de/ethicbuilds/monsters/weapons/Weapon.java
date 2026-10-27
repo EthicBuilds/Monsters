@@ -39,11 +39,19 @@ public abstract class Weapon {
     // How many monsters one shot goes through
     protected int pierce = 1;
 
+    // Workbench upgrades: every level +25 % damage and magazine
+    public static final int MAX_LEVEL = 4;
+    protected int level = 0;
+    private double baseDamage;
+    private int baseMagazine;
+
     protected Particle particle;
 
     protected boolean isCoolDown = false;
 
     protected void initialize() {
+        baseDamage = damage;
+        baseMagazine = maxMagazine;
         ammu = maxAmmu;
         magazine = maxMagazine;
 
@@ -129,6 +137,13 @@ public abstract class Weapon {
     /** Full again: after the next reload both magazine and stock are at their maximum */
     public void refill() {
         ammu = maxAmmu + (maxMagazine - magazine);
+    }
+
+    public void upgrade() {
+        if (level >= MAX_LEVEL) return;
+        level++;
+        damage = baseDamage * (1 + 0.25 * level);
+        maxMagazine = (int) Math.round(baseMagazine * (1 + 0.25 * level));
     }
 
     public boolean isFull() {

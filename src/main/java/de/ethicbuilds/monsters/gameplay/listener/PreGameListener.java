@@ -22,6 +22,8 @@ public class PreGameListener implements Listener {
     @Inject private MapManager mapManager;
     @Inject private Main plugin;
 
+    private static final java.util.UUID PACK_ID = java.util.UUID.nameUUIDFromBytes("monsters-pack".getBytes());
+
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         event.getPlayer().teleport(mapManager.getMapConfiguration().getSpawn());
@@ -37,6 +39,12 @@ public class PreGameListener implements Listener {
         }
 
         Player player = event.getPlayer();
+        // Own pack for Monsters models (workbench), the lobby pack stays active
+        String packUrl = plugin.getConfig().getString("resource-pack.url", "");
+        String packSha1 = plugin.getConfig().getString("resource-pack.sha1", "");
+        if (!packUrl.isBlank() && packSha1.length() == 40) {
+            player.addResourcePack(PACK_ID, packUrl, java.util.HexFormat.of().parseHex(packSha1), null, false);
+        }
 
         player.setScoreboard(scoreboardManager.getScoreboard());
 

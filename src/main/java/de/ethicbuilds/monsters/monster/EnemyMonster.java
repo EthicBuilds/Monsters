@@ -31,6 +31,9 @@ public abstract class EnemyMonster {
     public void summon(Player player, Location spawnLocation) {
         monster = (Monster) plugin.getWorld().spawnEntity(spawnLocation, type);
         monster.setCustomNameVisible(false);
+        if (monster instanceof org.bukkit.entity.Ageable ageable) ageable.setAdult();
+        var movement = monster.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
+        if (movement != null) movement.setBaseValue(Math.min(movement.getBaseValue(), 0.23));
         MonsterGuard.mark(monster);
         monster.setHealth(health);
         if (plugin.getConfig().getBoolean("health-bars", true)) HealthBars.attach(monster);

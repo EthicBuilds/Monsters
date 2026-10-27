@@ -5,6 +5,7 @@ import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.gameplay.listener.WaveListener;
+import de.ethicbuilds.monsters.weapons.manager.WorkbenchManager;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -43,6 +44,7 @@ import java.util.UUID;
 public class DecorationManager implements Listener {
     public static final NamespacedKey FURNITURE = new NamespacedKey("nexo", "furniture");
     public static final String AMMO_STATION = "munition";
+    public static final String WORKBENCH_STATION = "werkbank";
 
     private static final Map<String, String> WEAPON_CRATES = Map.of(
             "waffenkiste_schrot_1", "schrot",
@@ -96,6 +98,9 @@ public class DecorationManager implements Listener {
             crateManager.register(display, block);
         } else if (WEAPON_CRATES.containsKey(id)) {
             createWeaponStation(block, WEAPON_CRATES.get(id));
+        } else if (WORKBENCH_STATION.equals(id)) {
+            createStation(block, WORKBENCH_STATION, "Werkbank", "<#9AA6B8>ab Welle " + WorkbenchManager.UNLOCK_WAVE + " · " + price(WorkbenchManager.UNLOCK_PRICE)
+                    + "\n<#9AA6B8>Waffen verbessern", 2.6F, 1.4F);
         } else if (AMMO_CRATE.equals(id)) {
             createStation(block, AMMO_STATION, "Munition", price(WaveListener.AMMO_PRICE) + "\n<#9AA6B8>für die Waffe in der Hand");
         }
@@ -116,14 +121,18 @@ public class DecorationManager implements Listener {
     }
 
     private void createStation(Block block, String station, String name, String prices) {
+        createStation(block, station, name, prices, 1.2F, 1.1F);
+    }
+
+    private void createStation(Block block, String station, String name, String prices, float width, float height) {
         Component text = MiniMessage.miniMessage().deserialize("<#F2F5F8><name>\n" + prices + "\n<#9AA6B8>Rechtsklick zum Kaufen",
                 Placeholder.unparsed("name", name));
         Location base = block.getLocation().add(0.5, 0, 0.5);
         World world = block.getWorld();
 
         Interaction hitbox = world.spawn(base, Interaction.class, interaction -> {
-            interaction.setInteractionWidth(1.2F);
-            interaction.setInteractionHeight(1.1F);
+            interaction.setInteractionWidth(width);
+            interaction.setInteractionHeight(height);
             interaction.setPersistent(false);
         });
         stations.put(hitbox.getUniqueId(), station);

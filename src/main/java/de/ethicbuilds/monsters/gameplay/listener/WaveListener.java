@@ -22,6 +22,7 @@ import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
+import de.ethicbuilds.monsters.weapons.manager.WorkbenchManager;
 import org.bukkit.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
@@ -53,6 +54,7 @@ public class WaveListener implements Listener {
     @Inject private DoorManager doorManager;
     @Inject private DecorationManager decorationManager;
     @Inject private GrenadeManager grenadeManager;
+    @Inject private WorkbenchManager workbenchManager;
     @Inject private Main plugin;
 
     public static final int AMMO_PRICE = 500;
@@ -188,6 +190,8 @@ public class WaveListener implements Listener {
 
         if (station.equals(DecorationManager.AMMO_STATION)) {
             refillHeldWeapon(gamePlayer);
+        } else if (station.equals(DecorationManager.WORKBENCH_STATION)) {
+            workbenchManager.use(gamePlayer);
         } else {
             buyOrReloadWeapon(gamePlayer, station);
         }
@@ -206,6 +210,8 @@ public class WaveListener implements Listener {
 
         if (station.equals(DecorationManager.AMMO_STATION)) {
             refillHeldWeapon(gamePlayer);
+        } else if (station.equals(DecorationManager.WORKBENCH_STATION)) {
+            workbenchManager.use(gamePlayer);
         } else {
             buyOrReloadWeapon(gamePlayer, station);
         }

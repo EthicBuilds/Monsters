@@ -8,6 +8,7 @@ import org.bukkit.entity.Monster;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -37,6 +38,17 @@ public class MonsterGuard implements Listener {
     public void onCreatureSpawn(CreatureSpawnEvent event) {
         if (event.getEntity() instanceof Monster && event.getSpawnReason() != CreatureSpawnEvent.SpawnReason.CUSTOM) {
             event.setCancelled(true);
+        }
+    }
+
+    // Monsters only die from players: no cramming, suffocation or falling
+    @EventHandler
+    public void onMonsterDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Monster)) return;
+        switch (event.getCause()) {
+            case CRAMMING, SUFFOCATION, FALL, FLY_INTO_WALL, CONTACT -> event.setCancelled(true);
+            default -> {
+            }
         }
     }
 

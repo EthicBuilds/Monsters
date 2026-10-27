@@ -18,6 +18,7 @@ import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import de.ethicbuilds.monsters.statistic.manager.StatisticManager;
 import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
+import de.ethicbuilds.monsters.weapons.manager.WorkbenchManager;
 
 public class DiModule extends AbstractModule {
     private final Main plugin;
@@ -47,6 +48,7 @@ public class DiModule extends AbstractModule {
         bind(CrateManager.class).asEagerSingleton();
         bind(GrenadeManager.class).asEagerSingleton();
         bind(PowerupManager.class).asEagerSingleton();
+        bind(WorkbenchManager.class).asEagerSingleton();
 
         //Repositories
         bind(GameStates.class).asEagerSingleton();

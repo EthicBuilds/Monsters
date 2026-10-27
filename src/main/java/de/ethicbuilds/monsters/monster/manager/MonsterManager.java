@@ -43,8 +43,8 @@ public class MonsterManager {
         monsters.clear();
         initialMonsters.clear();
 
-        double multiplier = 0.75 + userManager.getGamePlayers().size() * 0.25;
-        int monsterCount = (int) Math.ceil(Math.pow(wave, 2) * multiplier + 40);
+        int players = Math.max(1, userManager.getGamePlayers().size());
+        int monsterCount = players * (8 + 4 * (wave - 1));
 
         for (int i = 0; i < monsterCount; i++) {
             initialMonsters.add(new MonsterZombie());
