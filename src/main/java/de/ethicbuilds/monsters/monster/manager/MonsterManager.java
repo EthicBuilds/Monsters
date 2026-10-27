@@ -15,6 +15,7 @@ import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
@@ -57,9 +58,19 @@ public class MonsterManager {
             initialMonsters.add(new MonsterSpiderBoss(players));
             return;
         }
+        // Same number, but more kinds the longer the round goes
         for (int i = 0; i < monsterCount; i++) {
-            initialMonsters.add(new MonsterZombie());
+            initialMonsters.add(randomMonster(wave));
         }
+    }
+
+    private EnemyMonster randomMonster(int wave) {
+        double roll = Math.random();
+        if (wave >= 48 && (roll -= 0.10) < 0) return new MonsterZombie(EntityType.VINDICATOR, "§7Diener");
+        if (wave >= 24 && (roll -= 0.15) < 0) return new MonsterZombie(EntityType.ZOMBIE_VILLAGER, "§7Zombiedorfbewohner");
+        if (wave >= 12 && (roll -= 0.15) < 0) return new MonsterZombie(EntityType.PARCHED, "§7Vertrockneter");
+        if (wave >= 6 && (roll -= 0.25) < 0) return new MonsterZombie(EntityType.HUSK, "§7Wüstenzombie");
+        return new MonsterZombie();
     }
 
     public void removeMonster(Monster monster) {

@@ -52,6 +52,20 @@ public class MonsterGuard implements Listener {
         }
     }
 
+    // Monsters do not hurt each other, e.g. arrows of the parched
+    @EventHandler
+    public void onMonsterHitsMonster(org.bukkit.event.entity.EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof Monster)) return;
+        org.bukkit.entity.Entity damager = event.getDamager();
+        if (damager instanceof org.bukkit.entity.Projectile projectile && projectile.getShooter() instanceof Monster) event.setCancelled(true);
+        if (damager instanceof Monster) event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onMonsterTargetsMonster(org.bukkit.event.entity.EntityTargetLivingEntityEvent event) {
+        if (event.getEntity() instanceof Monster && event.getTarget() instanceof Monster) event.setCancelled(true);
+    }
+
     @EventHandler
     public void onEntitiesLoad(EntitiesLoadEvent event) {
         for (Entity entity : event.getEntities()) {
