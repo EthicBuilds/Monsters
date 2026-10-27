@@ -25,15 +25,15 @@ import java.util.List;
 import java.util.Locale;
 
 /***
- * Sidebar in the style of the network scoreboard (design session): icons from ethicbuilds:hud,
+ * Sidebar in the style of the network scoreboard (design session): icons from monsters:hud,
  * labels left, values right, no red numbers
  */
 public class ScoreboardManager {
     private static final MiniMessage MM = MiniMessage.miniMessage();
     private static final String TITLE = "<bold><gradient:#F9A11E:#8B4BD8>MONSTERS</gradient></bold>";
-    private static final String ICON = "<white><font:ethicbuilds:hud>%s</font></white> ";
+    private static final String ICON = "<white><font:monsters:hud>%s</font></white> ";
     // 8 px margin behind every value
-    private static final String MARGIN = "<font:ethicbuilds:hud></font>";
+    private static final String MARGIN = "<font:monsters:hud></font>";
     private static final String WEBSITE = gradientLetters("EthicBuilds.de",
             "22D3E6", "0DD6D3", "28D7BD", "4AD7A5", "6AD48B", "89CF6F", "A5C953", "BEC136", "D5B718", "E9AC04", "F9A11E");
 
@@ -96,7 +96,7 @@ public class ScoreboardManager {
             Component left = MM.deserialize(String.format(ICON, dead ? "" : "") + (dead ? "<#9AA6B8>" : "<#F2F5F8>") + "<name>",
                     Placeholder.unparsed("name", gamePlayer.getPlayer().getName()));
             Component right = MM.deserialize("<#F9A11E>" + String.format(Locale.GERMANY, "%,d", gamePlayer.getCoins())
-                    + " <white><font:ethicbuilds:hud></font></white>" + MARGIN);
+                    + " <white><font:monsters:hud></font></white>" + MARGIN);
             lines.add(new Line(left, right));
         }
         lines.add(empty());

@@ -117,7 +117,7 @@ public class DecorationManager implements Listener {
     }
 
     private static String price(int coins) {
-        return "<white><font:ethicbuilds:hud>\uE017</font></white> <#F9A11E>" + coins + " <#9AA6B8>Coins";
+        return "<white><font:monsters:hud>\uE017</font></white> <#F9A11E>" + coins + " <#9AA6B8>Coins";
     }
 
     private void createStation(Block block, String station, String name, String prices) {

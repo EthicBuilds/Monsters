@@ -19,12 +19,12 @@ import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
 /***
- * Health bar above the monsters like in EggBattle: pixel bar from the font eggbattle:healthbar
+ * Health bar above the monsters like in EggBattle: pixel bar from the font monsters:healthbar
  * (21 steps from empty to full), riding on the monster as passenger
  */
 public final class HealthBars {
     private static final NamespacedKey KEY = new NamespacedKey("monsters", "health_bar");
-    private static final Key FONT = Key.key("eggbattle", "healthbar");
+    private static final Key FONT = Key.key("monsters", "healthbar");
     // U+E000 (empty) to U+E014 (full)
     private static final int STEPS = 20;
     private static final char EMPTY = '';

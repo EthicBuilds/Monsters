@@ -1,8 +1,8 @@
 server-name: " "
-# Lebensanzeige ueber den Monstern, braucht die Schrift eggbattle:healthbar im Lobby-Paket
+# Lebensanzeige ueber den Monstern (Schrift monsters:healthbar im Monsters-Paket)
 health-bars: true
 
-# Zusatzpaket mit Monsters-Modellen (Werkbank), wird beim Betreten zusaetzlich zum Lobby-Paket geschickt
+# Monsters-Paket (Werkbank, Lebensanzeige, Munition, Scoreboard-Icons), wird beim Betreten zusaetzlich zum Lobby-Paket geschickt
 resource-pack:
   url: "http://136.243.146.245:25567/Monsters-pack.zip"
-  sha1: "8db88996a84943af2af5096e311a666f824739a7"
+  sha1: "c6cd5b9272ff99a2e183a55a8964ef692bf07f00"

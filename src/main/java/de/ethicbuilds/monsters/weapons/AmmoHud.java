@@ -12,11 +12,11 @@ import java.util.Map;
 import java.util.UUID;
 
 /***
- * Ammo panel above the hearts (design session, font ethicbuilds:munition from the lobby pack):
+ * Ammo panel above the hearts (design session, font monsters:munition from the Monsters pack):
  * cartridge, 10 segments, magazine big, "/" and stock small
  */
 public final class AmmoHud {
-    private static final Key FONT = Key.key("ethicbuilds", "munition");
+    private static final Key FONT = Key.key("monsters", "munition");
     private static final long PAUSE_MILLIS = 2000;
     private static final Map<UUID, Long> pausedUntil = new HashMap<>();
 
