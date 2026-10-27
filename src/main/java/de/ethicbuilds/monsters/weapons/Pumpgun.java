@@ -49,8 +49,6 @@ public class Pumpgun extends Weapon {
             return;
         }
 
-        item.setAmount(magazine);
-        player.getInventory().setItem(player.getInventory().getHeldItemSlot(), item);
         player.playSound(player.getLocation(), sound, 0.5F, pitch);
 
         int pelletCount = 8;

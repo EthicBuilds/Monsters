@@ -43,9 +43,10 @@ public abstract class Weapon {
 
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(name);
+        // One weapon per slot, ammo is not shown through the stack size
+        meta.setMaxStackSize(1);
         item.setItemMeta(meta);
         if (model != null) GameItems.setModel(item, model);
-        item.setAmount(magazine);
     }
 
     public void shoot(Player player) {
@@ -66,8 +67,6 @@ public abstract class Weapon {
             return;
         }
 
-        item.setAmount(magazine);
-        player.getInventory().setItem(player.getInventory().getHeldItemSlot(), item);
         player.playSound(player.getLocation(), sound, 0.5F, pitch);
 
         new BukkitRunnable() {
@@ -121,8 +120,6 @@ public abstract class Weapon {
         while (magazine < maxMagazine) {
             magazine++;
             ammu--;
-            item.setAmount(magazine);
-            player.getInventory().setItem(itemSlot, item);
 
             if (ammu <= 0) {
                 break;

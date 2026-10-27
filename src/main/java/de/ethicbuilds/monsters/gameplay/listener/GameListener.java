@@ -128,22 +128,14 @@ public class GameListener implements Listener {
 
     @EventHandler
     public void onPlayerDropItem(PlayerDropItemEvent event) {
+        // Nothing can be dropped, the item stays where it was
         event.setCancelled(true);
-        if (event.getItemDrop().getItemStack().getType() == Material.NETHERITE_HOE) {
-            Weapon weapon = userManager.getGamePlayer(event.getPlayer().getUniqueId()).getWeapon(event.getItemDrop().getItemStack());
-            if (weapon == null) return;
+        Bukkit.getScheduler().runTask(plugin, event.getPlayer()::updateInventory);
+    }
 
-            Player player = event.getPlayer();
-
-            for (int i = 0; i < player.getInventory().getSize(); i++) {
-                ItemStack item = player.getInventory().getItem(i);
-                if (item != null && item.getType() == Material.NETHERITE_HOE) {
-                    player.getInventory().setItem(i, null);
-                }
-            }
-
-            event.getPlayer().getInventory().setItem(1, weapon.getItem());
-        }
+    @EventHandler
+    public void onSwapHands(PlayerSwapHandItemsEvent event) {
+        event.setCancelled(true);
     }
 
     @EventHandler
