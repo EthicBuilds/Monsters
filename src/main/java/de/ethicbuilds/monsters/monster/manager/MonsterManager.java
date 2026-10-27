@@ -5,6 +5,7 @@ import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
+import de.ethicbuilds.monsters.monster.HealthBars;
 import de.ethicbuilds.monsters.monster.MonsterZombie;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -126,6 +127,7 @@ public class MonsterManager {
 
                 if (entity != null) {
                     if (entity.isValid()) {
+                        HealthBars.remove(entity);
                         entity.remove();
                     }
 

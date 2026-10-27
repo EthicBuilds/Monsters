@@ -1,1 +1,3 @@
 server-name: " "
+# Lebensanzeige ueber den Monstern, braucht die Schrift eggbattle:healthbar im Lobby-Paket
+health-bars: true

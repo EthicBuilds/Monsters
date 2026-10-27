@@ -13,6 +13,7 @@ import de.ethicbuilds.monsters.map.elements.Door;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.map.elements.WeaponPoint;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
+import de.ethicbuilds.monsters.monster.HealthBars;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -23,7 +24,9 @@ import org.bukkit.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
@@ -70,9 +73,9 @@ public class WaveListener implements Listener {
 
         if (player.getInventory().getItemInMainHand().getType() == Material.AIR) return;
 
-        if (player.getInventory().getItemInMainHand().getType() == Material.WOODEN_AXE && isAxeCooldDown) return;
+        if (player.getInventory().getItemInMainHand().getType() == GameItems.KNIFE && isAxeCooldDown) return;
 
-        if (player.getInventory().getItemInMainHand().getType() == Material.WOODEN_AXE) {
+        if (player.getInventory().getItemInMainHand().getType() == GameItems.KNIFE) {
             startAxeCoolDown();
         }
 
@@ -96,12 +99,18 @@ public class WaveListener implements Listener {
         EnemyMonster enemyMonster = monsterManager.getEnemyMonster(monster);
         if (enemyMonster == null) return;
 
+        HealthBars.remove(monster);
         monsterManager.removeMonster(enemyMonster);
         if (monsterManager.getMonsters().size() <= 3) {
             for (EnemyMonster m : monsterManager.getMonsters().values()) {
                 m.getMonster().addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Integer.MAX_VALUE, 1));
             }
         }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onMonsterHealthChange(EntityDamageEvent event) {
+        if (event.getEntity() instanceof Monster monster) HealthBars.updateLater(monster);
     }
 
     @EventHandler(ignoreCancelled = true)

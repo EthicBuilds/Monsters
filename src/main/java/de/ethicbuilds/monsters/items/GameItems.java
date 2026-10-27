@@ -1,6 +1,10 @@
 package de.ethicbuilds.monsters.items;
 
 import org.bukkit.Material;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.inventory.EquipmentSlotGroup;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -11,13 +15,20 @@ import org.bukkit.inventory.meta.ItemMeta;
 public final class GameItems {
     public static final int CROWBAR_SLOT = 4;
     public static final int GRENADE_SLOT = 6;
+    public static final Material KNIFE = Material.WOODEN_SWORD;
 
     private GameItems() {}
 
     public static ItemStack knife() {
-        ItemStack item = create(Material.WOODEN_AXE, "§aMesser", "messer_v2");
+        ItemStack item = create(KNIFE, "§aMesser", "messer_v2");
         ItemMeta meta = item.getItemMeta();
         meta.setUnbreakable(true);
+        // Same hit as the old wooden axe: 7 damage, 0.8 attacks per second
+        meta.addAttributeModifier(Attribute.ATTACK_DAMAGE, new AttributeModifier(new NamespacedKey("monsters", "knife_damage"),
+                6, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+        meta.addAttributeModifier(Attribute.ATTACK_SPEED, new AttributeModifier(new NamespacedKey("monsters", "knife_speed"),
+                -3.2, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         item.setItemMeta(meta);
         return item;
     }

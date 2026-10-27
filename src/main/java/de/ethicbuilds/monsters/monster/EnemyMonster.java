@@ -30,9 +30,9 @@ public abstract class EnemyMonster {
 
     public void summon(Player player, Location spawnLocation) {
         monster = (Monster) plugin.getWorld().spawnEntity(spawnLocation, type);
-        monster.setCustomNameVisible(true);
-        monster.setCustomName(monster.getCustomName());
+        monster.setCustomNameVisible(false);
         monster.setHealth(health);
+        if (plugin.getConfig().getBoolean("health-bars", true)) HealthBars.attach(monster);
 
         Pathfinder pathfinder = monster.getPathfinder();
         new BukkitRunnable() {
