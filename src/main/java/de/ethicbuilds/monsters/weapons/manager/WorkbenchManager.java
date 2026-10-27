@@ -184,6 +184,7 @@ public class WorkbenchManager implements Listener {
         weapon.upgrade();
         weapon.refill();
         weapon.reload(player);
+        if (player.getInventory().getItemInMainHand().equals(weapon.getItem())) AmmoHud.refresh(player, weapon);
         player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 0.8F, 1.2F);
         player.sendMessage(String.format("%s§a%s §7ist jetzt Stufe §6%d§7! §c-%d Coins", plugin.getMonstersPrefix(),
                 weapon.getName(), weapon.getLevel(), price));

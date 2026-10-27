@@ -27,6 +27,12 @@ public final class AmmoHud {
         pausedUntil.put(player.getUniqueId(), System.currentTimeMillis() + PAUSE_MILLIS);
     }
 
+    /** Shows the new numbers right away, e.g. after buying ammo */
+    public static void refresh(Player player, Weapon weapon) {
+        pausedUntil.remove(player.getUniqueId());
+        show(player, weapon);
+    }
+
     public static void show(Player player, Weapon weapon) {
         player.setLevel(0);
         player.setExp(weapon.getMaxAmmu() > 0 ? Math.max(0, Math.min(1, weapon.getAmmu() / (float) weapon.getMaxAmmu())) : 0);

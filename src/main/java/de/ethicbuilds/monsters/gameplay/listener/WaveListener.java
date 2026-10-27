@@ -292,6 +292,7 @@ public class WaveListener implements Listener {
         gamePlayer.setCoins(gamePlayer.getCoins() - AMMO_PRICE);
         weapon.refill();
         weapon.reload(player);
+        AmmoHud.refresh(player, weapon);
         player.sendMessage(String.format("§7Munition von §a%s §7aufgefüllt! §c-%d Coins", weapon.getName(), AMMO_PRICE));
         player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_YES, 1.0F, 1.0F);
     }
