@@ -7,12 +7,15 @@ import lombok.Setter;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
-import org.bukkit.entity.Mannequin;
+import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter @Setter
 public abstract class Weapon {
@@ -33,6 +36,8 @@ public abstract class Weapon {
     protected float pitch = 2.0F;
 
     protected int maxDistance = 50;
+    // How many monsters one shot goes through
+    protected int pierce = 1;
 
     protected Particle particle;
 
@@ -59,9 +64,7 @@ public abstract class Weapon {
         Vector direction = start.getDirection().normalize();
 
         magazine--;
-        player.setLevel(Math.max((ammu + magazine), 0));
-        float current = Math.max(ammu + magazine, 0);
-        player.setExp(current / (maxAmmu + maxMagazine));
+        AmmoHud.show(player, this);
 
         if (magazine <= 0) {
             reload(player);
@@ -70,38 +73,31 @@ public abstract class Weapon {
 
         player.playSound(player.getLocation(), sound, 0.5F, pitch);
 
+        Set<org.bukkit.entity.Entity> hit = new HashSet<>();
         new BukkitRunnable() {
             double distanceTravelled = 0;
-            final double stepSize = 2.0;
             @Override
             public void run() {
-                distanceTravelled += stepSize;
-                Location current = start.clone().add(direction.clone().multiply(distanceTravelled));
+                // 2 blocks per tick, checked every block so no monster is skipped
+                for (int step = 0; step < 2; step++) {
+                    distanceTravelled += 1.0;
+                    Location current = start.clone().add(direction.clone().multiply(distanceTravelled));
 
-                player.getWorld().spawnParticle(
-                        particle,
-                        current,
-                        5,
-                        0, 0, 0,
-                        0.01
-                );
+                    if (step == 1) player.getWorld().spawnParticle(particle, current, 5, 0, 0, 0, 0.01);
 
-                if (current.getBlock().getType().isSolid()) {
-                    this.cancel();
-                    return;
-                }
-
-                for (org.bukkit.entity.Entity entity : current.getWorld().getNearbyEntities(current, 0.5, 0.5, 0.5)) {
-                    if (entity instanceof Player || entity instanceof Mannequin) continue;
-                    if (entity instanceof org.bukkit.entity.LivingEntity) {
-                        ((org.bukkit.entity.LivingEntity) entity).damage(damage, player);
+                    if (current.getBlock().getType().isSolid() || distanceTravelled > maxDistance) {
                         this.cancel();
                         return;
                     }
-                }
 
-                if (distanceTravelled > maxDistance) {
-                    this.cancel();
+                    for (org.bukkit.entity.Entity entity : current.getWorld().getNearbyEntities(current, 0.5, 0.5, 0.5)) {
+                        if (!(entity instanceof Monster monster) || !hit.add(entity)) continue;
+                        monster.damage(damage, player);
+                        if (hit.size() >= pierce) {
+                            this.cancel();
+                            return;
+                        }
+                    }
                 }
             }
         }.runTaskTimer(Main.getINSTANCE(), 0, 1);
@@ -114,6 +110,7 @@ public abstract class Weapon {
             return;
         }
         if (ammu <= 0) {
+            AmmoHud.pause(player);
             player.sendTitle("§4Keine Munition", String.format("Kaufe Munition bei der %s Waffenstation", name), 0, 20, 0);
             return;
         }
@@ -126,6 +123,7 @@ public abstract class Weapon {
                 break;
             }
         }
+        AmmoHud.show(player, this);
     }
 
     public void refill() {

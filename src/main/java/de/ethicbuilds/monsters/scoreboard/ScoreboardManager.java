@@ -2,19 +2,45 @@ package de.ethicbuilds.monsters.scoreboard;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
+import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import io.papermc.paper.scoreboard.numbers.NumberFormat;
 import lombok.Getter;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scoreboard.*;
+import org.bukkit.scoreboard.Criteria;
+import org.bukkit.scoreboard.DisplaySlot;
+import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.Score;
+import org.bukkit.scoreboard.Scoreboard;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+/***
+ * Sidebar in the style of the network scoreboard (design session): icons from ethicbuilds:hud,
+ * labels left, values right, no red numbers
+ */
 public class ScoreboardManager {
+    private static final MiniMessage MM = MiniMessage.miniMessage();
+    private static final String TITLE = "<bold><gradient:#F9A11E:#8B4BD8>MONSTERS</gradient></bold>";
+    private static final String ICON = "<white><font:ethicbuilds:hud>%s</font></white> ";
+    // 8 px margin behind every value
+    private static final String MARGIN = "<font:ethicbuilds:hud></font>";
+    private static final String WEBSITE = gradientLetters("EthicBuilds.de",
+            "22D3E6", "0DD6D3", "28D7BD", "4AD7A5", "6AD48B", "89CF6F", "A5C953", "BEC136", "D5B718", "E9AC04", "F9A11E");
 
     @Inject private UserManager userManager;
     @Inject private WaveManager waveManager;
     @Inject private MonsterManager monsterManager;
+    @Inject private GameManager gameManager;
     @Inject private Main plugin;
 
     private Thread timeThread = null;
@@ -22,11 +48,23 @@ public class ScoreboardManager {
 
     @Getter
     private Scoreboard scoreboard;
+    private Objective objective;
+    private final List<String> entries = new ArrayList<>();
+
+    private record Line(Component left, Component right) {}
 
     public void init() {
-        createScoreboard();
+        scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
+        objective = scoreboard.registerNewObjective("monsters", Criteria.DUMMY, MM.deserialize(TITLE));
+        objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+        objective.numberFormat(NumberFormat.blank());
 
-        startScoreBoardUpdater();
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                update();
+            }
+        }.runTaskTimer(plugin, 0L, 20L);
     }
 
     public void startTime() {
@@ -43,87 +81,55 @@ public class ScoreboardManager {
         this.timeThread.start();
     }
 
-    private void createScoreboard() {
-        org.bukkit.scoreboard.ScoreboardManager manager = Bukkit.getScoreboardManager();
-        scoreboard = manager.getNewScoreboard();
+    private void update() {
+        List<Line> lines = new ArrayList<>();
+        String map = gameManager.getGameConfig() != null ? gameManager.getGameConfig().getMapName() : "";
 
-        Objective objective = scoreboard.registerNewObjective(
-                "punkte",
-                "dummy",
-                "§x§0§B§7§2§1§2§lM§x§0§B§8§1§1§4§lo§x§0§A§9§1§1§6§ln§x§0§A§A§0§1§8§ls§x§0§A§B§0§1§A§lt§x§0§A§B§F§1§C§le§x§0§9§C§F§1§E§lr§x§0§9§D§E§2§0§ls"
-        );
-        objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+        lines.add(empty());
+        lines.add(line("", "Map", "<#F2F5F8>" + map));
+        lines.add(line("", "Runde", "<#F9A11E>" + waveManager.getCurrentWave()));
+        lines.add(line("", "Monster", "<#F2F5F8>" + monsterManager.getMonsters().size()));
+        lines.add(line("", "Zeit", "<#F2F5F8>" + String.format("%02d:%02d", time / 60, time % 60)));
+        lines.add(empty());
+        for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
+            boolean dead = userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId());
+            Component left = MM.deserialize(String.format(ICON, dead ? "" : "") + (dead ? "<#9AA6B8>" : "<#F2F5F8>") + "<name>",
+                    Placeholder.unparsed("name", gamePlayer.getPlayer().getName()));
+            Component right = MM.deserialize("<#F9A11E>" + String.format(Locale.GERMANY, "%,d", gamePlayer.getCoins())
+                    + " <white><font:ethicbuilds:hud></font></white>" + MARGIN);
+            lines.add(new Line(left, right));
+        }
+        lines.add(empty());
+        lines.add(new Line(MM.deserialize(WEBSITE), Component.empty()));
 
-        int scoreValue = 11;
-
-        var gamePlayers = userManager.getGamePlayers();
-
-        addLine(scoreboard, objective, "§1", " ", "", scoreValue--);
-        addLine(scoreboard, objective, "§2", "Runde ", String.format("§e%d", waveManager.getCurrentWave()), scoreValue--);
-        addLine(scoreboard, objective, "§3", "Verbleibende Monster: ", String.format("§c%d", monsterManager.getMonsters().size()), scoreValue--);
-        addLine(scoreboard, objective, "§4", " ", "", scoreValue--);
-        addLine(scoreboard, objective, "§5",
-                String.format("%s: ", !gamePlayers.isEmpty() ? gamePlayers.getFirst().getPlayer().getName() : "§c- §r"),
-                String.format("§6%d", !gamePlayers.isEmpty() ? gamePlayers.getFirst().getCoins() : 0),
-                scoreValue--);
-        addLine(scoreboard, objective, "§6",
-                String.format("%s: ", gamePlayers.size() >= 2 ? gamePlayers.get(1).getPlayer().getName() : "§c- §r"),
-                String.format("§6%d", gamePlayers.size() >= 2 ? gamePlayers.get(1).getCoins() : 0),
-                scoreValue--);
-        addLine(scoreboard, objective, "§7",
-                String.format("%s: ", gamePlayers.size() >= 3 ? gamePlayers.get(2).getPlayer().getName() : "§c- §r"),
-                String.format("§6%d", gamePlayers.size() >= 3 ? gamePlayers.get(2).getCoins() : 0),
-                scoreValue--);
-        addLine(scoreboard, objective, "§8",
-                String.format("%s: ", gamePlayers.size() >= 4 ? gamePlayers.get(3).getPlayer().getName() : "§c- §r"),
-                String.format("§6%d", gamePlayers.size() >= 4 ? gamePlayers.get(3).getCoins() : 0),
-                scoreValue--);
-        addLine(scoreboard, objective, "§9", " ", "", scoreValue--);
-        addLine(scoreboard, objective, "§a", "Zeit: ", formatSeconds(time), scoreValue--);
-        addLine(scoreboard, objective, "§b", " ", "", scoreValue--);
-        addLine(scoreboard, objective, "§c", "§x§2§2§D§3§E§6E§x§0§D§D§6§D§3t§x§2§8§D§7§B§Dh§x§4§A§D§7§A§5i§x§6§A§D§4§8§Bc§x§8§9§C§F§6§FB§x§A§5§C§9§5§3u§x§B§E§C§1§3§6i§x§D§5§B§7§1§8l§x§E§9§A§C§0§4d§x§F§9§A§1§1§Es§x§F§9§A§1§1§E.§x§F§9§A§1§1§Ed§x§F§9§A§1§1§Ee", "", scoreValue--);
+        render(lines);
     }
 
-    private void startScoreBoardUpdater() {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (scoreboard == null) return;
+    private void render(List<Line> lines) {
+        while (entries.size() > lines.size()) scoreboard.resetScores(entries.removeLast());
+        while (entries.size() < lines.size()) entries.add("line" + entries.size());
 
-                var gamePlayers = userManager.getGamePlayers();
-
-                scoreboard.getTeam("§2").setSuffix(String.format("§e%d", waveManager.getCurrentWave()));
-                scoreboard.getTeam("§3").setSuffix(String.format("§c%d", monsterManager.getMonsters().size()));
-
-                String[] lines = {"§5", "§6", "§7", "§8"};
-                for (int i = 0; i < lines.length; i++) {
-                    Team team = scoreboard.getTeam(lines[i]);
-                    // Empty slot without a player stays blank
-                    if (i >= gamePlayers.size()) {
-                        team.setPrefix(" ");
-                        team.setSuffix("");
-                        continue;
-                    }
-                    var gamePlayer = gamePlayers.get(i);
-                    boolean dead = userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId());
-                    team.setPrefix(String.format("§%s%s: ", dead ? "c" : "a", gamePlayer.getPlayer().getName()));
-                    team.setSuffix(String.format("§6%d", gamePlayer.getCoins()));
-                }
-
-                scoreboard.getTeam("§a").setSuffix(formatSeconds(time));
-            }
-        }.runTaskTimer(plugin, 0L, 20L);
+        for (int i = 0; i < lines.size(); i++) {
+            Score score = objective.getScore(entries.get(i));
+            score.setScore(lines.size() - i);
+            score.customName(lines.get(i).left());
+            score.numberFormat(NumberFormat.fixed(lines.get(i).right()));
+        }
     }
 
-    private void addLine(Scoreboard board, Objective obj, String entry, String prefix, String suffix, int score) {
-        Team team = board.registerNewTeam(entry);
-        team.addEntry(entry);
-        team.setPrefix(prefix);
-        team.setSuffix(suffix);
-        obj.getScore(entry).setScore(score);
+    private static Line line(String icon, String label, String value) {
+        return new Line(MM.deserialize(String.format(ICON, icon) + "<#9AA6B8>" + label), MM.deserialize(value + MARGIN));
     }
 
-    private String formatSeconds(int totalSeconds) {
-        return String.format("%02d:%02d", totalSeconds / 60, totalSeconds % 60);
+    private static Line empty() {
+        return new Line(Component.text(" "), Component.empty());
+    }
+
+    private static String gradientLetters(String text, String... colors) {
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            out.append("<#").append(colors[Math.min(i, colors.length - 1)]).append(">").append(text.charAt(i));
+        }
+        return out.toString();
     }
 }

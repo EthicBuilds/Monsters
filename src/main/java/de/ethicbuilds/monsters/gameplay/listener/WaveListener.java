@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.gameplay.listener;
 
+import de.ethicbuilds.monsters.weapons.AmmoHud;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.DoorManager;
@@ -14,6 +15,7 @@ import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.map.elements.WeaponPoint;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.HealthBars;
+import de.ethicbuilds.monsters.monster.MonsterGuard;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -96,10 +98,15 @@ public class WaveListener implements Listener {
         if (gameManager.getCurrentPhase() != GamePhase.WAVE
                 || !(event.getEntity() instanceof Monster monster)) return;
 
+        HealthBars.remove(monster);
+        // Halloween: orange to purple dust, sometimes a soul
+        Location body = monster.getLocation().add(0, 1, 0);
+        body.getWorld().spawnParticle(Particle.DUST_COLOR_TRANSITION, body, 12, 0.3, 0.5, 0.3,
+                new Particle.DustTransition(Color.fromRGB(0xF9A11E), Color.fromRGB(0x8B4BD8), 1.2F));
+        if (Math.random() < 0.3) body.getWorld().spawnParticle(Particle.SOUL, body, 2, 0.2, 0.3, 0.2, 0.02);
         EnemyMonster enemyMonster = monsterManager.getEnemyMonster(monster);
         if (enemyMonster == null) return;
 
-        HealthBars.remove(monster);
         monsterManager.removeMonster(enemyMonster);
         if (monsterManager.getMonsters().size() <= 3) {
             for (EnemyMonster m : monsterManager.getMonsters().values()) {
@@ -215,6 +222,7 @@ public class WaveListener implements Listener {
         Player player = gamePlayer.getPlayer();
 
         if (!GameItems.isCrowbar(player.getInventory().getItemInMainHand())) {
+            AmmoHud.pause(player);
             player.sendActionBar("§cBrich die Tür mit der §6Brechstange §cauf!");
             player.playSound(player.getLocation(), Sound.BLOCK_IRON_TRAPDOOR_CLOSE, 1.5F, 0.0F);
             return;
@@ -352,6 +360,8 @@ public class WaveListener implements Listener {
             hologram.setMarker(true);
             hologram.setGravity(false);
             hologram.setInvulnerable(true);
+            hologram.setPersistent(false);
+            MonsterGuard.markHolo(hologram);
             hologram.setCollidable(false);
 
             new BukkitRunnable() {

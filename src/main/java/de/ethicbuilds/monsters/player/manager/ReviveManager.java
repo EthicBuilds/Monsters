@@ -77,6 +77,11 @@ public class ReviveManager implements Listener {
         setBase(player, Attribute.MOVEMENT_SPEED, 0);
         setBase(player, Attribute.JUMP_STRENGTH, 0);
 
+        // Monsters chasing the downed player look for someone alive
+        for (org.bukkit.entity.Monster monster : spot.getWorld().getEntitiesByClass(org.bukkit.entity.Monster.class)) {
+            if (player.equals(monster.getTarget())) monster.setTarget(null);
+        }
+
         Location view = spot.clone();
         view.setPitch(-90);
         player.teleport(view);

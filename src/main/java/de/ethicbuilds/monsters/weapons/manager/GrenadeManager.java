@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.player.GamePlayer;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -22,6 +23,7 @@ public class GrenadeManager {
     private static final int FUSE_TICKS = 50;
     private static final double RADIUS = 5.0;
     private static final double DAMAGE = 30.0;
+    private static final java.util.Set<Integer> TICKS = java.util.Set.of(10, 25, 35, 42, 46, 49);
 
     @Inject private Main plugin;
 
@@ -72,10 +74,11 @@ public class GrenadeManager {
             item.setPersistent(false);
         });
         grenade.setVelocity(start.getDirection().multiply(0.9).add(new Vector(0, 0.2, 0)));
-        player.playSound(start, Sound.ENTITY_SNOWBALL_THROW, 1.0F, 0.6F);
+        player.getWorld().playSound(start, Sound.ENTITY_WITCH_THROW, 1.0F, 1.0F);
 
         new BukkitRunnable() {
             int ticks = 0;
+            int groundTicks = 0;
 
             @Override
             public void run() {
@@ -84,11 +87,17 @@ public class GrenadeManager {
                     return;
                 }
                 ticks++;
-                grenade.getWorld().spawnParticle(Particle.SMOKE, grenade.getLocation().add(0, 0.2, 0), 1, 0, 0, 0, 0);
-                if (ticks % 10 == 0) {
-                    grenade.getWorld().playSound(grenade.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 1.0F, 1.5F + ticks / 100F);
+                Location at = grenade.getLocation().add(0, 0.2, 0);
+                grenade.getWorld().spawnParticle(Particle.SMOKE, at, 1, 0, 0, 0, 0);
+                grenade.getWorld().spawnParticle(Particle.SMALL_FLAME, at, 1, 0, 0, 0, 0);
+                // Ticking gets faster and higher, with a red blink
+                if (TICKS.contains(ticks)) {
+                    grenade.getWorld().playSound(at, Sound.BLOCK_NOTE_BLOCK_HAT, 1.0F, 1.0F + ticks / (float) FUSE_TICKS);
+                    grenade.getWorld().spawnParticle(Particle.DUST, at, 4, 0.05, 0.05, 0.05, new Particle.DustOptions(Color.RED, 1.0F));
                 }
-                if (ticks >= FUSE_TICKS) {
+                // Goes off right after it lands
+                if (grenade.isOnGround()) groundTicks++;
+                if (groundTicks >= 3 || ticks >= FUSE_TICKS) {
                     explode(player, grenade.getLocation());
                     grenade.remove();
                     cancel();
@@ -99,9 +108,12 @@ public class GrenadeManager {
 
     private void explode(Player thrower, Location location) {
         World world = location.getWorld();
-        world.spawnParticle(Particle.EXPLOSION_EMITTER, location, 1);
-        world.spawnParticle(Particle.FLAME, location, 40, 1.5, 0.5, 1.5, 0.05);
-        world.playSound(location, Sound.ENTITY_GENERIC_EXPLODE, 2.0F, 1.0F);
+        world.playSound(location, Sound.ENTITY_GENERIC_EXPLODE, 1.6F, 1.1F);
+        world.playSound(location, Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, 1.0F, 1.0F);
+        world.spawnParticle(Particle.EXPLOSION, location, 3, 0.8, 0.4, 0.8, 0);
+        world.spawnParticle(Particle.FLAME, location, 25, 1.5, 0.5, 1.5, 0.05);
+        world.spawnParticle(Particle.LARGE_SMOKE, location, 15, 1.2, 0.6, 1.2, 0.02);
+        world.spawnParticle(Particle.LAVA, location, 6, 0.8, 0.3, 0.8, 0);
 
         for (Monster monster : world.getNearbyEntitiesByType(Monster.class, location, RADIUS)) {
             double distance = monster.getLocation().distance(location);

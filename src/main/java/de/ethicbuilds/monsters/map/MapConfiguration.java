@@ -19,4 +19,5 @@ public class MapConfiguration {
     private List<Door> doors;
     private List<MonsterSpawner> spawners;
     private List<WeaponPoint> weaponPoints;
+    private Boolean hideWeaponPoints;
 }

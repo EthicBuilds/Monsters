@@ -6,7 +6,12 @@ import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -22,6 +27,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.Transformation;
+import org.joml.AxisAngle4f;
+import org.joml.Vector3f;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -89,7 +97,7 @@ public class DecorationManager implements Listener {
         } else if (WEAPON_CRATES.containsKey(id)) {
             createWeaponStation(block, WEAPON_CRATES.get(id));
         } else if (AMMO_CRATE.equals(id)) {
-            createStation(block, GRENADE_STATION, String.format("§aGranate\n§6%d Coins", GrenadeManager.PRICE));
+            createStation(block, GRENADE_STATION, "Granate", price(GrenadeManager.PRICE));
         }
     }
 
@@ -100,10 +108,16 @@ public class DecorationManager implements Listener {
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
-        createStation(block, weaponName, String.format("%s\n§6%d Coins\n§7Munition §6500 Coins", weapon.getName(), weapon.getPrice()));
+        createStation(block, weaponName, ChatColor.stripColor(weapon.getName()), price(weapon.getPrice()) + "\n<#9AA6B8>Munition " + price(500));
     }
 
-    private void createStation(Block block, String station, String text) {
+    private static String price(int coins) {
+        return "<white><font:ethicbuilds:hud>\uE017</font></white> <#F9A11E>" + coins + " <#9AA6B8>Coins";
+    }
+
+    private void createStation(Block block, String station, String name, String prices) {
+        Component text = MiniMessage.miniMessage().deserialize("<#F2F5F8><name>\n" + prices + "\n<#9AA6B8>Rechtsklick zum Kaufen",
+                Placeholder.unparsed("name", name));
         Location base = block.getLocation().add(0.5, 0, 0.5);
         World world = block.getWorld();
 
@@ -115,8 +129,10 @@ public class DecorationManager implements Listener {
         stations.put(hitbox.getUniqueId(), station);
 
         world.spawn(base.clone().add(0, 1.6, 0), TextDisplay.class, holo -> {
-            holo.setText(text);
+            holo.text(text);
             holo.setBillboard(Display.Billboard.CENTER);
+            holo.setBackgroundColor(Color.fromARGB(0xB3, 0x14, 0x10, 0x0C));
+            holo.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(0.9F), new AxisAngle4f()));
             holo.setPersistent(false);
         });
     }

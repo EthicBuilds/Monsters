@@ -44,6 +44,7 @@ public class DoorManager {
                 if (!canContinue(player, center)) {
                     stop(door, blocks, player);
                     player.sendActionBar("§cAufbrechen abgebrochen");
+                    center.getWorld().playSound(center, Sound.BLOCK_NOTE_BLOCK_BASS, 0.5F, 0.7F);
                     cancel();
                     return;
                 }
@@ -53,11 +54,12 @@ public class DoorManager {
 
                 if (ticks % 8 == 0) {
                     player.swingMainHand();
-                    center.getWorld().playSound(center, Sound.ENTITY_ZOMBIE_ATTACK_WOODEN_DOOR, 0.8F, 1.3F);
-                    center.getWorld().playSound(center, Sound.BLOCK_CHAIN_HIT, 0.6F, 0.7F);
+                    if (ticks % 16 == 0) center.getWorld().playSound(center, Sound.BLOCK_CHAIN_HIT, 0.7F, 0.8F);
+                    else center.getWorld().playSound(center, Sound.ENTITY_ZOMBIE_ATTACK_WOODEN_DOOR, 0.6F, 1.4F);
                     for (Location block : blocks) {
-                        center.getWorld().spawnParticle(Particle.BLOCK, block.clone().add(0.5, 0.5, 0.5), 4, 0.3, 0.3, 0.3, block.getBlock().getBlockData());
+                        center.getWorld().spawnParticle(Particle.BLOCK, block.clone().add(0.5, 0.5, 0.5), 6, 0.3, 0.3, 0.3, block.getBlock().getBlockData());
                     }
+                    center.getWorld().spawnParticle(Particle.CRIT, center, 3, 0.3, 0.3, 0.3, 0.1);
                 }
                 for (Location block : blocks) {
                     Bukkit.getOnlinePlayers().forEach(p -> p.sendBlockDamage(block, Math.min(progress, 0.99F), player.getEntityId()));
@@ -67,7 +69,8 @@ public class DoorManager {
                 if (ticks >= BREAK_TICKS) {
                     stop(door, blocks, player);
                     center.getWorld().playSound(center, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 1.2F, 1.0F);
-                    center.getWorld().spawnParticle(Particle.CLOUD, center, 15, 0.6, 0.8, 0.6, 0.02);
+                    center.getWorld().spawnParticle(Particle.BLOCK, center, 40, 0.6, 0.8, 0.6, blocks.getFirst().getBlock().getBlockData());
+                    center.getWorld().spawnParticle(Particle.POOF, center, 8, 0.6, 0.8, 0.6, 0.02);
                     onOpen.run();
                     cancel();
                 }
@@ -97,7 +100,8 @@ public class DoorManager {
     }
 
     private String progressBar(float progress) {
-        int filled = Math.round(progress * 20);
-        return "§7Aufbrechen §a" + "|".repeat(filled) + "§8" + "|".repeat(20 - filled);
+        int filled = Math.round(progress * 10);
+        return "§x§F§9§A§1§1§E" + "▮".repeat(filled) + "§x§4§A§5§7§6§8" + "▮".repeat(10 - filled)
+                + " §x§F§2§F§5§F§8" + Math.round(progress * 100) + "%";
     }
 }

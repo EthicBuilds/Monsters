@@ -8,7 +8,9 @@ public class Sniper extends Weapon {
     public Sniper() {
         this.item = new ItemStack(Material.ARROW);
         this.name = "§6Sniper";
-        this.damage = 25.0;
+        // Goes through 5 monsters and kills each of them
+        this.damage = 1000.0;
+        this.pierce = 5;
         this.fireRate = 35;
         this.maxAmmu = 100;
         this.maxMagazine = 10;

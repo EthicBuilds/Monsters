@@ -6,6 +6,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.NamespacedKey;
+import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Display;
@@ -59,6 +60,15 @@ public final class HealthBars {
     public static void remove(Entity mob) {
         for (Entity passenger : mob.getPassengers()) {
             if (isBar(passenger)) passenger.remove();
+        }
+    }
+
+    /** Bars whose monster is gone (died, removed, unloaded) */
+    public static void removeOrphans(World world) {
+        for (TextDisplay display : world.getEntitiesByClass(TextDisplay.class)) {
+            if (!isBar(display)) continue;
+            Entity vehicle = display.getVehicle();
+            if (vehicle == null || !vehicle.isValid() || vehicle.isDead()) display.remove();
         }
     }
 

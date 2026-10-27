@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.map.decoration;
 
+import de.ethicbuilds.monsters.weapons.AmmoHud;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
@@ -89,6 +90,7 @@ public class CrateManager implements Listener {
         if (gamePlayer == null || userManager.isPlayerDead(player.getUniqueId())) return;
 
         if (!GameItems.isCrowbar(player.getInventory().getItemInMainHand())) {
+            AmmoHud.pause(player);
             player.sendActionBar("§7Zerschlage die Kiste mit der §6Brechstange");
             return;
         }

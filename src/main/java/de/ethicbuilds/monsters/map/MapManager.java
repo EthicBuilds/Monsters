@@ -6,6 +6,7 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.map.adapter.LocationAdapter;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
+import de.ethicbuilds.monsters.monster.MonsterGuard;
 import de.ethicbuilds.monsters.map.elements.Door;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.map.elements.WeaponPoint;
@@ -73,7 +74,8 @@ public class MapManager {
         plugin.getWorld().setTime(18000);
 
         createDoorHolos();
-        createWeaponPointHolos();
+        // Maps with weapon crates as decoration do not show the old weapon points
+        if (!Boolean.TRUE.equals(mapConfiguration.getHideWeaponPoints())) createWeaponPointHolos();
     }
 
     public void createMapConfig() {
@@ -157,6 +159,7 @@ public class MapManager {
         hologram.setGravity(false);
         hologram.setInvulnerable(true);
         hologram.setCollidable(false);
+        MonsterGuard.markHolo(hologram);
     }
 
 

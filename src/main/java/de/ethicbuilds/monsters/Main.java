@@ -13,7 +13,11 @@ import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.decoration.CrateManager;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.monster.MonsterGuard;
+import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.ReviveManager;
+import de.ethicbuilds.monsters.player.manager.UserManager;
+import de.ethicbuilds.monsters.weapons.AmmoHud;
+import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import de.ethicbuilds.monsters.test.LocateMonsters;
 import de.ethicbuilds.monsters.commands.CreateMapConfigCommand;
@@ -59,6 +63,18 @@ public final class Main extends JavaPlugin {
         injector.getInstance(ScoreboardManager.class).init();
 
         registerCommandsAndListeners();
+        startAmmoHud();
+    }
+
+    // Ammo panel refreshed every second while a weapon is in hand
+    private void startAmmoHud() {
+        UserManager userManager = injector.getInstance(UserManager.class);
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
+                Weapon weapon = gamePlayer.getWeapon(gamePlayer.getPlayer().getInventory().getItemInMainHand());
+                if (weapon != null && !userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) AmmoHud.show(gamePlayer.getPlayer(), weapon);
+            }
+        }, 20L, 20L);
     }
 
     @Override

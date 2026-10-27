@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.monster;
 
 import org.bukkit.NamespacedKey;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Monster;
@@ -12,17 +13,23 @@ import org.bukkit.persistence.PersistentDataType;
 
 /***
  * Only monsters of the current round: no natural spawns or reinforcements,
- * and monsters or items saved in the world (old rounds, map template) are removed when they load
+ * and monsters, items and old holograms saved in the world (old rounds, map template) are removed when they load
  */
 public class MonsterGuard implements Listener {
     private static final NamespacedKey ROUND_MONSTER = new NamespacedKey("monsters", "round_monster");
+    private static final NamespacedKey HOLO = new NamespacedKey("monsters", "holo");
 
     public static void mark(Monster monster) {
         monster.getPersistentDataContainer().set(ROUND_MONSTER, PersistentDataType.BYTE, (byte) 1);
     }
 
+    public static void markHolo(ArmorStand holo) {
+        holo.getPersistentDataContainer().set(HOLO, PersistentDataType.BYTE, (byte) 1);
+    }
+
     public static boolean isOld(Entity entity) {
         if (entity instanceof Item) return true;
+        if (entity instanceof ArmorStand) return !entity.getPersistentDataContainer().has(HOLO, PersistentDataType.BYTE);
         return entity instanceof Monster && !entity.getPersistentDataContainer().has(ROUND_MONSTER, PersistentDataType.BYTE);
     }
 

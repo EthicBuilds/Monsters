@@ -5,7 +5,6 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
-import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -41,9 +40,7 @@ public class Pumpgun extends Weapon {
         Vector direction = start.getDirection().normalize();
 
         magazine--;
-        player.setLevel(Math.max((ammu + magazine), 0));
-        float current = Math.max(ammu + magazine, 0);
-        player.setExp(current / (maxAmmu + maxMagazine));
+        AmmoHud.show(player, this);
 
         if (magazine <= 0) {
             reload(player);
@@ -88,8 +85,8 @@ public class Pumpgun extends Weapon {
                     }
 
                     for (org.bukkit.entity.Entity entity : current.getWorld().getNearbyEntities(current, 0.5, 0.5, 0.5)) {
-                        if (entity instanceof Player || entity instanceof Mannequin) continue;
-                        if (entity instanceof org.bukkit.entity.LivingEntity) {
+                        if (!(entity instanceof org.bukkit.entity.Monster)) continue;
+                        {
                             ((org.bukkit.entity.LivingEntity) entity).damage(damage, player);
                             this.cancel();
                             return;

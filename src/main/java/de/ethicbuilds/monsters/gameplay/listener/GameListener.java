@@ -8,6 +8,7 @@ import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.dto.StopServerDto;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import de.ethicbuilds.monsters.weapons.AmmoHud;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -87,12 +88,11 @@ public class GameListener implements Listener {
 
         Weapon weapon = gamePlayer.getWeapon(item);
 
-        gamePlayer.getPlayer().setLevel(0);
-        gamePlayer.getPlayer().setExp(0);
+        AmmoHud.clear(gamePlayer.getPlayer());
 
         if (weapon == null) return;
 
-        setPlayerXPToWeaponAmo(gamePlayer.getPlayer(), weapon);
+        AmmoHud.show(gamePlayer.getPlayer(), weapon);
     }
 
     // Everyone stays in adventure mode, no other game mode, also not for the team
@@ -172,12 +172,5 @@ public class GameListener implements Listener {
 
             Bukkit.shutdown();
         }
-    }
-
-
-    private void setPlayerXPToWeaponAmo(Player player, Weapon weapon) {
-        player.setLevel(Math.max((weapon.getAmmu() + weapon.getMagazine()), 0));
-        float current = Math.max(weapon.getAmmu() + weapon.getMagazine(), 0);
-        player.setExp(current / (weapon.getMaxAmmu() + weapon.getMaxMagazine()));
     }
 }

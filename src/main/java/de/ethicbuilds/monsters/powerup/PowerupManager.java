@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.powerup;
 
+import de.ethicbuilds.monsters.weapons.AmmoHud;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
@@ -7,6 +8,7 @@ import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -90,11 +92,13 @@ public class PowerupManager {
             display.setItemStack(GameItems.medkit());
             display.setBillboard(Display.Billboard.FIXED);
             display.setGlowing(true);
+            display.setGlowColorOverride(Color.fromRGB(0x3CC860));
             display.setPersistent(false);
             display.setTeleportDuration(2);
         });
         medkits.add(medkit);
         spot.getWorld().playSound(spot, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.5F, 1.2F);
+        spot.getWorld().playSound(spot, Sound.BLOCK_BEACON_ACTIVATE, 0.6F, 1.6F);
         spot.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, spot, 10, 0.4, 0.4, 0.4, 0);
 
         new BukkitRunnable() {
@@ -107,8 +111,18 @@ public class PowerupManager {
                     return;
                 }
                 age += 2;
-                float angle = (float) Math.toRadians(age * 3 % 360);
-                float bob = (float) Math.sin(age / 10.0) * 0.1F;
+                // 4 degrees per tick, bobbing 0.12 up and down every 40 ticks
+                float angle = (float) Math.toRadians(age * 4 % 360);
+                float bob = (float) Math.sin(age * Math.PI / 20.0) * 0.12F;
+                if (age % 10 == 0) {
+                    Location ring = medkit.getLocation().subtract(0, 0.5, 0);
+                    for (int i = 0; i < 12; i++) {
+                        double a = Math.PI * 2 * i / 12;
+                        ring.getWorld().spawnParticle(Particle.DUST, ring.clone().add(Math.cos(a) * 0.5, 0, Math.sin(a) * 0.5), 1,
+                                new Particle.DustOptions(Color.fromRGB(0x3CC860), 0.8F));
+                    }
+                    ring.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, ring.clone().add(0, 0.5, 0), 2, 0.3, 0.3, 0.3, 0);
+                }
                 medkit.setTransformation(new Transformation(new Vector3f(0, bob, 0), new AxisAngle4f(angle, 0, 1, 0),
                         new Vector3f(0.8F, 0.8F, 0.8F), new AxisAngle4f()));
                 medkit.setInterpolationDuration(2);
@@ -141,8 +155,10 @@ public class PowerupManager {
 
     private void pickUp(Player player, Location location) {
         player.setHealth(player.getAttribute(Attribute.MAX_HEALTH).getValue());
+        AmmoHud.pause(player);
         player.sendActionBar("§aErste Hilfe! §7Du bist wieder voll geheilt");
-        player.playSound(location, Sound.ENTITY_PLAYER_LEVELUP, 1.0F, 1.6F);
+        player.playSound(location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0F, 1.2F);
+        player.playSound(location, Sound.BLOCK_NOTE_BLOCK_CHIME, 1.0F, 1.5F);
         location.getWorld().spawnParticle(Particle.HEART, location, 6, 0.4, 0.3, 0.4, 0);
     }
 

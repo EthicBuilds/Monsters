@@ -7,6 +7,9 @@ import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import lombok.Getter;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -44,6 +47,8 @@ public class WaveManager {
     private void startWave() {
         currentWave++;
         broadCastMessage(String.format("%s§aStarte Welle §4%d", plugin.getMonstersPrefix(), currentWave));
+        Component title = MiniMessage.miniMessage().deserialize("<bold><gradient:#F9A11E:#8B4BD8>Welle " + currentWave + "</gradient></bold>");
+        Bukkit.getOnlinePlayers().forEach(p -> p.showTitle(Title.title(title, Component.empty())));
         userManager.broadcastSound(Sound.BLOCK_TRIAL_SPAWNER_AMBIENT_OMINOUS, 2.0F, 1.0F);
 
         startOnMinecraftThread(crateManager::resetAll);

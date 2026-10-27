@@ -89,6 +89,7 @@ public class MonsterManager {
     public void startMonsterCheck() {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             long now = System.currentTimeMillis();
+            HealthBars.removeOrphans(plugin.getWorld());
 
             List<EnemyMonster> toRemove = new ArrayList<>();
 
