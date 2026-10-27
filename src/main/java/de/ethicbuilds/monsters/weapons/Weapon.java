@@ -119,7 +119,7 @@ public abstract class Weapon {
         }
         if (ammu <= 0) {
             AmmoHud.pause(player);
-            player.sendTitle("§4Keine Munition", String.format("Kaufe Munition bei der %s Waffenstation", name), 0, 20, 0);
+            player.sendTitle("§4Keine Munition", "§7Kaufe Munition an der §aMunitionskiste", 0, 20, 0);
             return;
         }
 

@@ -405,23 +405,9 @@ public class WaveListener implements Listener {
                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
             }
         } else {
-            if (gamePlayer.getCoins() < 500) {
-                player.sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum die Munition aufzufüllen", 500 - gamePlayer.getCoins()));
-                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
-                return;
-            }
-
-            if (playerWeapon.isFull()) {
-                player.sendMessage("§cMunition bereits voll!");
-                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
-                return;
-            }
-
-            gamePlayer.setCoins(gamePlayer.getCoins() - 500);
-            playerWeapon.refill();
-            playerWeapon.reload(player);
-            player.sendMessage(String.format("§7Munition von §a%s §7aufgefüllt! §c-500 Coins", playerWeapon.getName()));
-            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_YES, 1.0F, 1.0F);
+            // Weapon crates only sell weapons, ammo comes from the ammo crates
+            player.sendActionBar("§7Du hast diese Waffe schon! Munition gibt es an der §aMunitionskiste");
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
         }
     }
 

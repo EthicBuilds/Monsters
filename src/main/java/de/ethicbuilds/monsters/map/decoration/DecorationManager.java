@@ -113,7 +113,7 @@ public class DecorationManager implements Listener {
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
-        createStation(block, weaponName, ChatColor.stripColor(weapon.getName()), price(weapon.getPrice()) + "\n<#9AA6B8>Munition " + price(500));
+        createStation(block, weaponName, ChatColor.stripColor(weapon.getName()), price(weapon.getPrice()));
     }
 
     private static String price(int coins) {
