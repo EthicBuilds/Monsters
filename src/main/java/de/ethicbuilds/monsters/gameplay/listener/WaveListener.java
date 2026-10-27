@@ -114,12 +114,20 @@ public class WaveListener implements Listener {
         EnemyMonster enemyMonster = monsterManager.getEnemyMonster(monster);
         if (enemyMonster == null) return;
 
+        enemyMonster.onDeath();
         monsterManager.removeMonster(enemyMonster);
         if (monsterManager.getMonsters().size() <= 3) {
             for (EnemyMonster m : monsterManager.getMonsters().values()) {
                 m.getMonster().addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Integer.MAX_VALUE, 1));
             }
         }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onMonsterAttack(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Monster monster) || !(event.getEntity() instanceof Player)) return;
+        EnemyMonster enemyMonster = monsterManager.getEnemyMonster(monster);
+        if (enemyMonster != null) enemyMonster.onAttack();
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

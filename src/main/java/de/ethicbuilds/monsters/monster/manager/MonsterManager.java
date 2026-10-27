@@ -6,6 +6,8 @@ import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.HealthBars;
+import de.ethicbuilds.monsters.monster.MonsterSpider;
+import de.ethicbuilds.monsters.monster.MonsterSpiderBoss;
 import de.ethicbuilds.monsters.monster.MonsterZombie;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -24,6 +26,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MonsterManager {
+    public static final int BOSS_WAVE = 10;
+    private static final int SPIDERS_PER_PLAYER = 3;
+
     @Inject
     private MapManager mapManager;
     @Inject
@@ -46,6 +51,12 @@ public class MonsterManager {
         int players = Math.max(1, userManager.getGamePlayers().size());
         int monsterCount = players * (2 + 4 * (wave - 1));
 
+        // Every tenth wave: small amethyst weavers and one big boss weaver
+        if (wave % BOSS_WAVE == 0) {
+            for (int i = 0; i < players * SPIDERS_PER_PLAYER; i++) initialMonsters.add(new MonsterSpider());
+            initialMonsters.add(new MonsterSpiderBoss(players));
+            return;
+        }
         for (int i = 0; i < monsterCount; i++) {
             initialMonsters.add(new MonsterZombie());
         }

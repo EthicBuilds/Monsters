@@ -48,7 +48,9 @@ public class WaveManager {
         currentWave++;
         broadCastMessage(String.format("%s§aStarte Welle §4%d", plugin.getMonstersPrefix(), currentWave));
         Component title = MiniMessage.miniMessage().deserialize("<bold><gradient:#F9A11E:#8B4BD8>Welle " + currentWave + "</gradient></bold>");
-        Bukkit.getOnlinePlayers().forEach(p -> p.showTitle(Title.title(title, Component.empty())));
+        Component subtitle = currentWave % MonsterManager.BOSS_WAVE == 0
+                ? MiniMessage.miniMessage().deserialize("<#8B4BD8>Boss-Welle: die Amethyst-Weberin kommt!") : Component.empty();
+        Bukkit.getOnlinePlayers().forEach(p -> p.showTitle(Title.title(title, subtitle)));
         userManager.broadcastSound(Sound.BLOCK_TRIAL_SPAWNER_AMBIENT_OMINOUS, 2.0F, 1.0F);
 
         startOnMinecraftThread(crateManager::resetAll);

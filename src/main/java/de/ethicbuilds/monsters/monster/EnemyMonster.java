@@ -36,8 +36,11 @@ public abstract class EnemyMonster {
         var movement = monster.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
         if (movement != null) movement.setBaseValue(Math.min(movement.getBaseValue(), 0.23));
         MonsterGuard.mark(monster);
+        var maxHealth = monster.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+        if (maxHealth != null && maxHealth.getBaseValue() < health) maxHealth.setBaseValue(health);
         monster.setHealth(health);
-        if (plugin.getConfig().getBoolean("health-bars", true)) HealthBars.attach(monster);
+        if (showsHealthBar() && plugin.getConfig().getBoolean("health-bars", true)) HealthBars.attach(monster);
+        onSpawn();
 
         target = player;
         Pathfinder pathfinder = monster.getPathfinder();
@@ -58,6 +61,19 @@ public abstract class EnemyMonster {
                 pathfinder.moveTo(target, speed);
             }
         }.runTaskTimer(plugin, 0L, 20L);
+    }
+
+    /** After spawning, e.g. to put a model on the monster */
+    protected void onSpawn() {}
+
+    /** The monster died, monsters with a model play their death animation */
+    public void onDeath() {}
+
+    /** The monster hits a player */
+    public void onAttack() {}
+
+    protected boolean showsHealthBar() {
+        return true;
     }
 
     private de.ethicbuilds.monsters.monster.manager.MonsterManager monsterManager() {
