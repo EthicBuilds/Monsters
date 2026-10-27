@@ -5,6 +5,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -87,7 +88,7 @@ public class Pumpgun extends Weapon {
                     }
 
                     for (org.bukkit.entity.Entity entity : current.getWorld().getNearbyEntities(current, 0.5, 0.5, 0.5)) {
-                        if (entity instanceof Player) continue;
+                        if (entity instanceof Player || entity instanceof Mannequin) continue;
                         if (entity instanceof org.bukkit.entity.LivingEntity) {
                             ((org.bukkit.entity.LivingEntity) entity).damage(damage, player);
                             this.cancel();

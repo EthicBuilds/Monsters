@@ -15,10 +15,7 @@ public class GameSpectator extends GameUser {
 
     @Override
     public void intialize() {
-        player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 1));
-        // Adventure instead of creative: flying and untouchable until the next wave
-        player.setAllowFlight(true);
-        player.setFlying(true);
+        // Lies on the ground as mannequin (ReviveManager), untouchable until revived
         player.setInvulnerable(true);
 
         initInventory();

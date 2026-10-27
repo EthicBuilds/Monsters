@@ -13,6 +13,7 @@ import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.decoration.CrateManager;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.monster.MonsterGuard;
+import de.ethicbuilds.monsters.player.manager.ReviveManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import de.ethicbuilds.monsters.test.LocateMonsters;
 import de.ethicbuilds.monsters.commands.CreateMapConfigCommand;
@@ -77,6 +78,7 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(injector.getInstance(DecorationManager.class), this);
         pm.registerEvents(injector.getInstance(CrateManager.class), this);
         pm.registerEvents(new MonsterGuard(), this);
+        pm.registerEvents(injector.getInstance(ReviveManager.class), this);
     }
 
 }

@@ -45,7 +45,8 @@ public abstract class EnemyMonster {
                 }
 
                 if (!player.isOnline() || userManager.isPlayerDead(player.getUniqueId())) {
-                    pathfinder.moveTo(getNearestPlayer(monster.getLocation()), speed);
+                    Player target = getNearestPlayer(monster.getLocation());
+                    if (target != null) pathfinder.moveTo(target, speed);
                 } else {
                     pathfinder.moveTo(player, speed);
                 }
@@ -59,6 +60,7 @@ public abstract class EnemyMonster {
         double minDist = Double.MAX_VALUE;
 
         for (Player player : nearbyPlayers) {
+            if (userManager.isPlayerDead(player.getUniqueId())) continue;
             double dist = player.getLocation().distanceSquared(origin);
             if (dist < minDist) {
                 minDist = dist;

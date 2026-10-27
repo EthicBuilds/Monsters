@@ -24,6 +24,7 @@ public class UserManager {
     @Inject private GameManager gameManager;
     @Inject private MonsterManager monsterManager;
     @Inject private Main plugin;
+    @Inject private ReviveManager reviveManager;
 
     public boolean canJoin = true;
 
@@ -48,9 +49,10 @@ public class UserManager {
         if (isGamePlayer(uuid)) {
             GamePlayer gamePlayer = gamePlayers.get(uuid);
             spectators.put(uuid, new GameSpectator(gamePlayer.getPlayer()));
+            reviveManager.down(gamePlayer.getPlayer());
 
             if (!allPlayersDead()) {
-                gamePlayer.getPlayer().sendTitle("§4Du bist Tot!", "§cDu Respawnst in der nächsten Runde wieder");
+                gamePlayer.getPlayer().sendTitle("§4Du liegst am Boden!", String.format("§7Ein Mitspieler belebt dich für §6%d Coins §7wieder", reviveManager.cost(uuid)));
                 return;
             }
 
@@ -59,10 +61,15 @@ public class UserManager {
     }
 
     public void revivePlayer(UUID uuid) {
+        revivePlayer(uuid, mapManager.getMapConfiguration().getSpawn());
+    }
+
+    public void revivePlayer(UUID uuid, Location location) {
         if (isGamePlayer(uuid) && isSpectator(uuid)) {
             spectators.remove(uuid);
 
             Player player = gamePlayers.get(uuid).getPlayer();
+            reviveManager.clear(player);
 
             player.setGameMode(GameMode.ADVENTURE);
             player.setFlying(false);
@@ -73,7 +80,7 @@ public class UserManager {
 
 
             player.heal(20);
-            player.teleport(mapManager.getMapConfiguration().getSpawn());
+            player.teleport(location);
             player.sendTitle("§aWiederbelebt!", "");
             player.playSound(player.getLocation(), Sound.BLOCK_CONDUIT_ACTIVATE, 2.0F, 1.0F);
         }
