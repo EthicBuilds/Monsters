@@ -48,6 +48,7 @@ public class DecorationManager implements Listener {
 
     @Inject private Main plugin;
     @Inject private WeaponManager weaponManager;
+    @Inject private CrateManager crateManager;
 
     private final Set<UUID> registered = new HashSet<>();
     private final Map<UUID, String> stations = new HashMap<>();
@@ -83,8 +84,8 @@ public class DecorationManager implements Listener {
             display.setItemStack(item);
         }
 
-        if (SOLID.contains(id) && block.getType().isAir()) {
-            block.setType(Material.BARRIER, false);
+        if (SOLID.contains(id) && entity instanceof ItemDisplay display) {
+            crateManager.register(display, block);
         } else if (WEAPON_CRATES.containsKey(id)) {
             createWeaponStation(block, WEAPON_CRATES.get(id));
         } else if (AMMO_CRATE.equals(id)) {

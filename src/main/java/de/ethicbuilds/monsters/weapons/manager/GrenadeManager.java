@@ -42,9 +42,19 @@ public class GrenadeManager {
         }
 
         gamePlayer.setCoins(gamePlayer.getCoins() - PRICE);
-        player.getInventory().setItem(GameItems.GRENADE_SLOT, GameItems.grenade(amount + 1));
+        give(player);
         player.sendMessage(String.format("%s§7Du hast eine §aGranate §7gekauft! §c-%d Coins!", plugin.getMonstersPrefix(), PRICE));
         player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_YES, 1.0F, 1.0F);
+    }
+
+    /** One more grenade in the grenade slot, false when the player already carries the maximum */
+    public boolean give(Player player) {
+        ItemStack current = player.getInventory().getItem(GameItems.GRENADE_SLOT);
+        int amount = GameItems.isGrenade(current) ? current.getAmount() : 0;
+        if (amount >= MAX_GRENADES) return false;
+
+        player.getInventory().setItem(GameItems.GRENADE_SLOT, GameItems.grenade(amount + 1));
+        return true;
     }
 
     public void throwGrenade(Player player) {

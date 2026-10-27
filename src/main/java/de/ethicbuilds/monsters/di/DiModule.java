@@ -8,6 +8,7 @@ import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.gameplay.repository.GameStates;
 import de.ethicbuilds.monsters.map.MapManager;
+import de.ethicbuilds.monsters.map.decoration.CrateManager;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -41,6 +42,7 @@ public class DiModule extends AbstractModule {
         bind(StatisticManager.class).asEagerSingleton();
         bind(DoorManager.class).asEagerSingleton();
         bind(DecorationManager.class).asEagerSingleton();
+        bind(CrateManager.class).asEagerSingleton();
         bind(GrenadeManager.class).asEagerSingleton();
         bind(PowerupManager.class).asEagerSingleton();
 

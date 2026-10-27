@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.gameplay.manager;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.map.decoration.CrateManager;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -18,6 +19,8 @@ public class WaveManager {
     private UserManager userManager;
     @Inject
     private MonsterManager monsterManager;
+    @Inject
+    private CrateManager crateManager;
     @Inject
     private Main plugin;
     private Thread waveThread = null;
@@ -42,6 +45,8 @@ public class WaveManager {
         currentWave++;
         broadCastMessage(String.format("%s§aStarte Welle §4%d", plugin.getMonstersPrefix(), currentWave));
         userManager.broadcastSound(Sound.BLOCK_TRIAL_SPAWNER_AMBIENT_OMINOUS, 2.0F, 1.0F);
+
+        startOnMinecraftThread(crateManager::resetAll);
 
         startOnMinecraftThread(() -> userManager.getGamePlayers()
                 .forEach(gamePlayer -> userManager.revivePlayer(gamePlayer.getPlayer().getUniqueId())));
