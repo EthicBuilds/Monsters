@@ -100,7 +100,7 @@ public abstract class Weapon {
 
                     for (org.bukkit.entity.Entity entity : current.getWorld().getNearbyEntities(current, 0.5, 0.5, 0.5)) {
                         if (!(entity instanceof Monster monster) || !hit.add(entity)) continue;
-                        monster.damage(damage, player);
+                        ShotDamage.deal(monster, damage, player);
                         if (hit.size() >= pierce) {
                             this.cancel();
                             return;

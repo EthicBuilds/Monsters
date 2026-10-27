@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.weapons.manager;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.items.GameItems;
+import de.ethicbuilds.monsters.weapons.ShotDamage;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -91,7 +92,7 @@ public class GrenadeManager {
         for (Monster monster : world.getNearbyEntitiesByType(Monster.class, location, RADIUS)) {
             double distance = monster.getLocation().distance(location);
             if (distance > RADIUS) continue;
-            monster.damage(DAMAGE * (1 - distance / RADIUS) + 5, thrower);
+            ShotDamage.deal(monster, DAMAGE * (1 - distance / RADIUS) + 5, thrower);
         }
     }
 }

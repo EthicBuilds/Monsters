@@ -11,8 +11,13 @@ import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.List;
+
 
 public abstract class EnemyMonster {
+    private static final double FOLLOW_RANGE = 128;
+    private static final int TRAIL_TRIES = 6;
+
     protected int health;
     protected int damage;
     protected double speed;
@@ -35,6 +40,9 @@ public abstract class EnemyMonster {
         if (monster instanceof org.bukkit.entity.Ageable ageable) ageable.setAdult();
         var movement = monster.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
         if (movement != null) movement.setBaseValue(Math.min(movement.getBaseValue(), 0.23));
+        // Paths are searched this far, otherwise far away monsters just stand around
+        var followRange = monster.getAttribute(org.bukkit.attribute.Attribute.FOLLOW_RANGE);
+        if (followRange != null) followRange.setBaseValue(FOLLOW_RANGE);
         MonsterGuard.mark(monster);
         var maxHealth = monster.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
         if (maxHealth != null && maxHealth.getBaseValue() < health) maxHealth.setBaseValue(health);
@@ -57,10 +65,34 @@ public abstract class EnemyMonster {
                     target = monsterManager().leastChasedPlayer();
                 }
                 if (target == null) return;
-                monster.setTarget(target);
-                pathfinder.moveTo(target, speed);
+                chase(pathfinder);
             }
         }.runTaskTimer(plugin, 0L, 20L);
+    }
+
+    // Full path to the player, else along the trail the player walked, else as close as it gets
+    private void chase(Pathfinder pathfinder) {
+        Pathfinder.PathResult direct = pathfinder.findPath(target);
+        if (direct != null && direct.canReachFinalPoint()) {
+            monster.setTarget(target);
+            pathfinder.moveTo(direct, speed);
+            return;
+        }
+        List<Location> trail = PlayerTrail.of(target);
+        int step = Math.max(1, trail.size() / TRAIL_TRIES);
+        for (int i = 0; i < trail.size(); i += step) {
+            Location spot = trail.get(i);
+            if (!spot.getWorld().equals(monster.getWorld())) continue;
+            Pathfinder.PathResult path = pathfinder.findPath(spot);
+            if (path != null && path.canReachFinalPoint()) {
+                // Without a target the attack AI does not steer it back into the dead end
+                monster.setTarget(null);
+                pathfinder.moveTo(path, speed);
+                return;
+            }
+        }
+        monster.setTarget(target);
+        if (direct != null) pathfinder.moveTo(direct, speed);
     }
 
     /** After spawning, e.g. to put a model on the monster */

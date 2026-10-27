@@ -9,6 +9,7 @@ import de.ethicbuilds.monsters.monster.HealthBars;
 import de.ethicbuilds.monsters.monster.MonsterSpider;
 import de.ethicbuilds.monsters.monster.MonsterSpiderBoss;
 import de.ethicbuilds.monsters.monster.MonsterZombie;
+import de.ethicbuilds.monsters.monster.PlayerTrail;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import lombok.Getter;
@@ -125,6 +126,13 @@ public class MonsterManager {
     }
 
     public void startMonsterCheck() {
+        PlayerTrail.clear();
+        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
+                Player player = gamePlayer.getPlayer();
+                if (player.isOnline() && !userManager.isPlayerDead(player.getUniqueId())) PlayerTrail.record(player);
+            }
+        }, 0L, 10L);
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             long now = System.currentTimeMillis();
             HealthBars.removeOrphans(plugin.getWorld());

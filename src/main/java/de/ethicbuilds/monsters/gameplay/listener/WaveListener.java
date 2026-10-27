@@ -19,6 +19,7 @@ import de.ethicbuilds.monsters.monster.MonsterGuard;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import de.ethicbuilds.monsters.weapons.ShotDamage;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
@@ -82,9 +83,13 @@ public class WaveListener implements Listener {
 
         if (player.getInventory().getItemInMainHand().getType() == Material.AIR) return;
 
-        if (player.getInventory().getItemInMainHand().getType() == GameItems.KNIFE && isAxeCooldDown) return;
+        // Coins only for shots, grenades and the knife, not for hitting with a gun or other items
+        boolean knife = player.getInventory().getItemInMainHand().getType() == GameItems.KNIFE;
+        if (!ShotDamage.isActive() && !knife) return;
 
-        if (player.getInventory().getItemInMainHand().getType() == GameItems.KNIFE) {
+        if (!ShotDamage.isActive() && knife && isAxeCooldDown) return;
+
+        if (!ShotDamage.isActive() && knife) {
             startAxeCoolDown();
         }
 
