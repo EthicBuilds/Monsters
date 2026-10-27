@@ -1,0 +1,42 @@
+package de.ethicbuilds.monsters.monster;
+
+import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Item;
+import org.bukkit.entity.Monster;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.world.EntitiesLoadEvent;
+import org.bukkit.persistence.PersistentDataType;
+
+/***
+ * Only monsters of the current round: no natural spawns or reinforcements,
+ * and monsters or items saved in the world (old rounds, map template) are removed when they load
+ */
+public class MonsterGuard implements Listener {
+    private static final NamespacedKey ROUND_MONSTER = new NamespacedKey("monsters", "round_monster");
+
+    public static void mark(Monster monster) {
+        monster.getPersistentDataContainer().set(ROUND_MONSTER, PersistentDataType.BYTE, (byte) 1);
+    }
+
+    public static boolean isOld(Entity entity) {
+        if (entity instanceof Item) return true;
+        return entity instanceof Monster && !entity.getPersistentDataContainer().has(ROUND_MONSTER, PersistentDataType.BYTE);
+    }
+
+    @EventHandler
+    public void onCreatureSpawn(CreatureSpawnEvent event) {
+        if (event.getEntity() instanceof Monster && event.getSpawnReason() != CreatureSpawnEvent.SpawnReason.CUSTOM) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onEntitiesLoad(EntitiesLoadEvent event) {
+        for (Entity entity : event.getEntities()) {
+            if (isOld(entity)) entity.remove();
+        }
+    }
+}

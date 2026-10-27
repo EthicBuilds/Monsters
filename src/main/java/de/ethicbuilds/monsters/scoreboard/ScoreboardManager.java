@@ -81,7 +81,7 @@ public class ScoreboardManager {
         addLine(scoreboard, objective, "§9", " ", "", scoreValue--);
         addLine(scoreboard, objective, "§a", "Zeit: ", formatSeconds(time), scoreValue--);
         addLine(scoreboard, objective, "§b", " ", "", scoreValue--);
-        addLine(scoreboard, objective, "§c", "§x§F§F§0§0§1§9E§x§F§D§1§4§1§7t§x§F§C§2§7§1§5h§x§F§A§3§B§1§3i§x§F§9§4§E§1§1c§x§F§7§6§2§0§FB§x§F§5§7§6§0§Du§x§F§4§8§9§0§Ci§x§F§2§9§D§0§Al§x§F§0§B§1§0§8d§x§E§F§C§4§0§6s§x§E§D§D§8§0§4.§x§E§C§E§B§0§2d§x§E§A§F§F§0§0e", "", scoreValue--);
+        addLine(scoreboard, objective, "§c", "§x§2§A§E§2§F§CE§x§3§A§D§D§E§Bt§x§4§A§D§8§D§Ah§x§5§A§D§3§C§9i§x§6§A§C§E§B§8c§x§7§A§C§9§A§7B§x§8§A§C§4§9§6u§x§9§9§B§F§8§4i§x§A§9§B§A§7§3l§x§B§9§B§5§6§2d§x§C§9§B§0§5§1s§x§D§9§A§B§4§0.§x§E§9§A§6§2§Fd§x§F§9§A§1§1§Ee", "", scoreValue--);
     }
 
     private void startScoreBoardUpdater() {
@@ -95,25 +95,20 @@ public class ScoreboardManager {
                 scoreboard.getTeam("§2").setSuffix(String.format("§e%d", waveManager.getCurrentWave()));
                 scoreboard.getTeam("§3").setSuffix(String.format("§c%d", monsterManager.getMonsters().size()));
 
-                scoreboard.getTeam("§5").setPrefix(String.format("%s: ", !gamePlayers.isEmpty() ?
-                        String.format("§%s", userManager.isPlayerDead(gamePlayers.getFirst().getPlayer().getUniqueId()) ? "c" : "a") + gamePlayers.getFirst().getPlayer().getName() :
-                        "§c- §r"));
-                scoreboard.getTeam("§5").setSuffix(String.format("§6%d", !gamePlayers.isEmpty() ? gamePlayers.getFirst().getCoins() : 0));
-
-                scoreboard.getTeam("§6").setPrefix(String.format("%s: ", gamePlayers.size() >= 2 ?
-                        String.format("§%s", userManager.isPlayerDead(gamePlayers.get(1).getPlayer().getUniqueId()) ? "c" : "a") + gamePlayers.get(1).getPlayer().getName()
-                        : "§c- §r"));
-                scoreboard.getTeam("§6").setSuffix(String.format("§6%d", gamePlayers.size() >= 2 ? gamePlayers.get(1).getCoins() : 0));
-
-                scoreboard.getTeam("§7").setPrefix(String.format("%s: ", gamePlayers.size() >= 3 ?
-                        String.format("§%s", userManager.isPlayerDead(gamePlayers.get(2).getPlayer().getUniqueId()) ? "c" : "a") + gamePlayers.get(2).getPlayer().getName() :
-                        "§c- §r"));
-                scoreboard.getTeam("§7").setSuffix(String.format("§6%d", gamePlayers.size() >= 3 ? gamePlayers.get(2).getCoins() : 0));
-
-                scoreboard.getTeam("§8").setPrefix(String.format("%s: ", gamePlayers.size() >= 4 ?
-                        String.format("§%s", userManager.isPlayerDead(gamePlayers.get(3).getPlayer().getUniqueId()) ? "c" : "a") + gamePlayers.get(3).getPlayer().getName()
-                        : "§c- §r"));
-                scoreboard.getTeam("§8").setSuffix(String.format("§6%d", gamePlayers.size() >= 4 ? gamePlayers.get(3).getCoins() : 0));
+                String[] lines = {"§5", "§6", "§7", "§8"};
+                for (int i = 0; i < lines.length; i++) {
+                    Team team = scoreboard.getTeam(lines[i]);
+                    // Empty slot without a player stays blank
+                    if (i >= gamePlayers.size()) {
+                        team.setPrefix(" ");
+                        team.setSuffix("");
+                        continue;
+                    }
+                    var gamePlayer = gamePlayers.get(i);
+                    boolean dead = userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId());
+                    team.setPrefix(String.format("§%s%s: ", dead ? "c" : "a", gamePlayer.getPlayer().getName()));
+                    team.setSuffix(String.format("§6%d", gamePlayer.getCoins()));
+                }
 
                 scoreboard.getTeam("§a").setSuffix(formatSeconds(time));
             }

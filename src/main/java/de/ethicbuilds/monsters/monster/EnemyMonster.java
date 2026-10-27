@@ -31,6 +31,7 @@ public abstract class EnemyMonster {
     public void summon(Player player, Location spawnLocation) {
         monster = (Monster) plugin.getWorld().spawnEntity(spawnLocation, type);
         monster.setCustomNameVisible(false);
+        MonsterGuard.mark(monster);
         monster.setHealth(health);
         if (plugin.getConfig().getBoolean("health-bars", true)) HealthBars.attach(monster);
 
