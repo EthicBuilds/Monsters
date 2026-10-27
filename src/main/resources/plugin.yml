@@ -9,3 +9,5 @@ commands:
     description: "create Map config"
   locateMonsters:
     description: "locate monsters"
+  bosswelle:
+    description: "Naechste Welle wird die Boss-Welle (Test)"

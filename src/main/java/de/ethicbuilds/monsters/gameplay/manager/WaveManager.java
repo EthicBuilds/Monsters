@@ -30,6 +30,11 @@ public class WaveManager {
     @Getter
     private int currentWave = 0;
 
+    /** For testing: the next wave is the boss wave */
+    public void skipToBossWave() {
+        currentWave = (currentWave / MonsterManager.BOSS_WAVE + 1) * MonsterManager.BOSS_WAVE - 1;
+    }
+
     public void start() {
         this.waveThread = new Thread(() -> {
             try {

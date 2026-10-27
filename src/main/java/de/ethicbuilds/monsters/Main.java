@@ -22,6 +22,7 @@ import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.weapons.manager.WorkbenchManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import de.ethicbuilds.monsters.test.LocateMonsters;
+import de.ethicbuilds.monsters.commands.BossWaveCommand;
 import de.ethicbuilds.monsters.commands.CreateMapConfigCommand;
 import lombok.Getter;
 import lombok.Setter;
@@ -85,6 +86,7 @@ public final class Main extends JavaPlugin {
     private void registerCommandsAndListeners() {
         Objects.requireNonNull(getCommand("createMapConfig")).setExecutor(injector.getInstance(CreateMapConfigCommand.class));
         Objects.requireNonNull(getCommand("locateMonsters")).setExecutor(injector.getInstance(LocateMonsters.class));
+        Objects.requireNonNull(getCommand("bosswelle")).setExecutor(injector.getInstance(BossWaveCommand.class));
 
         PluginManager pm = getServer().getPluginManager();
 
