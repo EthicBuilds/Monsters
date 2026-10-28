@@ -42,6 +42,7 @@ public class ReviveManager implements Listener {
     private static final int BASE_COST = 1000;
     private static final float HITBOX_WIDTH = 1.8F, HITBOX_HEIGHT = 0.7F;
     private static final long CLICK_COOLDOWN = 500;
+    private static final double REACH = 4;
     private static final int EMPTY_SLOT = 8;
     public static final int MEDKIT_SLOT = 7;
     private static final long SELF_REVIVE_DELAY = 60;
@@ -253,8 +254,9 @@ public class ReviveManager implements Listener {
 
     // Body or click box of a downed player
     private UUID downedBy(Entity entity) {
-        // The invisible downed player stands at the body, a click on them counts as well
-        if (entity instanceof Player player && isDown(player.getUniqueId())) return player.getUniqueId();
+        // The invisible downed player stands at the body, a click on them counts as well, but not while they watch someone
+        if (entity instanceof Player player && isDown(player.getUniqueId())
+                && player.getGameMode() != org.bukkit.GameMode.SPECTATOR) return player.getUniqueId();
         for (Map.Entry<UUID, Mannequin> entry : bodies.entrySet()) {
             if (entry.getValue().equals(entity)) return entry.getKey();
         }
@@ -273,6 +275,7 @@ public class ReviveManager implements Listener {
         GamePlayer helperPlayer = userManager.getGamePlayer(helper.getUniqueId());
         GamePlayer downedPlayer = userManager.getGamePlayer(downed);
         if (helperPlayer == null || downedPlayer == null || userManager.isPlayerDead(helper.getUniqueId())) return;
+        if (helper.getGameMode() == org.bukkit.GameMode.SPECTATOR || !nearBody(helper, downed)) return;
 
         int cost = cost(downed);
         if (helperPlayer.getCoins() < cost) {
@@ -291,6 +294,13 @@ public class ReviveManager implements Listener {
         spot.getWorld().spawnParticle(Particle.HEART, spot.clone().add(0, 1, 0), 8, 0.4, 0.4, 0.4, 0);
         Bukkit.broadcastMessage(String.format("%s§a%s §7hat §a%s §7wiederbelebt! §c-%d Coins", plugin.getMonstersPrefix(),
                 helper.getName(), downedPlayer.getPlayer().getName(), cost));
+    }
+
+    // Only who stands at the body can revive
+    private boolean nearBody(Player helper, UUID downed) {
+        Interaction hitbox = hitboxes.get(downed);
+        return hitbox != null && hitbox.getWorld().equals(helper.getWorld())
+                && hitbox.getLocation().distance(helper.getLocation()) <= REACH;
     }
 
     // Downed players can look around but not move
