@@ -74,7 +74,8 @@ public class WaveManager {
 
         startOnMinecraftThread(crateManager::resetAll);
 
-        startOnMinecraftThread(() -> userManager.getGamePlayers()
+        // Only who is still there, players who left stay out until they come back
+        startOnMinecraftThread(() -> userManager.getGamePlayers().stream().filter(gamePlayer -> gamePlayer.getPlayer().isOnline())
                 .forEach(gamePlayer -> userManager.revivePlayer(gamePlayer.getPlayer().getUniqueId())));
 
 

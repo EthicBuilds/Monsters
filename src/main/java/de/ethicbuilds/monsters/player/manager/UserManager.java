@@ -124,7 +124,8 @@ public class UserManager {
 
     public boolean allPlayersDead() {
         for (GamePlayer gamePlayer : gamePlayers.values()) {
-            if (!isPlayerDead(gamePlayer.getPlayer().getUniqueId())) {
+            // Who left the round does not keep it running
+            if (!isPlayerDead(gamePlayer.getPlayer().getUniqueId()) && gamePlayer.getPlayer().isOnline()) {
                 return false;
             }
         }

@@ -12,3 +12,5 @@ commands:
     description: "locate monsters"
   bosswelle:
     description: "Naechste Welle wird die Boss-Welle (Test)"
+  rundenende:
+    description: "Beendet die laufende Runde regulaer"
