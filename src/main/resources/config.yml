@@ -4,8 +4,8 @@ health-bars: true
 
 # Monsters-Paket (Werkbank, Lebensanzeige, Munition, Scoreboard-Icons), wird beim Betreten zusaetzlich zum Lobby-Paket geschickt
 resource-pack:
-  url: "http://136.243.146.245:25567/Monsters-pack-9.zip"
-  sha1: "8d049e505e670220b02ea944e5fa34806668915c"
+  url: "http://136.243.146.245:25567/Monsters-pack-10.zip"
+  sha1: "55b73f25e61cb59b8dc894d54b84372ec1bb3062"
 
 # Nexo-Items des Bauservers: daraus kommt, wie die Moebel gedreht und verschoben angezeigt werden (Nexo speichert das nicht in der Welt)
 nexo-items: "../monsters-bau/plugins/Nexo/items"
