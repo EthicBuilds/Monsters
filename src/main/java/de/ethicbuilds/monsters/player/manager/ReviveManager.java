@@ -8,7 +8,6 @@ import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
-import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -17,7 +16,6 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
-import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Pose;
@@ -29,12 +27,9 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.RayTraceResult;
-import org.bukkit.util.Vector;
 
 import java.util.HashMap;
 import java.util.List;
@@ -44,7 +39,7 @@ import java.util.UUID;
 /***
  * Downed players: a mannequin with their skin lies where they died, they themselves are hidden and
  * look up from the ground until the next wave or until a teammate revives them for coins.
- * With the hotbar keys they can watch the living teammates meanwhile.
+ * With key 5 they watch the living teammates meanwhile, through their eyes in spectator mode.
  */
 public class ReviveManager implements Listener {
     private static final int BASE_COST = 1000;
@@ -56,11 +51,8 @@ public class ReviveManager implements Listener {
     private static final long SELF_REVIVE_DELAY = 60;
     // A lying body has its feet at its position, the head this far along the body
     private static final double HEAD_DISTANCE = 1.3;
-    // Watching teammates: the hotbar keys 4, 5 and 6 switch, the held slot stays empty
-    private static final int PREV_SLOT = 3, WATCH_SLOT = 4, NEXT_SLOT = 5;
-    private static final double CAMERA_BACK = 2.5, CAMERA_UP = 0.6;
-    // Tiny while watching, so the invisible body does not block the teammates' clicks
-    private static final double WATCH_SCALE = 0.0625;
+    // Key 5 while lying starts watching, the held slot stays empty
+    private static final int WATCH_SLOT = 4;
 
     @Inject private Main plugin;
     @Inject private UserManager userManager;
@@ -76,9 +68,8 @@ public class ReviveManager implements Listener {
     // Own values of the player before going down (the attribute default of movement speed is 0.7, players walk with 0.1)
     private final Map<UUID, Map<Attribute, Double>> savedBases = new HashMap<>();
     private final Map<UUID, Player> watching = new HashMap<>();
-    private final Map<UUID, ItemDisplay> seats = new HashMap<>();
-    private final Map<UUID, ItemStack[]> savedHotbar = new HashMap<>();
-    private BukkitRunnable camera;
+    private final Map<UUID, ItemStack> savedWatchSlot = new HashMap<>();
+    private BukkitRunnable watchCheck;
 
     /** Every revive of the same player costs 1000 more */
     public int cost(UUID uuid) {
@@ -135,10 +126,9 @@ public class ReviveManager implements Listener {
         }
 
         views.put(player.getUniqueId(), view);
-        ItemStack[] hotbar = new ItemStack[3];
-        for (int i = 0; i < hotbar.length; i++) hotbar[i] = player.getInventory().getItem(PREV_SLOT + i);
-        savedHotbar.put(player.getUniqueId(), hotbar);
-        showWatchItems(player, false);
+        ItemStack watchSlot = player.getInventory().getItem(WATCH_SLOT);
+        savedWatchSlot.put(player.getUniqueId(), watchSlot == null ? new ItemStack(Material.AIR) : watchSlot);
+        player.getInventory().setItem(WATCH_SLOT, watchItem());
         player.sendActionBar("§7Taste 5: §fMitspielern zuschauen");
         trySelfRevive(player);
     }
@@ -165,26 +155,43 @@ public class ReviveManager implements Listener {
         return stored != null && !stored.getType().isAir();
     }
 
-    // Hotbar keys while lying: 5 starts watching or goes back to the body, 4 and 6 switch the teammate
+    // Key 5 while lying: watch the living teammates in spectator mode, right through their eyes
     @EventHandler
     public void onDownedSlotChange(org.bukkit.event.player.PlayerItemHeldEvent event) {
         Player player = event.getPlayer();
         if (!isDown(player.getUniqueId())) return;
         event.setCancelled(true);
-        Player current = watching.get(player.getUniqueId());
-        int slot = event.getNewSlot();
-        if (slot == WATCH_SLOT) {
-            if (current == null) watch(player, 0);
-            else backToBody(player);
-        } else if (current != null && (slot == PREV_SLOT || slot == NEXT_SLOT)) {
-            watch(player, mates(player).indexOf(current) + (slot == NEXT_SLOT ? 1 : -1));
-        }
+        if (event.getNewSlot() == WATCH_SLOT && !watching.containsKey(player.getUniqueId())) watch(player, null);
     }
 
-    // The seat is left with the item only
+    // The heads in the spectator hotbar (key 1) switch the teammate, nobody flies around freely
     @EventHandler
-    public void onDismount(org.bukkit.event.entity.EntityDismountEvent event) {
-        if (event.getEntity() instanceof Player player && watching.containsKey(player.getUniqueId())) event.setCancelled(true);
+    public void onSpectatorTeleport(org.bukkit.event.player.PlayerTeleportEvent event) {
+        Player player = event.getPlayer();
+        if (event.getCause() != org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.SPECTATE || !watching.containsKey(player.getUniqueId())) return;
+        event.setCancelled(true);
+        Player target = mates(player).stream()
+                .filter(mate -> mate.getWorld().equals(event.getTo().getWorld()) && mate.getLocation().distanceSquared(event.getTo()) < 1)
+                .findFirst().orElse(null);
+        if (target == null) {
+            player.sendActionBar("§7Du kannst nur lebenden Mitspielern zuschauen");
+            return;
+        }
+        watch(player, target);
+    }
+
+    @EventHandler
+    public void onStartWatching(com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent event) {
+        Player player = event.getPlayer();
+        if (!isDown(player.getUniqueId())) return;
+        if (!(event.getNewSpectatorTarget() instanceof Player mate) || !mates(player).contains(mate)) event.setCancelled(true);
+    }
+
+    // Sneaking would leave the camera, the view stays with the teammate
+    @EventHandler
+    public void onStopWatching(com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent event) {
+        Player player = event.getPlayer();
+        if (watching.containsKey(player.getUniqueId()) && event.getSpectatorTarget().isValid()) event.setCancelled(true);
     }
 
     private List<Player> mates(Player player) {
@@ -192,69 +199,44 @@ public class ReviveManager implements Listener {
                 .filter(mate -> mate.isOnline() && !mate.equals(player) && !userManager.isPlayerDead(mate.getUniqueId())).toList();
     }
 
-    // The downed player rides an invisible seat that follows behind the teammate, so the hotbar keys keep working
-    private void watch(Player player, int index) {
+    // Without a target the first living teammate
+    private void watch(Player player, Player mate) {
         List<Player> mates = mates(player);
-        if (mates.isEmpty()) {
+        if (mate == null) mate = mates.isEmpty() ? null : mates.get(0);
+        if (mate == null) {
             backToBody(player);
             player.sendActionBar("§7Gerade steht niemand, dem du zuschauen kannst");
             return;
         }
-        Player mate = mates.get(Math.floorMod(index, mates.size()));
-        if (!watching.containsKey(player.getUniqueId())) {
-            ItemDisplay seat = player.getWorld().spawn(cameraSpot(mate), ItemDisplay.class, display -> {
-                display.setPersistent(false);
-                display.setTeleportDuration(2);
-            });
-            seats.put(player.getUniqueId(), seat);
-            setBase(player, Attribute.SCALE, WATCH_SCALE);
-            seat.addPassenger(player);
-            showWatchItems(player, true);
-            startCamera();
-        }
         watching.put(player.getUniqueId(), mate);
-        player.sendActionBar("§7Du schaust §a" + mate.getName() + " §7zu §8· §7Taste 4/6: wechseln");
+        player.setGameMode(org.bukkit.GameMode.SPECTATOR);
+        player.setSpectatorTarget(mate);
+        player.sendActionBar("§7Du schaust §a" + mate.getName() + " §7zu §8· §7Taste 1: Mitspieler wechseln");
+        startWatchCheck();
     }
 
-    private void startCamera() {
-        if (camera != null) return;
-        camera = new BukkitRunnable() {
+    // Goes on to the next teammate when the watched one falls or leaves
+    private void startWatchCheck() {
+        if (watchCheck != null) return;
+        watchCheck = new BukkitRunnable() {
             @Override
             public void run() {
                 if (watching.isEmpty()) {
                     cancel();
-                    camera = null;
+                    watchCheck = null;
                     return;
                 }
                 for (UUID uuid : List.copyOf(watching.keySet())) {
                     Player player = Bukkit.getPlayer(uuid);
                     Player mate = watching.get(uuid);
-                    ItemDisplay seat = seats.get(uuid);
-                    if (player == null || seat == null) continue;
-                    if (!mate.isOnline() || userManager.isPlayerDead(mate.getUniqueId()) || !mate.getWorld().equals(seat.getWorld())) {
-                        watch(player, 0);
-                        continue;
+                    if (player == null) continue;
+                    if (!mate.isOnline() || userManager.isPlayerDead(mate.getUniqueId()) || !mate.equals(player.getSpectatorTarget())) {
+                        watch(player, null);
                     }
-                    seat.teleport(cameraSpot(mate), io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_PASSENGERS);
                 }
             }
         };
-        camera.runTaskTimer(plugin, 1L, 1L);
-    }
-
-    // Behind and above the teammate, closer when a wall is in the way
-    private static Location cameraSpot(Player mate) {
-        Location eye = mate.getEyeLocation();
-        Vector back = eye.getDirection().setY(0);
-        back = back.lengthSquared() < 1.0E-4 ? new Vector(0, 0, 1) : back.normalize();
-        Vector offset = back.multiply(-CAMERA_BACK).add(new Vector(0, CAMERA_UP, 0));
-        Vector direction = offset.clone().normalize();
-        double distance = offset.length();
-        RayTraceResult hit = eye.getWorld().rayTraceBlocks(eye, direction, distance, FluidCollisionMode.NEVER, true);
-        if (hit != null) distance = Math.max(0, hit.getHitPosition().distance(eye.toVector()) - 0.3);
-        Location spot = eye.clone().add(direction.multiply(distance)).subtract(0, 1.62 * WATCH_SCALE, 0);
-        spot.setPitch(0);
-        return spot;
+        watchCheck.runTaskTimer(plugin, 10L, 10L);
     }
 
     private void backToBody(Player player) {
@@ -265,31 +247,17 @@ public class ReviveManager implements Listener {
     }
 
     private void stopWatching(Player player) {
-        // Removed first, otherwise the dismount below is cancelled
+        // Removed first, otherwise leaving the camera below is cancelled
         if (watching.remove(player.getUniqueId()) == null) return;
-        ItemDisplay seat = seats.remove(player.getUniqueId());
-        if (seat != null) {
-            seat.eject();
-            seat.remove();
-        }
-        Map<Attribute, Double> saved = savedBases.get(player.getUniqueId());
-        setBase(player, Attribute.SCALE, saved != null ? saved.getOrDefault(Attribute.SCALE, 1.0) : 1.0);
-        showWatchItems(player, false);
+        player.setSpectatorTarget(null);
+        player.setGameMode(org.bukkit.GameMode.ADVENTURE);
     }
 
-    private static void showWatchItems(Player player, boolean watching) {
-        PlayerInventory inventory = player.getInventory();
-        inventory.setItem(PREV_SLOT, watching ? watchItem(Material.ARROW, "§f◀ Vorheriger Mitspieler", "§7Taste 4") : null);
-        inventory.setItem(WATCH_SLOT, watching ? watchItem(Material.RED_BED, "§cZurück zum Körper", "§7Taste 5")
-                : watchItem(Material.ENDER_EYE, "§aMitspielern zuschauen", "§7Taste 5"));
-        inventory.setItem(NEXT_SLOT, watching ? watchItem(Material.ARROW, "§fNächster Mitspieler ▶", "§7Taste 6") : null);
-    }
-
-    private static ItemStack watchItem(Material material, String name, String key) {
-        ItemStack item = new ItemStack(material);
+    private static ItemStack watchItem() {
+        ItemStack item = new ItemStack(Material.ENDER_EYE);
         item.editMeta(meta -> {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(key));
+            meta.setDisplayName("§aMitspielern zuschauen");
+            meta.setLore(List.of("§7Taste 5"));
         });
         return item;
     }
@@ -325,10 +293,8 @@ public class ReviveManager implements Listener {
     /** Ends the downed state: mannequin away, player visible and normal again */
     public void clear(Player player) {
         stopWatching(player);
-        ItemStack[] hotbar = savedHotbar.remove(player.getUniqueId());
-        if (hotbar != null) {
-            for (int i = 0; i < hotbar.length; i++) player.getInventory().setItem(PREV_SLOT + i, hotbar[i]);
-        }
+        ItemStack watchSlot = savedWatchSlot.remove(player.getUniqueId());
+        if (watchSlot != null) player.getInventory().setItem(WATCH_SLOT, watchSlot);
         Mannequin body = bodies.remove(player.getUniqueId());
         if (body != null) body.remove();
         Interaction hitbox = hitboxes.remove(player.getUniqueId());
