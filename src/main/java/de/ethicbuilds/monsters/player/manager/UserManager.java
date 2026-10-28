@@ -160,17 +160,15 @@ public class UserManager {
             @Override
             public void run() {
                 for (GamePlayer gamePlayer : gamePlayers.values()) {
-                    List<Entity> entities = gamePlayer.getPlayer().getWorld().getEntities();
                     org.bukkit.entity.Monster nearestZombie = null;
                     double minDistance = Double.MAX_VALUE;
 
-                    for (org.bukkit.entity.Entity entity : entities) {
-                        if (entity instanceof org.bukkit.entity.Monster) {
-                            double distance = entity.getLocation().distance(gamePlayer.getPlayer().getLocation());
-                            if (distance < minDistance) {
-                                minDistance = distance;
-                                nearestZombie = (org.bukkit.entity.Monster) entity;
-                            }
+                    // Only monsters, the map is full of decoration displays
+                    for (org.bukkit.entity.Monster entity : gamePlayer.getPlayer().getWorld().getEntitiesByClass(org.bukkit.entity.Monster.class)) {
+                        double distance = entity.getLocation().distanceSquared(gamePlayer.getPlayer().getLocation());
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            nearestZombie = entity;
                         }
                     }
 

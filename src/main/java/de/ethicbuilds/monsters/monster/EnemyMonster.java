@@ -18,6 +18,7 @@ import java.util.List;
 public abstract class EnemyMonster {
     private static final double FOLLOW_RANGE = 64;
     private static final int TRAIL_TRIES = 4;
+    private static final int TRAIL_PER_TRY = 2;
     // Within sight and this close the normal attack AI finds the way, further away a path is kept a few seconds
     private static final double NEAR = 16;
     private static final int REPATH_SECONDS = 3;
@@ -38,6 +39,7 @@ public abstract class EnemyMonster {
     @Getter @lombok.Setter
     private int tier;
     private int repath;
+    private int trailCursor;
     private Player chased;
 
     private final Main plugin = Main.getINSTANCE();
@@ -126,9 +128,10 @@ public abstract class EnemyMonster {
             return;
         }
         List<Location> trail = PlayerTrail.of(target);
+        // Failed searches over the whole range cost the most, so only two trail spots per try, the next ones next time
         int step = Math.max(1, trail.size() / TRAIL_TRIES);
-        for (int i = 0; i < trail.size(); i += step) {
-            Location spot = trail.get(i);
+        for (int n = 0; n < TRAIL_PER_TRY && !trail.isEmpty(); n++) {
+            Location spot = trail.get((trailCursor++ % TRAIL_TRIES) * step % trail.size());
             if (!spot.getWorld().equals(monster.getWorld())) continue;
             Pathfinder.PathResult path = pathfinder.findPath(spot);
             if (path != null && path.canReachFinalPoint()) {
