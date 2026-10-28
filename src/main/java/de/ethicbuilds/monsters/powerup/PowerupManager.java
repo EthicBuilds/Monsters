@@ -205,6 +205,8 @@ public class PowerupManager {
                 Player player = gamePlayer.getPlayer();
                 if (userManager.isPlayerDead(player.getUniqueId()) || !player.getWorld().equals(powerup.getWorld())) continue;
                 if (player.getLocation().add(0, 0.8, 0).distance(powerup.getLocation()) > PICKUP_DISTANCE) continue;
+                // A medkit stays for someone who is hurt
+                if (entry.getValue() == Type.MEDKIT && player.getHealth() >= player.getAttribute(Attribute.MAX_HEALTH).getValue()) continue;
 
                 pickUp(player, entry.getValue(), powerup.getLocation());
                 powerup.remove();
