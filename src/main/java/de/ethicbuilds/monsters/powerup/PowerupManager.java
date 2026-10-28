@@ -12,6 +12,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
@@ -53,8 +54,8 @@ public class PowerupManager {
 
     public enum Type {
         MEDKIT(0.04, 0x3CC860, GameItems::medkit),
-        SPEED(0.02, 0x4FB3FF, () -> new ItemStack(Material.SUGAR)),
-        INSTAKILL(0.015, 0xE84848, () -> new ItemStack(Material.WITHER_SKELETON_SKULL));
+        SPEED(0.02, 0x4FB3FF, () -> model("powerup/tempo")),
+        INSTAKILL(0.015, 0xE84848, () -> model("powerup/instakill"));
 
         private final double dropChance;
         private final int color;
@@ -64,6 +65,13 @@ public class PowerupManager {
             this.dropChance = dropChance;
             this.color = color;
             this.item = item;
+        }
+
+        // Models from the Monsters pack (design session)
+        private static ItemStack model(String id) {
+            ItemStack item = new ItemStack(Material.PAPER);
+            item.editMeta(meta -> meta.setItemModel(new NamespacedKey("monsters", id)));
+            return item;
         }
     }
 
