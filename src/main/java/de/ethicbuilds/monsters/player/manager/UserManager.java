@@ -113,7 +113,7 @@ public class UserManager {
             player.heal(20);
             player.teleport(location);
             player.sendTitle("§aWiederbelebt!", "");
-            player.playSound(player.getLocation(), Sound.BLOCK_CONDUIT_ACTIVATE, 2.0F, 1.0F);
+            player.playSound(player.getLocation(), Sound.BLOCK_CONDUIT_ACTIVATE, 0.8F, 1.2F);
         }
     }
 

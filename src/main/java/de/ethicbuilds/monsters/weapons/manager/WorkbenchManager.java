@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.weapons.manager;
 
+import de.ethicbuilds.monsters.sound.Sounds;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
@@ -183,7 +184,7 @@ public class WorkbenchManager implements Listener {
     private void clickAction(GamePlayer gamePlayer, Menu menu) {
         Player player = gamePlayer.getPlayer();
         if (waveManager.getCurrentWave() < UNLOCK_WAVE) {
-            player.playSound(player.getLocation(), Sound.BLOCK_IRON_TRAPDOOR_CLOSE, 1.0F, 0.6F);
+            Sounds.deny(player);
             return;
         }
         if (!unlocked) {
@@ -196,7 +197,7 @@ public class WorkbenchManager implements Listener {
         if (index >= menu.weapons.size()) return;
         Weapon weapon = menu.weapons.get(index);
         if (weapon.getLevel() >= Weapon.MAX_LEVEL) {
-            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
+            Sounds.deny(player);
             return;
         }
         int price = upgradePrice(weapon);
@@ -219,7 +220,7 @@ public class WorkbenchManager implements Listener {
         int coins = gamePlayer.getCoins();
         if (coins <= 0) {
             player.sendMessage(String.format("§cNoch §6%d Coins §cfür die Werkbank, legt zusammen!", remaining));
-            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
+            Sounds.deny(player);
             return;
         }
         int paid = Math.min(coins, remaining);
@@ -242,7 +243,7 @@ public class WorkbenchManager implements Listener {
         Player player = gamePlayer.getPlayer();
         if (gamePlayer.getCoins() < price) {
             player.sendMessage(String.format("§cDu brauchst noch §6%d Coins", price - gamePlayer.getCoins()));
-            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
+            Sounds.deny(player);
             return false;
         }
         gamePlayer.setCoins(gamePlayer.getCoins() - price);

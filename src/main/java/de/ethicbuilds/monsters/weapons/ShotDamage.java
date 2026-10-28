@@ -31,7 +31,7 @@ public final class ShotDamage {
         headshot = target.getEyeLocation().getY() - point.getY() < HEAD_SIZE && !target.isInvisible();
         try {
             if (headshot) {
-                shooter.playSound(shooter.getLocation(), org.bukkit.Sound.ENTITY_ARROW_HIT_PLAYER, 0.6F, 1.6F);
+                de.ethicbuilds.monsters.sound.Sounds.headshot(shooter);
                 target.getWorld().spawnParticle(org.bukkit.Particle.CRIT, target.getEyeLocation(), 8, 0.2, 0.2, 0.2, 0.1);
             }
             deal(target, headshot ? amount * HEADSHOT_MULTIPLIER : amount, shooter);

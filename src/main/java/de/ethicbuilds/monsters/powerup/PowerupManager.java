@@ -235,7 +235,7 @@ public class PowerupManager {
             }
             case INSTAKILL -> {
                 instakillUntil = System.currentTimeMillis() + EFFECT_TICKS * 50L;
-                announce(player, "§x§F§F§3§B§3§B§lINSTA-KILL!", "§7Jeder Treffer tötet, 10 Sekunden lang", BarColor.RED, Sound.ENTITY_WITHER_SPAWN);
+                announce(player, "§x§F§F§3§B§3§B§lINSTA-KILL!", "§7Jeder Treffer tötet, 10 Sekunden lang", BarColor.RED, Sound.ENTITY_EVOKER_CAST_SPELL);
             }
         }
     }

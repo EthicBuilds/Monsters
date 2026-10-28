@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.gameplay.listener;
 
+import de.ethicbuilds.monsters.sound.Sounds;
 import de.ethicbuilds.monsters.weapons.AmmoHud;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
@@ -294,12 +295,12 @@ public class WaveListener implements Listener {
         }
         if (weapon.isFull()) {
             player.sendActionBar("§cMunition bereits voll!");
-            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
+            Sounds.deny(player);
             return;
         }
         if (gamePlayer.getCoins() < AMMO_PRICE) {
             player.sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum die Munition aufzufüllen", AMMO_PRICE - gamePlayer.getCoins()));
-            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
+            Sounds.deny(player);
             return;
         }
 
@@ -309,7 +310,7 @@ public class WaveListener implements Listener {
         weapon.reload(player);
         AmmoHud.refresh(player, weapon);
         player.sendMessage(String.format("§7Munition von §a%s §7aufgefüllt! §c-%d Coins", weapon.getName(), AMMO_PRICE));
-        player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_YES, 1.0F, 1.0F);
+        Sounds.buy(player);
     }
 
     private void breakDoor(GamePlayer gamePlayer, Door door) {
@@ -318,7 +319,7 @@ public class WaveListener implements Listener {
         if (!GameItems.isCrowbar(player.getInventory().getItemInMainHand())) {
             AmmoHud.pause(player);
             player.sendActionBar("§cBrich die Tür mit der §6Brechstange §cauf!");
-            player.playSound(player.getLocation(), Sound.BLOCK_IRON_TRAPDOOR_CLOSE, 1.5F, 0.0F);
+            Sounds.deny(player);
             return;
         }
         int remaining = DOOR_PRICE - doorPayments.getOrDefault(door, 0);
@@ -336,7 +337,7 @@ public class WaveListener implements Listener {
         int coins = gamePlayer.getCoins();
         if (coins <= 0) {
             player.sendMessage(String.format("§cNoch §6%d Coins §cfür diese Tür, legt zusammen!", remaining));
-            player.playSound(player.getLocation(), Sound.BLOCK_IRON_TRAPDOOR_CLOSE, 1.5F, 0.0F);
+            Sounds.deny(player);
             return;
         }
         gamePlayer.setCoins(0);
@@ -361,7 +362,7 @@ public class WaveListener implements Listener {
 
         if (gamePlayer.getCoins() < remaining) {
             player.sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum diese Türe zu öffnen", remaining - gamePlayer.getCoins()));
-            player.playSound(player.getLocation(), Sound.BLOCK_IRON_TRAPDOOR_CLOSE, 1.5F, 0.0F);
+            Sounds.deny(player);
             return;
         }
 
@@ -384,7 +385,7 @@ public class WaveListener implements Listener {
         removeHolo(door.getHoloLocation().clone().subtract(0, 1, 0));
 
         Bukkit.broadcastMessage(String.format("%s§a%s hat den Bereich §7%s §afreigeschaltet!", plugin.getMonstersPrefix(), player.getDisplayName(), door.getName()));
-        userManager.broadcastSound(Sound.BLOCK_BEACON_POWER_SELECT, 3.0F, 1.0F);
+        userManager.broadcastSound(Sound.BLOCK_BEACON_POWER_SELECT, 0.8F, 1.1F);
 
         for (MonsterSpawner monsterSpawner : mapManager.getMapConfiguration().getSpawners()) {
             if (monsterSpawner.getAreaName().equalsIgnoreCase(door.getName())) {
@@ -424,7 +425,7 @@ public class WaveListener implements Listener {
         if (playerWeapon == null) {
             if (gamePlayer.getCoins() < weaponPointWeapon.getPrice()) {
                 player.sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum diese Waffe zu kaufen", weaponPointWeapon.getPrice() - gamePlayer.getCoins()));
-                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
+                Sounds.deny(player);
                 return;
             }
 
@@ -435,7 +436,7 @@ public class WaveListener implements Listener {
                     gamePlayer.addWeapon(weaponPointWeapon);
                     gamePlayer.setCoins(gamePlayer.getCoins() - weaponPointWeapon.getPrice());
                     player.sendMessage(String.format("%s§7Du hast §a%s §7gekauft! §c-%d Coins!", plugin.getMonstersPrefix(), weaponPointWeapon.getName(), weaponPointWeapon.getPrice()));
-                    player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_YES, 1.0F, 1.0F);
+                    Sounds.buy(player);
                     return;
                 }
             }
@@ -447,15 +448,15 @@ public class WaveListener implements Listener {
                 gamePlayer.addWeapon(weaponPointWeapon);
                 gamePlayer.setCoins(gamePlayer.getCoins() - weaponPointWeapon.getPrice());
                 player.sendMessage(String.format("%s§7Du hast §a%s §7gekauft! §c-%d Coins!", plugin.getMonstersPrefix(), weaponPointWeapon.getName(), weaponPointWeapon.getPrice()));
-                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_YES, 1.0F, 1.0F);
+                Sounds.buy(player);
             } else if (gamePlayer.getWeapon(itemInHand) == null) {
                 player.sendMessage("§cBitte verwende einen Waffen Slot um eine neue Waffe zu kaufen!");
-                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
+                Sounds.deny(player);
             }
         } else {
             // Weapon crates only sell weapons, ammo comes from the ammo crates
             player.sendActionBar("§7Du hast diese Waffe schon! Munition gibt es an der §aMunitionskiste");
-            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
+            Sounds.deny(player);
         }
     }
 

@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.player.manager;
 
+import de.ethicbuilds.monsters.sound.Sounds;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.player.GamePlayer;
@@ -204,7 +205,7 @@ public class ReviveManager implements Listener {
         int cost = cost(downed);
         if (helperPlayer.getCoins() < cost) {
             helper.sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum %s wiederzubeleben", cost - helperPlayer.getCoins(), downedPlayer.getPlayer().getName()));
-            helper.playSound(helper.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
+            Sounds.deny(helper);
             return;
         }
 

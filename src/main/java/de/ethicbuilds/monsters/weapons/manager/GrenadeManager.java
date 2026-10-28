@@ -82,8 +82,8 @@ public class GrenadeManager {
 
     private void explode(Player thrower, Location location) {
         World world = location.getWorld();
-        world.playSound(location, Sound.ENTITY_GENERIC_EXPLODE, 1.6F, 1.1F);
-        world.playSound(location, Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, 1.0F, 1.0F);
+        world.playSound(location, Sound.ENTITY_GENERIC_EXPLODE, 1.0F, 1.1F);
+        world.playSound(location, Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, 0.7F, 1.0F);
         world.spawnParticle(Particle.EXPLOSION, location, 3, 0.8, 0.4, 0.8, 0);
         world.spawnParticle(Particle.FLAME, location, 25, 1.5, 0.5, 1.5, 0.05);
         world.spawnParticle(Particle.LARGE_SMOKE, location, 15, 1.2, 0.6, 1.2, 0.02);
