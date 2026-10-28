@@ -55,6 +55,7 @@ public class GameManager {
     @Getter
     private GameConfig gameConfig;
     private BukkitTask gameStartTask;
+    private String roundKey = "";
 
     private long lastPlayerOnlineTime = System.currentTimeMillis();
 
@@ -234,6 +235,12 @@ public class GameManager {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        roundKey = String.valueOf(System.currentTimeMillis());
+    }
+
+    /** New for every loaded round, the proxy allows the creator's extra JoinMe once per round with it */
+    public String getRoundKey() {
+        return roundKey;
     }
 
     public GamePhase getCurrentPhase() {

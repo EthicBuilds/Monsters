@@ -19,4 +19,6 @@ public class GameConfig {
     private int playerCount;
     private String mapName;
     private List<String> mapBuilder;
+    // UUID of who created the round in the lobby
+    private String ersteller;
 }

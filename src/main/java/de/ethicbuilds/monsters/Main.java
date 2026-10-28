@@ -6,6 +6,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import de.ethicbuilds.monsters.di.DiModule;
 import de.ethicbuilds.monsters.gameplay.listener.GameListener;
+import de.ethicbuilds.monsters.gameplay.listener.JoinMeListener;
 import de.ethicbuilds.monsters.gameplay.listener.PreGameListener;
 import de.ethicbuilds.monsters.gameplay.listener.WaveListener;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
@@ -100,6 +101,8 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(injector.getInstance(WorkbenchManager.class), this);
         de.ethicbuilds.monsters.reward.DailyChallenge.load();
         pm.registerEvents(injector.getInstance(de.ethicbuilds.monsters.player.manager.PingManager.class), this);
+        pm.registerEvents(injector.getInstance(JoinMeListener.class), this);
+        getServer().getMessenger().registerOutgoingPluginChannel(this, JoinMeListener.CHANNEL);
     }
 
 }

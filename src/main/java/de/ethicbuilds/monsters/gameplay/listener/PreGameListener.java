@@ -59,6 +59,7 @@ public class PreGameListener implements Listener {
         Player player = event.getPlayer();
         sendPack(player);
         player.setScoreboard(scoreboardManager.getScoreboard());
+        if (!userManager.isFull()) player.getInventory().setItem(JoinMeListener.SLOT, JoinMeListener.item());
 
         player.sendMessage(String.format("%sMap: §6%s", plugin.getMonstersPrefix(), gameManager.getGameConfig().getMapName()));
         player.sendMessage(String.format("%s§aGebaut von §2%s", plugin.getMonstersPrefix(),  String.join("§7, §2", gameManager.getGameConfig().getMapBuilder())));
