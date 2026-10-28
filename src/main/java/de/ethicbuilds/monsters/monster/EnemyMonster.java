@@ -70,7 +70,8 @@ public abstract class EnemyMonster {
         goals.removeGoal((org.bukkit.entity.Mob) monster, VanillaGoal.RANDOM_LOOK_AROUND);
         var maxHealth = monster.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
         if (maxHealth != null && maxHealth.getBaseValue() < health) maxHealth.setBaseValue(health);
-        monster.setHealth(health);
+        // The server caps max health (spigot.yml), more would fail the whole spawn
+        monster.setHealth(maxHealth != null ? Math.min(health, maxHealth.getValue()) : health);
         onSpawn();
 
         target = player;
