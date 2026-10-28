@@ -18,7 +18,7 @@ import org.bukkit.entity.Player;
 import java.util.concurrent.CountDownLatch;
 
 public class WaveManager {
-    private static final int SPAWNS_PER_TICK = 5;
+    private static final int SPAWNS_PER_TICK = 3;
     // Measured 28.10.: up to about 170 monsters the server runs smoothly, 120 leaves room
     private static final int MAX_ALIVE = 120;
 

@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.monster;
 
 import com.destroystokyo.paper.entity.Pathfinder;
+import com.destroystokyo.paper.entity.ai.VanillaGoal;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import lombok.Getter;
@@ -60,6 +61,13 @@ public abstract class EnemyMonster {
         var followRange = monster.getAttribute(org.bukkit.attribute.Attribute.FOLLOW_RANGE);
         if (followRange != null) followRange.setBaseValue(FOLLOW_RANGE);
         MonsterGuard.mark(monster);
+        // They always hunt a player, wandering and looking around only cost CPU
+        var goals = Bukkit.getMobGoals();
+        goals.removeGoal((org.bukkit.entity.Creature) monster, VanillaGoal.RANDOM_STROLL);
+        goals.removeGoal((org.bukkit.entity.Creature) monster, VanillaGoal.WATER_AVOIDING_RANDOM_STROLL);
+        goals.removeGoal((org.bukkit.entity.Creature) monster, VanillaGoal.STROLL_THROUGH_VILLAGE);
+        goals.removeGoal((org.bukkit.entity.Mob) monster, VanillaGoal.LOOK_AT_PLAYER);
+        goals.removeGoal((org.bukkit.entity.Mob) monster, VanillaGoal.RANDOM_LOOK_AROUND);
         var maxHealth = monster.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
         if (maxHealth != null && maxHealth.getBaseValue() < health) maxHealth.setBaseValue(health);
         monster.setHealth(health);
