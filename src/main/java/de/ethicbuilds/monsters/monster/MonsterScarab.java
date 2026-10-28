@@ -12,7 +12,7 @@ import org.bukkit.entity.EntityType;
  * An invisible silverfish carries the beetle model from the design session.
  */
 public class MonsterScarab extends EnemyMonster {
-    private static final float MODEL_SIZE = 0.5F;
+    private static final float MODEL_SIZE = 1.0F;
     private static BoneModel beetle;
 
     private AnimatedModel model;
@@ -57,6 +57,11 @@ public class MonsterScarab extends EnemyMonster {
     @Override
     public void onDeath() {
         if (model != null) model.die();
+    }
+
+    @Override
+    public void onAttack() {
+        if (model != null) model.play("beissen");
     }
 
     @Override
