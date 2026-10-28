@@ -72,6 +72,11 @@ public class AnimatedModel {
     /** Death animation where the monster died, then the model disappears */
     public void die() {
         if (dying) return;
+        // Without a death animation the model just goes
+        if (model.animation(DEATH) == null) {
+            remove();
+            return;
+        }
         dying = true;
         action = DEATH;
         actionTime = 0;
