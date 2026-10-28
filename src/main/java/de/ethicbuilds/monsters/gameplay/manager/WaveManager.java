@@ -17,6 +17,7 @@ import org.bukkit.entity.Player;
 import java.util.concurrent.CountDownLatch;
 
 public class WaveManager {
+    private static final int SPAWNS_PER_TICK = 5;
 
     @Inject
     private UserManager userManager;
@@ -49,7 +50,7 @@ public class WaveManager {
         this.waveThread.start();
     }
 
-    private void startWave() {
+    private void startWave() throws InterruptedException {
         currentWave++;
         broadCastMessage(String.format("%s§aStarte Welle §4%d", plugin.getMonstersPrefix(), currentWave));
         Component title = MiniMessage.miniMessage().deserialize("<bold><gradient:#F9A11E:#8B4BD8>Welle " + currentWave + "</gradient></bold>");
@@ -68,12 +69,13 @@ public class WaveManager {
 
         monsterManager.createMonsters(currentWave);
 
-        startOnMinecraftThread(() -> monsterManager.summonMonsters());
+        // A few monsters per tick instead of the whole wave at once
+        while (monsterManager.hasPendingSpawns()) {
+            startOnMinecraftThread(() -> monsterManager.summonBatch(SPAWNS_PER_TICK));
+        }
 
-        while (true) {
-            if (monsterManager.getMonsters().isEmpty()) {
-                break;
-            }
+        while (!monsterManager.getMonsters().isEmpty()) {
+            Thread.sleep(100);
         }
     }
 

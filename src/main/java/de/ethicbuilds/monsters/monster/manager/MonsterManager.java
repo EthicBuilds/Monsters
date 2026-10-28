@@ -43,6 +43,7 @@ public class MonsterManager {
     private final Map<Monster, EnemyMonster> monsters = new ConcurrentHashMap<>();
     @Getter
     private final List<EnemyMonster> initialMonsters = new ArrayList<>();
+    private int spawnIndex;
 
     private final Map<EnemyMonster, Location> lastLocation = new HashMap<>();
     private final Map<EnemyMonster, Long> lastMoveTime = new HashMap<>();;
@@ -50,6 +51,7 @@ public class MonsterManager {
     public void createMonsters(int wave) {
         monsters.clear();
         initialMonsters.clear();
+        spawnIndex = 0;
 
         int players = Math.max(1, userManager.getGamePlayers().size());
         int monsterCount = players * (2 + 4 * (wave - 1));
@@ -84,31 +86,31 @@ public class MonsterManager {
         removeMonster(monster.getMonster());
     }
 
-    public void summonMonsters() {
-        List<Location> activeSpawners = getActiveSpawnerLocations();
-        List<Player> players = userManager.getGamePlayers() .stream() .map(GamePlayer::getPlayer) .toList();
-        if (activeSpawners.isEmpty() || players.isEmpty()) { return; }
-        int spawnerCount = activeSpawners.size();
-        int playerCount = players.size();
-        Map<Monster, EnemyMonster> newMonsters = new HashMap<>();
-        int index = 0; int delay = 0;
+    public boolean hasPendingSpawns() {
+        return !initialMonsters.isEmpty();
+    }
 
-        for (EnemyMonster enemyMonster : initialMonsters) {
-            Location location = activeSpawners.get(index % spawnerCount).clone().add(0, 1, 0);
+    /** Summons the next monsters of the wave, a few per tick, so the server does not hang at the wave start */
+    public void summonBatch(int count) {
+        List<Location> activeSpawners = getActiveSpawnerLocations();
+        List<Player> players = userManager.getGamePlayers().stream().map(GamePlayer::getPlayer).toList();
+        if (activeSpawners.isEmpty() || players.isEmpty()) {
+            initialMonsters.clear();
+            return;
+        }
+
+        for (int i = 0; i < count && !initialMonsters.isEmpty(); i++) {
+            EnemyMonster enemyMonster = initialMonsters.removeFirst();
+            Location location = activeSpawners.get(spawnIndex % activeSpawners.size()).clone().add(0, 1, 0);
             // Spiders are too big for the spawner windows, they come out on open ground in the play area
             if (enemyMonster instanceof MonsterSpider spider) {
                 Location open = spiderSpot(spider, players);
                 if (open != null) location = open;
             }
-            Player player = players.get(index % playerCount);
-            enemyMonster.summon(player, location);
-            newMonsters.put(enemyMonster.getMonster(), enemyMonster);
-            index++;
+            enemyMonster.summon(players.get(spawnIndex % players.size()), location);
+            monsters.put(enemyMonster.getMonster(), enemyMonster);
+            spawnIndex++;
         }
-
-        monsters.clear();
-        monsters.putAll(newMonsters);
-        initialMonsters.clear();
     }
 
 
