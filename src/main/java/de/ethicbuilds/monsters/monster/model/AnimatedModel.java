@@ -15,10 +15,13 @@ import java.util.List;
 
 /***
  * Blockbench model on an invisible monster: one ItemDisplay per bone rides on the monster, the bones are posed
- * every 2 ticks (rest pose + animation, children inside their parents, like Blockbench)
+ * every 2 ticks (rest pose + animation, children inside their parents, like Blockbench), far from the players less often
  */
 public class AnimatedModel {
     private static final int TICKS = 2;
+    // Far from every player the bones move only every 4th time, from there nobody sees the details
+    private static final double DETAIL_DISTANCE = 24;
+    private static final int FAR_EVERY = 4;
     private static final String IDLE = "stehen", WALK = "laufen", DEATH = "tod";
 
     private final BoneModel model;
@@ -35,6 +38,8 @@ public class AnimatedModel {
     private float yaw;
     private float offsetY = Float.NaN;
     private Location lastPosition;
+    private int skipped;
+    private int interpolation = TICKS;
 
     /**
      * @param size model size, 1 = as designed in Blockbench
@@ -124,13 +129,33 @@ public class AnimatedModel {
         }
 
         if (!dying) {
-            yaw = base.getBodyYaw();
             Location now = base.getLocation();
+            boolean near = nearPlayer(now);
+            if (!near && ++skipped < FAR_EVERY) return;
+            skipped = 0;
+            setInterpolation(near ? TICKS : TICKS * FAR_EVERY);
+            yaw = base.getBodyYaw();
             boolean moving = now.getWorld().equals(lastPosition.getWorld()) && now.distanceSquared(lastPosition) > 0.0004;
             lastPosition = now;
             render(model.animation(moving ? WALK : IDLE), one);
         } else {
+            setInterpolation(TICKS);
             render(null, one);
+        }
+    }
+
+    private boolean nearPlayer(Location at) {
+        for (org.bukkit.entity.Player player : at.getWorld().getPlayers()) {
+            if (player.getLocation().distanceSquared(at) < DETAIL_DISTANCE * DETAIL_DISTANCE) return true;
+        }
+        return false;
+    }
+
+    private void setInterpolation(int ticks) {
+        if (ticks == interpolation) return;
+        interpolation = ticks;
+        for (ItemDisplay part : parts) {
+            if (part != null && part.isValid()) part.setInterpolationDuration(ticks);
         }
     }
 
