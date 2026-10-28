@@ -39,6 +39,7 @@ public class PingManager implements Listener {
     public static final int RANGE = 30;
     private static final long LIFETIME = 5 * 20;
     private static final long COOLDOWN = 1000;
+    private static final int FADE = 20;
     private static final TextColor NAME_COLOR = TextColor.color(0xA0F2FA);
     private static final Key PING_FONT = Key.key("monsters", "ping");
 
@@ -47,6 +48,7 @@ public class PingManager implements Listener {
     @Inject private UserManager userManager;
 
     private final Map<UUID, Long> lastPing = new HashMap<>();
+    private final Map<UUID, TextDisplay> markers = new HashMap<>();
 
     // The wheel click only reaches the server for blocks within the interaction range, so that range is 30 in Monsters
     @EventHandler(priority = EventPriority.LOW)
@@ -107,6 +109,20 @@ public class PingManager implements Listener {
             mate.showEntity(plugin, marker);
             mate.playSound(mate.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 0.7F, 1.8F);
         }
-        plugin.getServer().getScheduler().runTaskLater(plugin, marker::remove, LIFETIME);
+        TextDisplay old = markers.put(player.getUniqueId(), marker);
+        if (old != null && old.isValid()) fade(old);
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            marker.remove();
+            markers.remove(player.getUniqueId(), marker);
+        }, LIFETIME);
+    }
+
+    // Old ping shrinks away within a second
+    private void fade(TextDisplay marker) {
+        Transformation now = marker.getTransformation();
+        marker.setInterpolationDelay(0);
+        marker.setInterpolationDuration(FADE);
+        marker.setTransformation(new Transformation(now.getTranslation(), now.getLeftRotation(), new Vector3f(0), now.getRightRotation()));
+        plugin.getServer().getScheduler().runTaskLater(plugin, marker::remove, FADE);
     }
 }
