@@ -88,6 +88,19 @@ public class GamePlayer extends GameUser {
         return weapons.containsKey(item);
     }
 
+    /** Fills the reserve ammo of every weapon, false if all were full */
+    public boolean refillWeapons() {
+        boolean filled = false;
+        for (Weapon weapon : weapons.values()) {
+            if (weapon.isFull()) continue;
+            weapon.refill();
+            filled = true;
+        }
+        Weapon held = getWeapon(player.getInventory().getItemInMainHand());
+        if (filled && held != null) de.ethicbuilds.monsters.weapons.AmmoHud.refresh(player, held);
+        return filled;
+    }
+
     public void addCoins(int coins) {
         this.coins += coins;
         earnedCoins += coins;

@@ -38,6 +38,7 @@ public class CrateManager implements Listener {
     private static final long HIT_COOLDOWN = 400;
     private static final double GRENADE_CHANCE = 0.3;
     private static final double COINS_CHANCE = 0.2;
+    private static final double AMMO_CHANCE = 0.15;
     private static final int COINS = 100;
     private static final double REACH = 5;
 
@@ -148,6 +149,10 @@ public class CrateManager implements Listener {
             gamePlayer.addCoins(coins);
             player.sendActionBar(String.format("§6+%d Coins §7gefunden", coins));
             player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0F, 1.4F);
+        } else if (roll < GRENADE_CHANCE + COINS_CHANCE + AMMO_CHANCE + 3 * extra && gamePlayer.refillWeapons()) {
+            AmmoHud.pause(player);
+            player.sendActionBar("§aGlück gehabt! §7Du hast §x§F§2§C§1§4§EMunition §7gefunden");
+            player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 0.8F, 1.2F);
         } else {
             player.sendActionBar("§7Die Kiste war leer");
         }

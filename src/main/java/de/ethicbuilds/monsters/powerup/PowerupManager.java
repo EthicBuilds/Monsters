@@ -40,7 +40,8 @@ import java.util.function.Supplier;
 
 /***
  * Powerups on the ground: medkits spawn now and then on spots where players have been, monsters drop
- * medkits, speed and instakill with luck. Speed and instakill count for all players for 10 seconds.
+ * medkits, speed, instakill and ammo with luck. Speed and instakill count for all players for 10 seconds,
+ * ammo fills the weapons of everyone at once.
  */
 public class PowerupManager {
     private static final int MAX_MEDKITS = 2;
@@ -56,7 +57,8 @@ public class PowerupManager {
     public enum Type {
         MEDKIT(0.04, 0x3CC860, GameItems::medkit),
         SPEED(0.02, 0x4FB3FF, () -> model("powerup/tempo")),
-        INSTAKILL(0.015, 0xFF3B3B, () -> model("powerup/instakill"));
+        INSTAKILL(0.015, 0xFF3B3B, () -> model("powerup/instakill")),
+        AMMO(0.03, 0xF2C14E, () -> model("powerup/munition"));
 
         private final double dropChance;
         private final int color;
@@ -249,6 +251,16 @@ public class PowerupManager {
             case INSTAKILL -> {
                 instakillUntil = System.currentTimeMillis() + EFFECT_TICKS * 50L;
                 announce(player, "§x§F§F§3§B§3§B§lINSTA-KILL!", "§7Jeder Treffer tötet, 10 Sekunden lang", BarColor.RED, Sound.ENTITY_EVOKER_CAST_SPELL, 1.4F, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE);
+            }
+            case AMMO -> {
+                for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
+                    Player other = gamePlayer.getPlayer();
+                    if (!other.isOnline()) continue;
+                    if (!userManager.isPlayerDead(other.getUniqueId())) gamePlayer.refillWeapons();
+                    other.sendTitle("§x§F§2§C§1§4§E§lMUNITION!", "§7Alle Waffen aufgefüllt §8· §7von " + player.getName(), 5, 30, 10);
+                    other.playSound(other.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 0.8F, 1.2F);
+                    other.playSound(other.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.6F, 1.5F);
+                }
             }
         }
     }
