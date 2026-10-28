@@ -68,13 +68,11 @@ public class UserManager {
         }
         spectators.put(player.getUniqueId(), new GameSpectator(player));
 
+        // Lay on the ground before leaving: the body goes, from the next wave the player plays again
+        if (reviveManager.isDown(player.getUniqueId())) reviveManager.clear(player);
+        // Watches in spectator mode, so the others see the player in the tab list as spectator
+        player.setGameMode(GameMode.SPECTATOR);
         player.teleport(mapManager.getMapConfiguration().getSpawn());
-        player.setAllowFlight(true);
-        player.setFlying(true);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, PotionEffect.INFINITE_DURATION, 0, false, false, false));
-        for (Player other : Bukkit.getOnlinePlayers()) {
-            if (!other.equals(player)) other.hidePlayer(plugin, player);
-        }
         player.sendTitle("§7Du schaust zu", "§aAb der nächsten Welle spielst du mit", 10, 60, 10);
     }
 

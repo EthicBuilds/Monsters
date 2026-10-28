@@ -95,10 +95,12 @@ public class GameListener implements Listener {
         AmmoHud.show(gamePlayer.getPlayer(), weapon);
     }
 
-    // Everyone stays in adventure mode, no other game mode, also not for the team
+    // Everyone stays in adventure mode, also the team; only players who rejoined watch in spectator mode until the next wave
     @EventHandler
     public void onGameModeChange(PlayerGameModeChangeEvent event) {
-        if (event.getNewGameMode() != GameMode.ADVENTURE) event.setCancelled(true);
+        if (event.getNewGameMode() == GameMode.ADVENTURE) return;
+        if (event.getNewGameMode() == GameMode.SPECTATOR && userManager.isSpectator(event.getPlayer().getUniqueId())) return;
+        event.setCancelled(true);
     }
 
     @EventHandler
