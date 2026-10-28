@@ -38,7 +38,7 @@ import java.util.UUID;
 
 /***
  * Weapon workbench: opens from wave 5 for 5000 coins, then every weapon can be upgraded 4 times
- * (price per weapon, then double each time). Menu design from the design session: one background,
+ * (price per weapon, then 1.5 times each level). Menu design from the design session: one background,
  * tab, stars, button and texts are drawn into the title (WorkbenchTitle).
  */
 public class WorkbenchManager implements Listener {
@@ -72,8 +72,9 @@ public class WorkbenchManager implements Listener {
     private final Set<UUID> unlocked = new HashSet<>();
     private final Map<UUID, Integer> selected = new HashMap<>();
 
+    // Each level 1.5 times the last one, rounded to 500
     public static int upgradePrice(Weapon weapon) {
-        return weapon.getUpgradePrice() * (1 << weapon.getLevel());
+        return (int) Math.round(weapon.getUpgradePrice() * Math.pow(1.5, weapon.getLevel()) / 500) * 500;
     }
 
     public void use(GamePlayer gamePlayer) {

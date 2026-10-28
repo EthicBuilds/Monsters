@@ -30,7 +30,7 @@ public abstract class Weapon {
     protected int maxAmmu;
     protected int maxMagazine;
     protected int price;
-    // First workbench upgrade, then double each level
+    // First workbench upgrade, then 1.5 times each level
     protected int upgradePrice = 10000;
     protected String model;
 
