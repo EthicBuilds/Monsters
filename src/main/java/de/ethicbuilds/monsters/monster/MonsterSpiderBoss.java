@@ -133,6 +133,13 @@ public class MonsterSpiderBoss extends MonsterSpider {
                 var at = monster.getLocation();
                 at.getWorld().spawnParticle(org.bukkit.Particle.BLOCK, at, 60, 2, 0.3, 2, at.clone().subtract(0, 1, 0).getBlock().getBlockData());
                 at.getWorld().playSound(at, org.bukkit.Sound.ENTITY_GENERIC_EXPLODE, 0.6F, 0.7F);
+                at.getWorld().playSound(at, org.bukkit.Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 1.0F, 0.8F);
+                // Purple ring like the crystal impact marks
+                var ring = new org.bukkit.Particle.DustOptions(org.bukkit.Color.fromRGB(0xA970FF), 1.4F);
+                for (int i = 0; i < 32; i++) {
+                    double a = Math.PI * 2 * i / 32;
+                    at.getWorld().spawnParticle(org.bukkit.Particle.DUST, at.clone().add(Math.cos(a) * SHOCK_RADIUS, 0.2, Math.sin(a) * SHOCK_RADIUS), 1, ring);
+                }
                 var users = Main.getINSTANCE().getInjector().getInstance(de.ethicbuilds.monsters.player.manager.UserManager.class);
                 for (Player player : at.getWorld().getPlayers()) {
                     if (users.isPlayerDead(player.getUniqueId())) continue;

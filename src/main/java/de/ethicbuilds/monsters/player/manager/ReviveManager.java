@@ -391,7 +391,7 @@ public class ReviveManager implements Listener {
 
     private static String progressBar(double done) {
         int filled = (int) Math.round(done * 10);
-        return "§a" + "▮".repeat(filled) + "§8" + "▮".repeat(10 - filled);
+        return "§x§3§C§D§C§6§E" + "▮".repeat(filled) + "§x§3§A§3§F§4§A" + "▮".repeat(10 - filled);
     }
 
     // Only who stands at the body can revive

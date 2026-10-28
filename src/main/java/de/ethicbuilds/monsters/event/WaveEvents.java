@@ -12,6 +12,7 @@ import de.ethicbuilds.monsters.player.manager.UserManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
@@ -46,6 +47,8 @@ public class WaveEvents {
     private static final int STORM_WARNING = 4 * 20, STORM_TICKS = 20 * 20;
     private static final double STORM_DAMAGE = 2;
     private static final Particle.DustOptions SAND = new Particle.DustOptions(Color.fromRGB(0xD9B26F), 1.6F);
+    private static final Particle.DustOptions BLOOD = new Particle.DustOptions(Color.fromRGB(0x8B1A1A), 1.2F);
+    public static final Particle.DustOptions GOLD = new Particle.DustOptions(Color.fromRGB(0xFFCC2E), 1.0F);
 
     private static long goldUntil;
     private static boolean bloodMoon;
@@ -63,6 +66,10 @@ public class WaveEvents {
     /** Coins for hits count double during gold rush and blood moon */
     public static double coinFactor() {
         return (System.currentTimeMillis() < goldUntil ? 2 : 1) * (bloodMoon ? 2 : 1);
+    }
+
+    public static boolean isGoldRush() {
+        return System.currentTimeMillis() < goldUntil;
     }
 
     public static double powerupFactor() {
@@ -86,6 +93,10 @@ public class WaveEvents {
                     return;
                 }
                 checkCamping();
+                if (bloodMoon) {
+                    // Red dust drifting far around the players
+                    for (Player player : living()) player.getWorld().spawnParticle(Particle.DUST, player.getLocation().add(0, 2, 0), 6, 10, 3, 10, BLOOD);
+                }
                 if (waveManager.getCurrentWave() < FROM_WAVE || --nextEvent > 0) return;
                 nextEvent = gap();
                 switch (ThreadLocalRandom.current().nextInt(3)) {
@@ -173,7 +184,10 @@ public class WaveEvents {
                         double a = Math.PI * 2 * i / 24;
                         world.spawnParticle(Particle.DUST, center.clone().add(Math.cos(a) * STORM_RADIUS, 0.3, Math.sin(a) * STORM_RADIUS), 2, 0.1, 0.2, 0.1, SAND);
                     }
-                    if (active) world.spawnParticle(Particle.DUST, center.clone().add(0, 1.5, 0), 60, STORM_RADIUS * 0.6, 1.2, STORM_RADIUS * 0.6, SAND);
+                    if (active) {
+                        world.spawnParticle(Particle.DUST, center.clone().add(0, 1.5, 0), 60, STORM_RADIUS * 0.6, 1.2, STORM_RADIUS * 0.6, SAND);
+                        world.spawnParticle(Particle.FALLING_DUST, center.clone().add(0, 3, 0), 8, STORM_RADIUS * 0.6, 0.5, STORM_RADIUS * 0.6, Material.SAND.createBlockData());
+                    }
                 }
                 if (active && ticks % 20 == 0) {
                     world.playSound(center, Sound.ITEM_ELYTRA_FLYING, 0.5F, 0.6F);

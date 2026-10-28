@@ -122,6 +122,9 @@ public class WaveListener implements Listener {
 
         gamePlayer.addCoins(coins);
         CoinPopups.show(player, enemyMonster.getMonster().getLocation(), coins, headshot);
+        if (de.ethicbuilds.monsters.event.WaveEvents.isGoldRush()) {
+            monster.getWorld().spawnParticle(Particle.DUST, monster.getLocation().add(0, 1.2, 0), 6, 0.3, 0.4, 0.3, de.ethicbuilds.monsters.event.WaveEvents.GOLD);
+        }
     }
 
     @EventHandler
