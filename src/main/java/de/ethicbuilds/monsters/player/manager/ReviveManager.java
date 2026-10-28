@@ -209,6 +209,7 @@ public class ReviveManager implements Listener {
         }
 
         helperPlayer.setCoins(helperPlayer.getCoins() - cost);
+        helperPlayer.setRevives(helperPlayer.getRevives() + 1);
         revives.merge(downed, 1, Integer::sum);
         Location spot = spots.get(downed).clone();
         spot.setPitch(0);

@@ -1,6 +1,8 @@
 package de.ethicbuilds.monsters.player;
 
 import de.ethicbuilds.monsters.items.GameItems;
+import lombok.Getter;
+import lombok.Setter;
 import de.ethicbuilds.monsters.weapons.Pistol;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import org.bukkit.GameMode;
@@ -15,6 +17,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GamePlayer extends GameUser {
+    // For the summary at the end of the round
+    @Getter private int earnedCoins;
+    @Getter @Setter private int headshots;
+    @Getter @Setter private int revives;
 
 
     public GamePlayer(Player player) {
@@ -81,5 +87,6 @@ public class GamePlayer extends GameUser {
 
     public void addCoins(int coins) {
         this.coins += coins;
+        earnedCoins += coins;
     }
 }

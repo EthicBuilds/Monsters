@@ -88,7 +88,7 @@ public class Pumpgun extends Weapon {
                     for (org.bukkit.entity.Entity entity : current.getWorld().getNearbyEntities(current, 0.5, 0.5, 0.5)) {
                         if (!(entity instanceof org.bukkit.entity.Monster)) continue;
                         {
-                            ShotDamage.deal((org.bukkit.entity.LivingEntity) entity, damage, player);
+                            ShotDamage.shoot((org.bukkit.entity.LivingEntity) entity, damage, player, current);
                             this.cancel();
                             return;
                         }

@@ -68,6 +68,7 @@ public class WaveListener implements Listener {
     private boolean isAxeCooldDown;
 
     private static final int DOOR_PRICE = 2500;
+    private static final int HEADSHOT_COINS = 30;
     // Coins already put into a door by players who did not have enough
     private final java.util.Map<Door, Integer> doorPayments = new java.util.IdentityHashMap<>();
 
@@ -108,13 +109,15 @@ public class WaveListener implements Listener {
             startAxeCoolDown();
         }
 
-        if (event.getFinalDamage() < monster.getHealth()) gamePlayer.setKilledZombies(gamePlayer.getKilledZombies() + 1);
+        if (event.getFinalDamage() >= monster.getHealth()) gamePlayer.setKilledZombies(gamePlayer.getKilledZombies() + 1);
 
-//        int coins = (int)Math.round(event.getDamage());
-        int coins = 20;
+        boolean headshot = ShotDamage.isHeadshot();
+        if (headshot) gamePlayer.setHeadshots(gamePlayer.getHeadshots() + 1);
+        int coins = headshot ? HEADSHOT_COINS : 20;
 
         gamePlayer.addCoins(coins);
-        createFloatingHologram(player, enemyMonster.getMonster().getLocation(), String.format("§6+ %d Coins", coins));
+        createFloatingHologram(player, enemyMonster.getMonster().getLocation(),
+                headshot ? String.format("§6+ %d Coins §c§lKOPFSCHUSS", coins) : String.format("§6+ %d Coins", coins));
     }
 
     @EventHandler

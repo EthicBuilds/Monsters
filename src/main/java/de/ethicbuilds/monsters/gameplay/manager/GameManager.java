@@ -25,6 +25,9 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -140,6 +143,24 @@ public class GameManager {
         }
     }
 
+    // Who did what this round, best player first
+    private void sendSummary() {
+        List<GamePlayer> players = new ArrayList<>(userManager.getGamePlayers());
+        players.sort(Comparator.comparingInt(GamePlayer::getKilledZombies).reversed());
+        List<String> lines = new ArrayList<>();
+        lines.add("§8§m                                              ");
+        lines.add(String.format("%s§fRunde vorbei auf §6%s §7· §fWelle §6%d", plugin.getMonstersPrefix(),
+                gameConfig.getMapName(), waveManager.getCurrentWave()));
+        for (int i = 0; i < players.size(); i++) {
+            GamePlayer gamePlayer = players.get(i);
+            lines.add(String.format("§%s%d. §f%s §8» §a%d Kills §8· §c%d Kopfschüsse §8· §d%d wiederbelebt §8· §6%s Coins",
+                    i == 0 ? "6" : "7", i + 1, gamePlayer.getPlayer().getName(), gamePlayer.getKilledZombies(), gamePlayer.getHeadshots(),
+                    gamePlayer.getRevives(), String.format(java.util.Locale.GERMANY, "%,d", gamePlayer.getEarnedCoins())));
+        }
+        lines.add("§8§m                                              ");
+        for (Player player : Bukkit.getOnlinePlayers()) lines.forEach(player::sendMessage);
+    }
+
     public void gameEnd() {
         gameStates.setCurrentPhase(GamePhase.AFTER_GAME);
         for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
@@ -166,6 +187,7 @@ public class GameManager {
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.sendTitle("§4Spiel Vorbei", String.format("§cIhr habt es bis Runde §7%d §cgeschaft!", waveManager.getCurrentWave()));
         }
+        sendSummary();
 
         mapManager.getMapConfiguration().getSpawn().getWorld().strikeLightning(mapManager.getMapConfiguration().getSpawn());
 
