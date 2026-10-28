@@ -33,6 +33,7 @@ import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -68,6 +69,15 @@ public class DecorationManager implements Listener {
     private final List<TextDisplay> workbenchLocked = new ArrayList<>();
     private final List<TextDisplay> workbenchOpen = new ArrayList<>();
 
+    private FurnitureLook look;
+
+    private FurnitureLook look() {
+        if (look == null) {
+            look = new FurnitureLook(new File(plugin.getConfig().getString("nexo-items", "../monsters-bau/plugins/Nexo/items")), plugin.getLogger());
+        }
+        return look;
+    }
+
     public static boolean isFurniture(Entity entity) {
         return entity.getPersistentDataContainer().has(FURNITURE, PersistentDataType.STRING);
     }
@@ -97,6 +107,7 @@ public class DecorationManager implements Listener {
             ItemStack item = new ItemStack(Material.PAPER);
             GameItems.setModel(item, id);
             display.setItemStack(item);
+            look().apply(display, id);
         }
 
         if (SOLID.contains(id) && entity instanceof ItemDisplay display) {

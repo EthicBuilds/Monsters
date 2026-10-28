@@ -8,7 +8,7 @@ import org.bukkit.entity.Player;
  * only those (and knife hits) give coins.
  */
 public final class ShotDamage {
-    private static final double HEADSHOT_MULTIPLIER = 1.5;
+    private static final double HEADSHOT_MULTIPLIER = 1.2;
     // The head starts this far below the eyes
     private static final double HEAD_SIZE = 0.35;
 

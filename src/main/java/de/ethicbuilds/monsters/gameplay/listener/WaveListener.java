@@ -68,7 +68,7 @@ public class WaveListener implements Listener {
     private boolean isAxeCooldDown;
 
     private static final int DOOR_PRICE = 2500;
-    private static final int HEADSHOT_COINS = 30;
+    private static final int HEADSHOT_COINS = 25;
     // Coins already put into a door by players who did not have enough
     private final java.util.Map<Door, Integer> doorPayments = new java.util.IdentityHashMap<>();
 
