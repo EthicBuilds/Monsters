@@ -15,8 +15,11 @@ import java.util.List;
 
 
 public abstract class EnemyMonster {
-    private static final double FOLLOW_RANGE = 128;
-    private static final int TRAIL_TRIES = 6;
+    private static final double FOLLOW_RANGE = 64;
+    private static final int TRAIL_TRIES = 4;
+    // Within sight and this close the normal attack AI finds the way, further away a path is kept a few seconds
+    private static final double NEAR = 16;
+    private static final int REPATH_SECONDS = 3;
     private static final double SWITCH_MARGIN = 3;
     private static final double KNOCKBACK_RESISTANCE = 1.0;
 
@@ -31,6 +34,8 @@ public abstract class EnemyMonster {
     protected int coin;
     @Getter
     private Player target;
+    private int repath;
+    private Player chased;
 
     private final Main plugin = Main.getINSTANCE();
 
@@ -57,6 +62,7 @@ public abstract class EnemyMonster {
 
         target = player;
         Pathfinder pathfinder = monster.getPathfinder();
+        // Start spread over the second, otherwise all monsters search their way in the same tick
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -78,7 +84,7 @@ public abstract class EnemyMonster {
                 }
                 chase(pathfinder);
             }
-        }.runTaskTimer(plugin, 0L, 20L);
+        }.runTaskTimer(plugin, java.util.concurrent.ThreadLocalRandom.current().nextInt(20), 20L);
     }
 
     private double distance(Player player) {
@@ -87,6 +93,18 @@ public abstract class EnemyMonster {
 
     // Full path to the player, else along the trail the player walked, else as close as it gets
     private void chase(Pathfinder pathfinder) {
+        if (target != chased) {
+            chased = target;
+            repath = 0;
+        }
+        if (distance(target) < NEAR && monster.hasLineOfSight(target)) {
+            if (!target.equals(monster.getTarget())) monster.setTarget(target);
+            repath = 0;
+            return;
+        }
+        if (--repath > 0 && pathfinder.hasPath()) return;
+        repath = REPATH_SECONDS;
+
         Pathfinder.PathResult direct = pathfinder.findPath(target);
         if (direct != null && direct.canReachFinalPoint()) {
             monster.setTarget(target);
