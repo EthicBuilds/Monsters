@@ -8,10 +8,14 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.scheduler.BukkitRunnable;
 
 /***
- * Boss of every tenth wave: the big amethyst weaver with a lot of health and a boss bar for everyone
+ * Boss of every tenth wave: the big amethyst weaver with a lot of health, a boss bar for everyone and its crystal volley
  */
 public class MonsterSpiderBoss extends MonsterSpider {
+    // Crystal volley every 6 to 9 seconds (checked every half second)
+    private static final int MIN_VOLLEY = 12, MAX_VOLLEY = 18;
+
     private BossBar bar;
+    private int nextVolley = MIN_VOLLEY;
 
     public MonsterSpiderBoss(int players) {
         super();
@@ -45,6 +49,12 @@ public class MonsterSpiderBoss extends MonsterSpider {
                 }
                 Bukkit.getOnlinePlayers().forEach(bar::addPlayer);
                 bar.setProgress(Math.max(0, Math.min(1, monster.getHealth() / health)));
+
+                if (--nextVolley > 0) return;
+                nextVolley = java.util.concurrent.ThreadLocalRandom.current().nextInt(MIN_VOLLEY, MAX_VOLLEY + 1);
+                // Rears up with the crystal animation, the crystals leave its back shortly after
+                if (model != null) model.play("kristall");
+                CrystalBarrage.fire(monster, monster.getHealth() < health / 2 ? 3 : 1);
             }
         }.runTaskTimer(Main.getINSTANCE(), 0L, 10L);
     }

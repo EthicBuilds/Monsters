@@ -231,23 +231,24 @@ public class PowerupManager {
                         other.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, EFFECT_TICKS, 1, false, false, true));
                     }
                 }
-                announce(player, "§x§4§F§B§3§F§F§lTEMPO!", "§7Alle sind 10 Sekunden schneller", BarColor.BLUE, Sound.ENTITY_BREEZE_WIND_BURST);
+                announce(player, "§x§4§F§B§3§F§F§lTEMPO!", "§7Alle sind 10 Sekunden schneller", BarColor.BLUE, Sound.ENTITY_BREEZE_WIND_BURST, 1.3F, null);
             }
             case INSTAKILL -> {
                 instakillUntil = System.currentTimeMillis() + EFFECT_TICKS * 50L;
-                announce(player, "§x§F§F§3§B§3§B§lINSTA-KILL!", "§7Jeder Treffer tötet, 10 Sekunden lang", BarColor.RED, Sound.ENTITY_EVOKER_CAST_SPELL);
+                announce(player, "§x§F§F§3§B§3§B§lINSTA-KILL!", "§7Jeder Treffer tötet, 10 Sekunden lang", BarColor.RED, Sound.ENTITY_EVOKER_CAST_SPELL, 1.4F, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE);
             }
         }
     }
 
     // Title for everyone and a boss bar counting down the 10 seconds
-    private void announce(Player finder, String title, String subtitle, BarColor color, Sound sound) {
+    private void announce(Player finder, String title, String subtitle, BarColor color, Sound sound, float pitch, Sound extra) {
         BossBar bar = Bukkit.createBossBar(title + " §7von " + finder.getName(), color, BarStyle.SEGMENTED_10);
         for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
             Player player = gamePlayer.getPlayer();
             if (!player.isOnline()) continue;
             player.sendTitle(title, subtitle, 5, 30, 10);
-            player.playSound(player.getLocation(), sound, 0.6F, 1.4F);
+            player.playSound(player.getLocation(), sound, 0.6F, pitch);
+            if (extra != null) player.playSound(player.getLocation(), extra, 0.6F, 0.7F);
             bar.addPlayer(player);
         }
         new BukkitRunnable() {
@@ -257,10 +258,13 @@ public class PowerupManager {
             public void run() {
                 left -= 5;
                 if (left <= 0 || gameManager.getCurrentPhase() != GamePhase.WAVE) {
+                    // Running out is heard without looking at the bar: a tick in the last 3 seconds, then a soft off
+                    if (left <= 0) bar.getPlayers().forEach(p -> p.playSound(p.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.4F, 1.4F));
                     bar.removeAll();
                     cancel();
                     return;
                 }
+                if (left <= 60 && left % 20 == 0) bar.getPlayers().forEach(p -> p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 0.4F, 1.2F));
                 bar.setProgress(left / (double) EFFECT_TICKS);
             }
         }.runTaskTimer(plugin, 5L, 5L);

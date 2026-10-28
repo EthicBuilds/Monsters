@@ -7,6 +7,7 @@ import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import io.papermc.paper.event.player.PlayerPickBlockEvent;
 import io.papermc.paper.event.player.PlayerPickEntityEvent;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -37,7 +38,8 @@ public class PingManager implements Listener {
     private static final int RANGE = 80;
     private static final long LIFETIME = 5 * 20;
     private static final long COOLDOWN = 4000;
-    private static final TextColor CYAN = TextColor.color(0x3EC9E6);
+    private static final TextColor NAME_COLOR = TextColor.color(0xA0F2FA);
+    private static final Key PING_FONT = Key.key("monsters", "ping");
 
     @Inject private Main plugin;
     @Inject private GameManager gameManager;
@@ -74,18 +76,18 @@ public class PingManager implements Listener {
         if (hit == null) return;
         lastPing.put(player.getUniqueId(), now);
 
-        Location spot = hit.getHitPosition().toLocation(player.getWorld()).add(0, 0.2, 0);
+        Location spot = hit.getHitPosition().toLocation(player.getWorld());
         TextDisplay marker = player.getWorld().spawn(spot, TextDisplay.class, display -> {
             display.setVisibleByDefault(false);
-            display.text(Component.text("Hier", CYAN).append(Component.newline())
-                    .append(Component.text(player.getName(), NamedTextColor.GRAY)).append(Component.newline())
-                    .append(Component.text("▼", CYAN)));
+            // Name above the pin from the design session, the pin image is 43 px high and reaches up into the empty lines
+            display.text(Component.text(player.getName(), NAME_COLOR).append(Component.text("\n\n\n\n\n"))
+                    .append(Component.text("\uE000", NamedTextColor.WHITE).font(PING_FONT)));
             display.setBillboard(Display.Billboard.CENTER);
             display.setSeeThrough(true);
             display.setShadowed(false);
             display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
-            display.setTextOpacity((byte) 200);
-            display.setTransformation(new Transformation(new Vector3f(0, 0.4F, 0), new AxisAngle4f(), new Vector3f(2F), new AxisAngle4f()));
+            display.setDefaultBackground(false);
+            display.setTransformation(new Transformation(new Vector3f(0, -0.1F, 0), new AxisAngle4f(), new Vector3f(2F), new AxisAngle4f()));
             display.setBrightness(new Display.Brightness(15, 15));
             display.setViewRange(4F);
             display.setPersistent(false);
