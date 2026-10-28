@@ -46,6 +46,7 @@ public abstract class Weapon {
     protected int level = 0;
     private double baseDamage;
     private int baseMagazine;
+    private int baseFireRate;
 
     protected Particle particle;
 
@@ -54,6 +55,7 @@ public abstract class Weapon {
     protected void initialize() {
         baseDamage = damage;
         baseMagazine = maxMagazine;
+        baseFireRate = fireRate;
         ammu = maxAmmu;
         magazine = maxMagazine;
 
@@ -157,8 +159,26 @@ public abstract class Weapon {
     public void upgrade() {
         if (level >= MAX_LEVEL) return;
         level++;
+        if (!upgradesDamage()) {
+            fireRate = fireRateAt(level);
+            return;
+        }
         damage = baseDamage * (1 + 0.25 * level);
         maxMagazine = (int) Math.round(baseMagazine * (1 + 0.25 * level));
+    }
+
+    /** false: the workbench only makes it fire faster (sniper), damage and magazine stay */
+    public boolean upgradesDamage() {
+        return true;
+    }
+
+    public int nextFireRate() {
+        return fireRateAt(Math.min(level + 1, MAX_LEVEL));
+    }
+
+    // 15 % less time between shots per level
+    private int fireRateAt(int level) {
+        return (int) Math.round(baseFireRate * (1 - 0.15 * level));
     }
 
     public double nextDamage() {

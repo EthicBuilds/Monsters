@@ -111,10 +111,12 @@ public class WorkbenchManager implements Listener {
             inventory.setItem(BIG_SLOT, icon(Material.PAPER, "waffe_" + weapon.getModel(), text(weapon.getName().replaceAll("§.", ""), LIGHT)));
             inventory.setItem(LEVEL_SLOT, icon(Material.PAPER, "werkbank_stufe", text("Stufe", GREY),
                     change(weapon.getLevel() + "/" + Weapon.MAX_LEVEL, (weapon.getLevel() + 1) + "/" + Weapon.MAX_LEVEL, max)));
-            inventory.setItem(DAMAGE_SLOT, icon(Material.PAPER, "werkbank_schaden", text("Schaden", GREY),
-                    change(number(weapon.getDamage()), number(weapon.nextDamage()), max)));
-            inventory.setItem(MAGAZINE_SLOT, icon(Material.PAPER, "werkbank_magazin", text("Magazin", GREY),
-                    change(String.valueOf(weapon.getMaxMagazine()), String.valueOf(weapon.nextMagazine()), max)));
+            inventory.setItem(DAMAGE_SLOT, weapon.upgradesDamage()
+                    ? icon(Material.PAPER, "werkbank_schaden", text("Schaden", GREY), change(number(weapon.getDamage()), number(weapon.nextDamage()), max))
+                    : icon(Material.PAPER, "werkbank_schaden", text("Nachladen in Sekunden", GREY), change(seconds(weapon.getFireRate()), seconds(weapon.nextFireRate()), max)));
+            inventory.setItem(MAGAZINE_SLOT, icon(Material.PAPER, "werkbank_magazin", text("Magazin", GREY), weapon.upgradesDamage()
+                    ? change(String.valueOf(weapon.getMaxMagazine()), String.valueOf(weapon.nextMagazine()), max)
+                    : change(String.valueOf(weapon.getMaxMagazine()), "", true)));
             ItemStack button = actionButton(gamePlayer, weapon);
             for (int slot : BUTTON_SLOTS) inventory.setItem(slot, button);
         }
@@ -273,10 +275,18 @@ public class WorkbenchManager implements Listener {
         else if (values) title.left("wert_0", 117, new WorkbenchTitle.Part(String.valueOf(level), LIGHT),
                 new WorkbenchTitle.Part(ARROW, ORANGE), new WorkbenchTitle.Part(String.valueOf(level + 1), TextColor.color(LEVEL_COLORS[level])));
         else title.left("wert_0", 117, new WorkbenchTitle.Part("-", LIGHT));
-        title.left("name_1", 117, new WorkbenchTitle.Part("Schaden", GREY));
-        cardValue(title, "wert_1", number(weapon.getDamage()), number(weapon.nextDamage()), values);
-        title.left("name_2", 117, new WorkbenchTitle.Part("Magazin", GREY));
-        cardValue(title, "wert_2", String.valueOf(weapon.getMaxMagazine()), String.valueOf(weapon.nextMagazine()), values);
+        if (weapon.upgradesDamage()) {
+            title.left("name_1", 117, new WorkbenchTitle.Part("Schaden", GREY));
+            cardValue(title, "wert_1", number(weapon.getDamage()), number(weapon.nextDamage()), values);
+            title.left("name_2", 117, new WorkbenchTitle.Part("Magazin", GREY));
+            cardValue(title, "wert_2", String.valueOf(weapon.getMaxMagazine()), String.valueOf(weapon.nextMagazine()), values);
+        } else {
+            // Sniper: only reloads faster, damage and magazine stay
+            title.left("name_1", 117, new WorkbenchTitle.Part("Nachladen", GREY));
+            cardValue(title, "wert_1", seconds(weapon.getFireRate()), seconds(weapon.nextFireRate()), values);
+            title.left("name_2", 117, new WorkbenchTitle.Part("Magazin", GREY));
+            cardValue(title, "wert_2", String.valueOf(weapon.getMaxMagazine()), "", false);
+        }
 
         // Button with price
         if (locked) {
@@ -308,6 +318,11 @@ public class WorkbenchManager implements Listener {
         } else {
             title.left(line, 117, new WorkbenchTitle.Part(now, LIGHT));
         }
+    }
+
+    // Seconds between shots, short enough for the card
+    private static String seconds(int ticks) {
+        return String.format(Locale.GERMANY, "%.1f", ticks / 20.0);
     }
 
     private static String coins(int coins) {

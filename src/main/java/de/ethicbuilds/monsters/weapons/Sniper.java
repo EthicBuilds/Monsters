@@ -31,6 +31,12 @@ public class Sniper extends Weapon {
         initialize();
     }
 
+    // At the workbench only the time between shots gets shorter
+    @Override
+    public boolean upgradesDamage() {
+        return false;
+    }
+
     @Override
     protected double damageFor(Monster monster, int index) {
         EnemyMonster enemy = Main.getINSTANCE().getInjector().getInstance(MonsterManager.class).getEnemyMonster(monster);
