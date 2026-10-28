@@ -118,6 +118,7 @@ public class GameManager {
 
                     gameStates.setCurrentPhase(GamePhase.WAVE);
                     powerupManager.start();
+                    plugin.getInjector().getInstance(de.ethicbuilds.monsters.event.WaveEvents.class).start();
                     scoreboardManager.startTime();
 
                     for (var gamePlayer : userManager.getGamePlayers()) {
@@ -165,10 +166,28 @@ public class GameManager {
                     i == 0 ? "6" : "7", i + 1, gamePlayer.getPlayer().getName(), gamePlayer.getKilledZombies(), gamePlayer.getHeadshots(),
                     gamePlayer.getRevives(), String.format(java.util.Locale.GERMANY, "%,d", gamePlayer.getEarnedCoins())));
         }
+        lines.addAll(awards(players));
         lines.add("§8§m                                              ");
         for (Player player : Bukkit.getOnlinePlayers()) lines.forEach(player::sendMessage);
         rewardWinner(players);
         DailyChallenge.check(players, waveManager.getCurrentWave());
+    }
+
+    // Best of the round in a few categories, only when someone did something there
+    private List<String> awards(List<GamePlayer> players) {
+        List<String> lines = new ArrayList<>();
+        award(lines, players, "Meiste Kills", GamePlayer::getKilledZombies);
+        award(lines, players, "Meiste Kopfschüsse", GamePlayer::getHeadshots);
+        award(lines, players, "Bester Retter", GamePlayer::getRevives);
+        award(lines, players, "Meiste Coins", GamePlayer::getEarnedCoins);
+        if (!lines.isEmpty()) lines.addFirst(plugin.getMonstersPrefix() + "§6§lMVP");
+        return lines;
+    }
+
+    private void award(List<String> lines, List<GamePlayer> players, String title, java.util.function.ToIntFunction<GamePlayer> value) {
+        players.stream().max(Comparator.comparingInt(value)).filter(best -> value.applyAsInt(best) > 0).ifPresent(best ->
+                lines.add(String.format("§7%s §8» §f%s §8(§e%s§8)", title, best.getPlayer().getName(),
+                        String.format(java.util.Locale.GERMANY, "%,d", value.applyAsInt(best)))));
     }
 
     // The best player of the round wins and gets EthicCoins for the network

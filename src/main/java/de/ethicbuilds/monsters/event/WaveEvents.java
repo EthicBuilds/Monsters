@@ -1,0 +1,233 @@
+package de.ethicbuilds.monsters.event;
+
+import com.google.inject.Inject;
+import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.gameplay.manager.GameManager;
+import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
+import de.ethicbuilds.monsters.gameplay.model.GamePhase;
+import de.ethicbuilds.monsters.monster.EnemyMonster;
+import de.ethicbuilds.monsters.monster.manager.MonsterManager;
+import de.ethicbuilds.monsters.player.GamePlayer;
+import de.ethicbuilds.monsters.player.manager.UserManager;
+import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.World;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
+import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
+
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+
+/***
+ * Events during the waves, always announced: sandstorm, scarab swarm, gold rush, blood moon for a whole wave
+ * and the camping brake that drives a team out of a spot it holds for too long
+ */
+public class WaveEvents {
+    private static final int FROM_WAVE = 6;
+    private static final int MIN_GAP = 90, MAX_GAP = 150;
+    private static final int GOLD_SECONDS = 30;
+    private static final double BLOOD_MOON_CHANCE = 0.2;
+    private static final int BLOOD_MOON_FROM = 10;
+    private static final double BLOOD_MOON_SPEED = 1.25;
+    // Camping: the middle of the team stays this close for this long
+    private static final double CAMP_RADIUS = 10;
+    private static final int CAMP_WARN = 90, CAMP_PUNISH = 120;
+    private static final int CAMP_SPEED_TICKS = 20 * 20;
+    // Sandstorm
+    private static final double STORM_RADIUS = 8;
+    private static final int STORM_WARNING = 4 * 20, STORM_TICKS = 20 * 20;
+    private static final double STORM_DAMAGE = 2;
+    private static final Particle.DustOptions SAND = new Particle.DustOptions(Color.fromRGB(0xD9B26F), 1.6F);
+
+    private static long goldUntil;
+    private static boolean bloodMoon;
+
+    @Inject private Main plugin;
+    @Inject private GameManager gameManager;
+    @Inject private WaveManager waveManager;
+    @Inject private UserManager userManager;
+    @Inject private MonsterManager monsterManager;
+
+    private int nextEvent;
+    private Location campAnchor;
+    private int campSeconds;
+
+    /** Coins for hits count double during gold rush and blood moon */
+    public static double coinFactor() {
+        return (System.currentTimeMillis() < goldUntil ? 2 : 1) * (bloodMoon ? 2 : 1);
+    }
+
+    public static double powerupFactor() {
+        return System.currentTimeMillis() < goldUntil ? 2 : 1;
+    }
+
+    public static double speedFactor() {
+        return bloodMoon ? BLOOD_MOON_SPEED : 1;
+    }
+
+    public void start() {
+        goldUntil = 0;
+        bloodMoon = false;
+        nextEvent = gap();
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (gameManager.getCurrentPhase() != GamePhase.WAVE) {
+                    setBloodMoon(false);
+                    cancel();
+                    return;
+                }
+                checkCamping();
+                if (waveManager.getCurrentWave() < FROM_WAVE || --nextEvent > 0) return;
+                nextEvent = gap();
+                switch (ThreadLocalRandom.current().nextInt(3)) {
+                    case 0 -> {
+                        Location middle = teamMiddle();
+                        if (middle != null) sandstorm(middle, "§7Ein Sandsturm zieht auf, raus aus dem Sand!");
+                    }
+                    case 1 -> scarabs();
+                    default -> goldRush();
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 20L);
+    }
+
+    /** Called at every wave start, before the monsters are made */
+    public void onWaveStart(int wave) {
+        boolean moon = wave >= BLOOD_MOON_FROM && wave % MonsterManager.SPIDER_WAVE != 0
+                && ThreadLocalRandom.current().nextDouble() < BLOOD_MOON_CHANCE;
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            setBloodMoon(moon);
+            if (moon) announce("§4§lBLUTMOND", "§cDie Monster sind schneller §8· §6doppelte Coins", Sound.ENTITY_WITHER_SPAWN, 0.4F, 0.6F);
+        });
+    }
+
+    private void setBloodMoon(boolean on) {
+        bloodMoon = on;
+        // A storm darkens the sky, in the desert it does not rain
+        World world = plugin.getWorld();
+        if (world != null) world.setStorm(on);
+    }
+
+    private int gap() {
+        return ThreadLocalRandom.current().nextInt(MIN_GAP, MAX_GAP + 1);
+    }
+
+    private void goldRush() {
+        goldUntil = System.currentTimeMillis() + GOLD_SECONDS * 1000L;
+        announce("§6§lGOLDRAUSCH!", "§e30 Sekunden doppelte Coins und mehr Powerups", Sound.ENTITY_PLAYER_LEVELUP, 0.6F, 1.4F);
+        countdown("§6§lGoldrausch", BarColor.YELLOW, GOLD_SECONDS * 20);
+    }
+
+    private void scarabs() {
+        monsterManager.addScarabs(waveManager.getCurrentWave());
+        announce("§6§lSKARABÄEN!", "§7Ein Schwarm kriecht aus dem Sand", Sound.ENTITY_SILVERFISH_AMBIENT, 1.0F, 0.6F);
+    }
+
+    // The team holds one spot for long: warning first, then the desert drives them out
+    private void checkCamping() {
+        Location middle = teamMiddle();
+        if (middle == null) return;
+        if (campAnchor == null || !campAnchor.getWorld().equals(middle.getWorld()) || campAnchor.distance(middle) > CAMP_RADIUS) {
+            campAnchor = middle;
+            campSeconds = 0;
+            return;
+        }
+        campSeconds++;
+        if (campSeconds == CAMP_WARN) {
+            for (Player player : living()) player.sendTitle("", "§eIhr bleibt zu lange hier, die Wüste wird unruhig", 5, 50, 10);
+        }
+        if (campSeconds < CAMP_PUNISH) return;
+        campSeconds = 0;
+        sandstorm(middle, "§cIhr habt zu lange hier ausgeharrt!");
+        for (EnemyMonster monster : List.copyOf(monsterManager.getMonsters().values())) {
+            if (monster.getMonster() != null) monster.getMonster().addPotionEffect(new PotionEffect(PotionEffectType.SPEED, CAMP_SPEED_TICKS, 0, false, false));
+        }
+    }
+
+    /** Sand around the spot, warned first, then it hurts and slows whoever stays inside */
+    public void sandstorm(Location center, String subtitle) {
+        announce("§6§lSANDSTURM!", subtitle, Sound.ENTITY_BREEZE_WIND_BURST, 1.0F, 0.6F);
+        World world = center.getWorld();
+        new BukkitRunnable() {
+            int ticks = 0;
+
+            @Override
+            public void run() {
+                if (gameManager.getCurrentPhase() != GamePhase.WAVE || ticks > STORM_WARNING + STORM_TICKS) {
+                    cancel();
+                    return;
+                }
+                boolean active = ticks >= STORM_WARNING;
+                if (ticks % 5 == 0) {
+                    // Ring as warning, sand everywhere inside once it blows
+                    for (int i = 0; i < 24; i++) {
+                        double a = Math.PI * 2 * i / 24;
+                        world.spawnParticle(Particle.DUST, center.clone().add(Math.cos(a) * STORM_RADIUS, 0.3, Math.sin(a) * STORM_RADIUS), 2, 0.1, 0.2, 0.1, SAND);
+                    }
+                    if (active) world.spawnParticle(Particle.DUST, center.clone().add(0, 1.5, 0), 60, STORM_RADIUS * 0.6, 1.2, STORM_RADIUS * 0.6, SAND);
+                }
+                if (active && ticks % 20 == 0) {
+                    world.playSound(center, Sound.ITEM_ELYTRA_FLYING, 0.5F, 0.6F);
+                    for (Player player : living()) {
+                        if (!player.getWorld().equals(world) || player.getLocation().distance(center) > STORM_RADIUS) continue;
+                        player.damage(STORM_DAMAGE);
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 30, 0, false, false));
+                    }
+                }
+                ticks++;
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private Location teamMiddle() {
+        List<Player> players = living();
+        if (players.isEmpty()) return null;
+        double x = 0, y = 0, z = 0;
+        for (Player player : players) {
+            x += player.getLocation().getX();
+            y += player.getLocation().getY();
+            z += player.getLocation().getZ();
+        }
+        return new Location(players.getFirst().getWorld(), x / players.size(), y / players.size(), z / players.size());
+    }
+
+    private List<Player> living() {
+        return userManager.getGamePlayers().stream().map(GamePlayer::getPlayer)
+                .filter(player -> player.isOnline() && !userManager.isPlayerDead(player.getUniqueId())).toList();
+    }
+
+    private void announce(String title, String subtitle, Sound sound, float volume, float pitch) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.sendTitle(title, subtitle, 5, 40, 10);
+            player.playSound(player.getLocation(), sound, volume, pitch);
+        }
+    }
+
+    private void countdown(String title, BarColor color, int ticks) {
+        BossBar bar = Bukkit.createBossBar(title, color, BarStyle.SEGMENTED_10);
+        Bukkit.getOnlinePlayers().forEach(bar::addPlayer);
+        new BukkitRunnable() {
+            int left = ticks;
+
+            @Override
+            public void run() {
+                left -= 5;
+                if (left <= 0 || gameManager.getCurrentPhase() != GamePhase.WAVE) {
+                    bar.removeAll();
+                    cancel();
+                    return;
+                }
+                bar.setProgress(left / (double) ticks);
+            }
+        }.runTaskTimer(plugin, 5L, 5L);
+    }
+}

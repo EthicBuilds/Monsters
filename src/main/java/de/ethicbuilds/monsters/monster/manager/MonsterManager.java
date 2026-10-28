@@ -8,6 +8,7 @@ import de.ethicbuilds.monsters.monster.EliteTier;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.HealthBars;
 import de.ethicbuilds.monsters.monster.MonsterMiniBoss;
+import de.ethicbuilds.monsters.monster.MonsterScarab;
 import de.ethicbuilds.monsters.monster.MonsterSpider;
 import de.ethicbuilds.monsters.monster.MonsterSpiderBoss;
 import de.ethicbuilds.monsters.monster.MonsterZombie;
@@ -34,6 +35,7 @@ public class MonsterManager {
     public static final int SPIDER_WAVE = 5;
     private static final int GROWTH_UNTIL = 10;
     private static final int HORDE_PER_PLAYER = 6;
+    private static final int SCARABS_PER_PLAYER = 8;
     private static final double BOSS_LEASH = 40;
     public static final int BOSS_WAVE = 10;
     private static final int MINI_BOSS_WAVE = 2;
@@ -71,7 +73,7 @@ public class MonsterManager {
                 spider.setWave(wave);
                 initialMonsters.add(spider);
             }
-            if (wave % BOSS_WAVE == 0) initialMonsters.add(new MonsterSpiderBoss(players));
+            if (wave % BOSS_WAVE == 0) initialMonsters.add(new MonsterSpiderBoss(players, wave));
             return;
         }
         // Same number, but more kinds the longer the round goes
@@ -108,6 +110,21 @@ public class MonsterManager {
         }
     }
 
+    /** Swarm event: scarabs crawl out of the sand near the players */
+    public void addScarabs(int wave) {
+        int players = Math.max(1, livingPlayers().size());
+        for (int i = 0; i < players * SCARABS_PER_PLAYER; i++) {
+            MonsterScarab scarab = new MonsterScarab();
+            scarab.setWave(wave);
+            initialMonsters.addFirst(scarab);
+        }
+    }
+
+    /** Small weavers the boss calls */
+    public void addBrood(int count) {
+        for (int i = 0; i < count; i++) initialMonsters.addFirst(new MonsterSpider());
+    }
+
     public void removeMonster(Monster monster) {
         monsters.remove(monster);
     }
@@ -141,6 +158,13 @@ public class MonsterManager {
             if (enemyMonster instanceof MonsterSpider spider) {
                 Location open = spiderSpot(spider, players);
                 if (open != null) location = open;
+            }
+            if (enemyMonster instanceof MonsterScarab) {
+                Location open = OpenGround.random(players, 0, 1);
+                if (open != null) {
+                    location = open;
+                    open.getWorld().spawnParticle(org.bukkit.Particle.BLOCK, open.clone().add(0, 0.3, 0), 12, 0.3, 0.1, 0.3, open.clone().subtract(0, 1, 0).getBlock().getBlockData());
+                }
             }
             enemyMonster.summon(players.get(spawnIndex % players.size()), location);
             monsters.put(enemyMonster.getMonster(), enemyMonster);

@@ -60,7 +60,8 @@ public abstract class EnemyMonster {
         boolean scaled = !(this instanceof MonsterMiniBoss) && !(this instanceof MonsterSpiderBoss);
         if (scaled) {
             health = (int) Math.round(health * WaveScaling.health(wave));
-            speed = Math.min(WaveScaling.MAX_SPEED, speed * WaveScaling.speed(wave) * (sprinter ? SPRINTER_SPEED : 1));
+            speed = Math.min(WaveScaling.MAX_SPEED, speed * WaveScaling.speed(wave) * (sprinter ? SPRINTER_SPEED : 1)
+                    * de.ethicbuilds.monsters.event.WaveEvents.speedFactor());
         }
         monster = (Monster) plugin.getWorld().spawnEntity(spawnLocation, type);
         if (elite) EliteTier.dress(monster, tier);

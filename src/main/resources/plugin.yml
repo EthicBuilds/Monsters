@@ -14,3 +14,5 @@ commands:
     description: "Naechste Welle wird die Boss-Welle (Test)"
   rundenende:
     description: "Beendet die laufende Runde regulaer"
+  aufgeben:
+    description: "Abstimmung im Team, die Runde zu beenden"

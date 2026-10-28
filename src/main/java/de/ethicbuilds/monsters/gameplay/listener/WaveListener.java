@@ -117,7 +117,8 @@ public class WaveListener implements Listener {
 
         boolean headshot = ShotDamage.isHeadshot();
         if (headshot) gamePlayer.setHeadshots(gamePlayer.getHeadshots() + 1);
-        int coins = (headshot ? HEADSHOT_COINS : 20) + EliteTier.extraCoins(enemyMonster.getTier());
+        int coins = (int) Math.round(((headshot ? HEADSHOT_COINS : 20) + EliteTier.extraCoins(enemyMonster.getTier()))
+                * de.ethicbuilds.monsters.event.WaveEvents.coinFactor());
 
         gamePlayer.addCoins(coins);
         CoinPopups.show(player, enemyMonster.getMonster().getLocation(), coins, headshot);

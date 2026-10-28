@@ -124,7 +124,8 @@ public class PowerupManager {
     /** A monster died there, with luck it leaves a powerup */
     public void dropFrom(Location location) {
         if (gameManager.getCurrentPhase() != GamePhase.WAVE || powerups.size() >= MAX_DROPPED) return;
-        double roll = ThreadLocalRandom.current().nextDouble();
+        // Gold rush: twice the chance
+        double roll = ThreadLocalRandom.current().nextDouble() / de.ethicbuilds.monsters.event.WaveEvents.powerupFactor();
         for (Type type : Type.values()) {
             if ((roll -= type.dropChance) < 0) {
                 if (type == Type.AMMO && !ammoAllowed()) return;

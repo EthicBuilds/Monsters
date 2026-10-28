@@ -44,7 +44,9 @@ import java.util.UUID;
 public class ReviveManager implements Listener {
     private static final int BASE_COST = 1000;
     private static final float HITBOX_WIDTH = 1.8F, HITBOX_HEIGHT = 0.7F;
-    private static final long CLICK_COOLDOWN = 500;
+    // Reviving: hold the click for 3 seconds, the bar stops where it is when letting go
+    private static final int REVIVE_MILLIS = 3000, STEP_MILLIS = 200;
+    private static final long STEP_GAP = 150;
     private static final double REACH = 4;
     private static final int EMPTY_SLOT = 8;
     public static final int MEDKIT_SLOT = 7;
@@ -63,6 +65,7 @@ public class ReviveManager implements Listener {
     private final Map<UUID, Interaction> hitboxes = new HashMap<>();
     private final Map<UUID, Long> lastClick = new HashMap<>();
     private final Map<UUID, Integer> revives = new HashMap<>();
+    private final Map<UUID, Integer> reviveProgress = new HashMap<>();
     // Self revive with a stored medkit, once per round
     private final java.util.Set<UUID> selfRevived = new java.util.HashSet<>();
     // Own values of the player before going down (the attribute default of movement speed is 0.7, players walk with 0.1)
@@ -295,6 +298,7 @@ public class ReviveManager implements Listener {
     /** Ends the downed state: mannequin away, player visible and normal again */
     public void clear(Player player) {
         stopWatching(player);
+        reviveProgress.remove(player.getUniqueId());
         ItemStack watchSlot = savedWatchSlot.remove(player.getUniqueId());
         if (watchSlot != null) player.getInventory().setItem(WATCH_SLOT, watchSlot);
         Mannequin body = bodies.remove(player.getUniqueId());
@@ -348,9 +352,9 @@ public class ReviveManager implements Listener {
     }
 
     private void revive(Player helper, UUID downed) {
-        // Left and right click can come in the same moment, only one counts
+        // A held click comes every 4 ticks and fills the bar a bit, left and right in the same moment count once
         long now = System.currentTimeMillis();
-        if (now - lastClick.getOrDefault(helper.getUniqueId(), 0L) < CLICK_COOLDOWN) return;
+        if (now - lastClick.getOrDefault(helper.getUniqueId(), 0L) < STEP_GAP) return;
         lastClick.put(helper.getUniqueId(), now);
 
         GamePlayer helperPlayer = userManager.getGamePlayer(helper.getUniqueId());
@@ -360,10 +364,18 @@ public class ReviveManager implements Listener {
 
         int cost = cost(downed);
         if (helperPlayer.getCoins() < cost) {
-            helper.sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum %s wiederzubeleben", cost - helperPlayer.getCoins(), downedPlayer.getPlayer().getName()));
-            Sounds.deny(helper);
+            helper.sendActionBar(String.format("§cDu brauchst noch §6%d Coins §cum %s wiederzubeleben", cost - helperPlayer.getCoins(), downedPlayer.getPlayer().getName()));
+            if (reviveProgress.putIfAbsent(downed, 0) == null) Sounds.deny(helper);
             return;
         }
+        int progress = reviveProgress.merge(downed, STEP_MILLIS, Integer::sum);
+        if (progress < REVIVE_MILLIS) {
+            String bar = progressBar(progress / (double) REVIVE_MILLIS);
+            helper.sendActionBar("§7Wiederbeleben " + bar + " §8· §7Klick halten");
+            downedPlayer.getPlayer().sendActionBar("§a" + helper.getName() + " §7belebt dich wieder " + bar);
+            return;
+        }
+        reviveProgress.remove(downed);
 
         helperPlayer.setCoins(helperPlayer.getCoins() - cost);
         helperPlayer.setRevives(helperPlayer.getRevives() + 1);
@@ -375,6 +387,11 @@ public class ReviveManager implements Listener {
         spot.getWorld().spawnParticle(Particle.HEART, spot.clone().add(0, 1, 0), 8, 0.4, 0.4, 0.4, 0);
         Bukkit.broadcastMessage(String.format("%s§a%s §7hat §a%s §7wiederbelebt! §c-%d Coins", plugin.getMonstersPrefix(),
                 helper.getName(), downedPlayer.getPlayer().getName(), cost));
+    }
+
+    private static String progressBar(double done) {
+        int filled = (int) Math.round(done * 10);
+        return "§a" + "▮".repeat(filled) + "§8" + "▮".repeat(10 - filled);
     }
 
     // Only who stands at the body can revive

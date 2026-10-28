@@ -63,7 +63,7 @@ public class WaveManager {
         broadCastMessage(String.format("%s§aStarte Welle §4%d", plugin.getMonstersPrefix(), currentWave));
         Component title = MiniMessage.miniMessage().deserialize("<bold><gradient:#F9A11E:#8B4BD8>Welle " + currentWave + "</gradient></bold>");
         Component subtitle = currentWave % MonsterManager.BOSS_WAVE == 0
-                ? MiniMessage.miniMessage().deserialize("<#8B4BD8>Boss-Welle: die Amethyst-Weberin kommt!")
+                ? MiniMessage.miniMessage().deserialize("<#8B4BD8>Boss-Welle: die Amethyst-Weberin kommt! <#D58BFF>Stufe " + currentWave / MonsterManager.BOSS_WAVE)
                 : currentWave % MonsterManager.SPIDER_WAVE == 0
                 ? MiniMessage.miniMessage().deserialize("<#8B4BD8>Spinnen-Welle: die Weberinnen kommen!")
                 : currentWave > 10 && currentWave % 10 == 1
@@ -79,6 +79,7 @@ public class WaveManager {
                 .forEach(gamePlayer -> userManager.revivePlayer(gamePlayer.getPlayer().getUniqueId())));
 
 
+        plugin.getInjector().getInstance(de.ethicbuilds.monsters.event.WaveEvents.class).onWaveStart(currentWave);
         monsterManager.createMonsters(currentWave);
 
         // A few monsters per tick, never more than MAX_ALIVE at once: the rest comes when others die

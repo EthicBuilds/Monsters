@@ -89,6 +89,7 @@ public final class Main extends JavaPlugin {
         Objects.requireNonNull(getCommand("locateMonsters")).setExecutor(injector.getInstance(LocateMonsters.class));
         Objects.requireNonNull(getCommand("bosswelle")).setExecutor(injector.getInstance(BossWaveCommand.class));
         Objects.requireNonNull(getCommand("rundenende")).setExecutor(injector.getInstance(de.ethicbuilds.monsters.commands.RoundEndCommand.class));
+        Objects.requireNonNull(getCommand("aufgeben")).setExecutor(injector.getInstance(de.ethicbuilds.monsters.commands.SurrenderCommand.class));
 
         PluginManager pm = getServer().getPluginManager();
 
