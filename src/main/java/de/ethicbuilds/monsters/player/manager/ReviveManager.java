@@ -164,8 +164,9 @@ public class ReviveManager implements Listener {
         if (event.getNewSlot() == WATCH_SLOT && !watching.containsKey(player.getUniqueId())) watch(player, null);
     }
 
-    // The heads in the spectator hotbar (key 1) switch the teammate, nobody flies around freely
-    @EventHandler
+    // The heads in the spectator hotbar (key 1) switch the teammate, nobody flies around freely.
+    // First and cancelled, so UtilityCommands skips it and does not send its "not allowed" message.
+    @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
     public void onSpectatorTeleport(org.bukkit.event.player.PlayerTeleportEvent event) {
         Player player = event.getPlayer();
         if (event.getCause() != org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.SPECTATE || !watching.containsKey(player.getUniqueId())) return;
