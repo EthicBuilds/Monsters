@@ -20,6 +20,7 @@ import de.ethicbuilds.monsters.monster.MonsterGuard;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import de.ethicbuilds.monsters.gameplay.CoinPopups;
 import de.ethicbuilds.monsters.monster.EliteTier;
 import de.ethicbuilds.monsters.weapons.ShotDamage;
 import de.ethicbuilds.monsters.weapons.Weapon;
@@ -119,8 +120,7 @@ public class WaveListener implements Listener {
         int coins = (headshot ? HEADSHOT_COINS : 20) + EliteTier.extraCoins(enemyMonster.getTier());
 
         gamePlayer.addCoins(coins);
-        createFloatingHologram(player, enemyMonster.getMonster().getLocation(),
-                headshot ? String.format("§6+ %d Coins §c§lKOPFSCHUSS", coins) : String.format("§6+ %d Coins", coins));
+        CoinPopups.show(player, enemyMonster.getMonster().getLocation(), coins, headshot);
     }
 
     @EventHandler
@@ -468,42 +468,6 @@ public class WaveListener implements Listener {
         }
     }
 
-    // Only the player who earned the coins sees them
-    private void createFloatingHologram(Player viewer, Location location, String text) {
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            ArmorStand hologram = location.getWorld().spawn(location, ArmorStand.class, stand -> {
-                stand.setVisibleByDefault(false);
-                stand.setCustomName(text);
-                stand.setCustomNameVisible(true);
-                stand.setInvisible(true);
-                stand.setMarker(true);
-                stand.setGravity(false);
-                stand.setInvulnerable(true);
-                stand.setPersistent(false);
-                stand.setCollidable(false);
-            });
-            MonsterGuard.markHolo(hologram);
-            if (viewer.isOnline()) viewer.showEntity(plugin, hologram);
-
-            new BukkitRunnable() {
-                int ticks = 0;
-
-                @Override
-                public void run() {
-                    if (hologram.isDead() || ticks >= 100) {
-                        hologram.remove();
-                        cancel();
-                        return;
-                    }
-
-                    Location newLoc = hologram.getLocation().add(0, 0.05, 0);
-                    hologram.teleport(newLoc);
-
-                    ticks++;
-                }
-            }.runTaskTimer(plugin, 0L, 1L);
-        });
-    }
     private void startAxeCoolDown() {
         isAxeCooldDown = true;
         new BukkitRunnable() {
