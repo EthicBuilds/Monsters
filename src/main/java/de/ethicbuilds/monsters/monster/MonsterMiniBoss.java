@@ -33,7 +33,7 @@ public class MonsterMiniBoss extends MonsterZombie {
     public MonsterMiniBoss(int wave) {
         super(EntityType.ZOMBIE, "§c" + NAMES[wave % NAMES.length]);
         this.title = NAMES[wave % NAMES.length];
-        this.health = 60 + 15 * wave;
+        this.health = 30 + 15 * wave / 2;
         this.damage = 4;
         this.coin = 100;
     }
