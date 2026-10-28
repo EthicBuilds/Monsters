@@ -336,9 +336,9 @@ public class WorkbenchManager implements Listener {
         boolean open = unlocked;
         boolean values = open && !max || locked;
 
-        // Tab of the selected entry (weapons rows 0-2; the armor row has no tab image yet)
-        if (row < WEAPON_SLOTS.length) title.glyph((char) (0xE010 + row), 6, 21);
-        title.glyph((char) (0xE030 + level), level == 0 ? 25 : 22, level == 0 ? 56 : level == Weapon.MAX_LEVEL ? 62 : 59);
+        // Tab of the selected entry: weapons in rows 0-2, armor in row 3 (closed on the right)
+        if (row <= ARMOR_INDEX) title.glyph((char) (0xE010 + row), 6, row == ARMOR_INDEX ? 20 : 21);
+        title.glyph((char) (0xE030 + level), level == 0 ? 30 : 27, level == 0 ? 46 : level == Weapon.MAX_LEVEL ? 52 : 49);
 
         // Card: what you get
         title.left("name_0", 117, new WorkbenchTitle.Part("Stufe", GREY));
