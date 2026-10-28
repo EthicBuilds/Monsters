@@ -121,6 +121,8 @@ public class GameManager {
                     scoreboardManager.startTime();
 
                     for (var gamePlayer : userManager.getGamePlayers()) {
+                        // JoinMe only before the start, the slot stays empty for lying on the ground
+                        gamePlayer.getPlayer().getInventory().setItem(de.ethicbuilds.monsters.gameplay.listener.JoinMeListener.SLOT, null);
                         for (var weapon : gamePlayer.getWeapons().values()) {
                             weapon.refill();
                             weapon.reload(gamePlayer.getPlayer());
