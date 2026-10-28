@@ -33,6 +33,7 @@ public class ScoreboardManager {
     private static final String TITLE = "<bold><gradient:#F9A11E:#8B4BD8>MONSTERS</gradient></bold>";
     private static final String ICON = "<white><font:monsters:hud>%s</font></white> ";
     // 8 px margin behind every value
+    private static final String GONE_COLOR = "<#E05555>";
     private static final String MARGIN = "<font:monsters:hud></font>";
     private static final String WEBSITE = gradientLetters("EthicBuilds.de",
             "22D3E6", "0DD6D3", "28D7BD", "4AD7A5", "6AD48B", "89CF6F", "A5C953", "BEC136", "D5B718", "E9AC04", "F9A11E");
@@ -93,10 +94,14 @@ public class ScoreboardManager {
         lines.add(empty());
         for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
             boolean dead = userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId());
-            Component left = MM.deserialize(String.format(ICON, dead ? "" : "") + (dead ? "<#9AA6B8>" : "<#F2F5F8>") + "<name>",
+            // Left the round: the whole line red, so everyone sees the player is gone
+            boolean gone = !gamePlayer.getPlayer().isOnline();
+            String icon = String.format(ICON, dead ? "\uE01F" : "\uE01E");
+            if (gone) icon = icon.replace("<white>", GONE_COLOR).replace("</white>", "");
+            Component left = MM.deserialize(icon + (gone ? GONE_COLOR + "<st>" : dead ? "<#9AA6B8>" : "<#F2F5F8>") + "<name>",
                     Placeholder.unparsed("name", gamePlayer.getPlayer().getName()));
-            Component right = MM.deserialize("<#F9A11E>" + String.format(Locale.GERMANY, "%,d", gamePlayer.getCoins())
-                    + " <white><font:monsters:hud></font></white>" + MARGIN);
+            Component right = MM.deserialize((gone ? GONE_COLOR : "<#F9A11E>") + String.format(Locale.GERMANY, "%,d", gamePlayer.getCoins())
+                    + " <white><font:monsters:hud>\uE017</font></white>" + MARGIN);
             lines.add(new Line(left, right));
         }
         // The sidebar shows 15 lines at most, with 8 players the gap above the website goes
