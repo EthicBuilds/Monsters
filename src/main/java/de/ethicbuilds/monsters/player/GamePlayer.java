@@ -21,6 +21,8 @@ public class GamePlayer extends GameUser {
     @Getter private int earnedCoins;
     @Getter @Setter private int headshots;
     @Getter @Setter private int revives;
+    // Armor set from the workbench, 0 = none
+    @Getter @Setter private int armorLevel;
 
 
     public GamePlayer(Player player) {

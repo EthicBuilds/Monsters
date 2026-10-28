@@ -4,6 +4,7 @@ import de.ethicbuilds.monsters.sound.Sounds;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
+import de.ethicbuilds.monsters.items.ArmorSet;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -47,6 +48,8 @@ public class WorkbenchManager implements Listener {
     public static final int UNLOCK_PRICE = 5000;
 
     private static final int[] WEAPON_SLOTS = {0, 9, 18};
+    // Armor is the fourth entry under the weapons
+    private static final int ARMOR_SLOT = 27, ARMOR_INDEX = 3;
     private static final int[] BUTTON_SLOTS = {32, 33, 34, 35, 41, 42, 43, 44};
     private static final int BIG_SLOT = 11, LEVEL_SLOT = 5, DAMAGE_SLOT = 14, MAGAZINE_SLOT = 23, CLOSE_SLOT = 36;
 
@@ -88,11 +91,14 @@ public class WorkbenchManager implements Listener {
     private void open(GamePlayer gamePlayer) {
         Player player = gamePlayer.getPlayer();
         List<Weapon> weapons = new ArrayList<>(gamePlayer.getWeapons().values());
-        int index = Math.min(selected.getOrDefault(player.getUniqueId(), 0), Math.max(0, weapons.size() - 1));
-        Weapon weapon = weapons.isEmpty() ? null : weapons.get(index);
+        int index = selected.getOrDefault(player.getUniqueId(), 0);
+        if (index != ARMOR_INDEX) index = Math.min(index, Math.max(0, weapons.size() - 1));
+        boolean armor = index == ARMOR_INDEX;
+        Weapon weapon = armor || weapons.isEmpty() ? null : weapons.get(index);
+        Card card = armor ? armorCard(gamePlayer) : weapon != null ? card(weapon) : null;
 
         Menu menu = new Menu(weapons);
-        Inventory inventory = Bukkit.createInventory(menu, 45, title(gamePlayer, weapon, index));
+        Inventory inventory = Bukkit.createInventory(menu, 45, title(gamePlayer, card, index));
         menu.inventory = inventory;
 
         for (int i = 0; i < WEAPON_SLOTS.length && i < weapons.size(); i++) {
@@ -105,8 +111,28 @@ public class WorkbenchManager implements Listener {
             });
             inventory.setItem(WEAPON_SLOTS[i], item);
         }
+        int armorLevel = gamePlayer.getArmorLevel();
+        ItemStack armorIcon = ArmorSet.icon(armorLevel);
+        armorIcon.editMeta(meta -> {
+            meta.displayName(text("Rüstung", LIGHT));
+            meta.lore(List.of(text(ArmorSet.name(armorLevel) + " · Stufe " + armorLevel + "/" + ArmorSet.MAX_LEVEL, GREY)));
+        });
+        inventory.setItem(ARMOR_SLOT, armorIcon);
 
-        if (weapon != null) {
+        if (armor) {
+            boolean max = armorLevel >= ArmorSet.MAX_LEVEL;
+            ItemStack big = ArmorSet.icon(max ? armorLevel : armorLevel + 1);
+            big.editMeta(meta -> meta.displayName(text("Rüstung: " + ArmorSet.name(max ? armorLevel : armorLevel + 1), LIGHT)));
+            inventory.setItem(BIG_SLOT, big);
+            inventory.setItem(LEVEL_SLOT, icon(Material.PAPER, "werkbank_stufe", text("Stufe", GREY),
+                    change(armorLevel + "/" + ArmorSet.MAX_LEVEL, (armorLevel + 1) + "/" + ArmorSet.MAX_LEVEL, max)));
+            inventory.setItem(DAMAGE_SLOT, icon(Material.PAPER, "werkbank_schaden", text("Schutz", GREY),
+                    change(String.valueOf(ArmorSet.protection(armorLevel)), String.valueOf(ArmorSet.protection(armorLevel + 1)), max)));
+            inventory.setItem(MAGAZINE_SLOT, icon(Material.PAPER, "werkbank_magazin", text("Set", GREY),
+                    change(ArmorSet.name(armorLevel), ArmorSet.name(armorLevel + 1), max)));
+            ItemStack button = button(gamePlayer, card.level(), card.price());
+            for (int slot : BUTTON_SLOTS) inventory.setItem(slot, button);
+        } else if (weapon != null) {
             boolean max = weapon.getLevel() >= Weapon.MAX_LEVEL;
             inventory.setItem(BIG_SLOT, icon(Material.PAPER, "waffe_" + weapon.getModel(), text(weapon.getName().replaceAll("§.", ""), LIGHT)));
             inventory.setItem(LEVEL_SLOT, icon(Material.PAPER, "werkbank_stufe", text("Stufe", GREY),
@@ -117,7 +143,7 @@ public class WorkbenchManager implements Listener {
             inventory.setItem(MAGAZINE_SLOT, icon(Material.PAPER, "werkbank_magazin", text("Magazin", GREY), weapon.upgradesDamage()
                     ? change(String.valueOf(weapon.getMaxMagazine()), String.valueOf(weapon.nextMagazine()), max)
                     : change(String.valueOf(weapon.getMaxMagazine()), "", true)));
-            ItemStack button = actionButton(gamePlayer, weapon);
+            ItemStack button = button(gamePlayer, weapon.getLevel(), upgradePrice(weapon));
             for (int slot : BUTTON_SLOTS) inventory.setItem(slot, button);
         }
 
@@ -132,7 +158,7 @@ public class WorkbenchManager implements Listener {
         player.openInventory(inventory);
     }
 
-    private ItemStack actionButton(GamePlayer gamePlayer, Weapon weapon) {
+    private ItemStack button(GamePlayer gamePlayer, int level, int price) {
         if (waveManager.getCurrentWave() < UNLOCK_WAVE) {
             return icon(Material.PAPER, "leer", text("Gesperrt", LIGHT), text("Ab Welle " + UNLOCK_WAVE, RED));
         }
@@ -141,10 +167,9 @@ public class WorkbenchManager implements Listener {
             return icon(Material.PAPER, "leer", text("Freischalten", LIGHT), price(remaining, gamePlayer.getCoins() >= remaining),
                     text("Zu wenig? Dann legst du alles ein, das Team legt zusammen", GREY));
         }
-        if (weapon.getLevel() >= Weapon.MAX_LEVEL) {
+        if (level >= Weapon.MAX_LEVEL) {
             return icon(Material.PAPER, "leer", text("Maximal", GOLD));
         }
-        int price = upgradePrice(weapon);
         boolean affordable = gamePlayer.getCoins() >= price;
         return icon(Material.PAPER, "leer", text("Verbessern", GREEN).decoration(TextDecoration.BOLD, true), price(price, affordable));
     }
@@ -176,7 +201,11 @@ public class WorkbenchManager implements Listener {
                 return;
             }
         }
-        if (slot == CLOSE_SLOT) {
+        if (slot == ARMOR_SLOT) {
+            selected.put(player.getUniqueId(), ARMOR_INDEX);
+            player.playSound(player.getLocation(), Sound.BLOCK_LEVER_CLICK, 0.8F, 1.2F);
+            open(gamePlayer);
+        } else if (slot == CLOSE_SLOT) {
             player.closeInventory();
         } else if (java.util.Arrays.stream(BUTTON_SLOTS).anyMatch(s -> s == slot)) {
             clickAction(gamePlayer, menu);
@@ -196,6 +225,11 @@ public class WorkbenchManager implements Listener {
         }
 
         int index = selected.getOrDefault(player.getUniqueId(), 0);
+        if (index == ARMOR_INDEX) {
+            upgradeArmor(gamePlayer);
+            open(gamePlayer);
+            return;
+        }
         if (index >= menu.weapons.size()) return;
         Weapon weapon = menu.weapons.get(index);
         if (weapon.getLevel() >= Weapon.MAX_LEVEL) {
@@ -213,6 +247,22 @@ public class WorkbenchManager implements Listener {
         player.sendMessage(String.format("%s§a%s §7ist jetzt Stufe §6%d§7! §c-%d Coins", plugin.getMonstersPrefix(),
                 weapon.getName(), weapon.getLevel(), price));
         open(gamePlayer);
+    }
+
+    private void upgradeArmor(GamePlayer gamePlayer) {
+        Player player = gamePlayer.getPlayer();
+        int level = gamePlayer.getArmorLevel();
+        if (level >= ArmorSet.MAX_LEVEL) {
+            Sounds.deny(player);
+            return;
+        }
+        int price = ArmorSet.price(level);
+        if (!pay(gamePlayer, price)) return;
+        gamePlayer.setArmorLevel(level + 1);
+        ArmorSet.equip(player, level + 1);
+        Sounds.upgrade(player, level + 1 >= ArmorSet.MAX_LEVEL);
+        player.sendMessage(String.format("%s§7Deine Rüstung ist jetzt §a%s §7(Stufe §6%d§7)! §c-%d Coins", plugin.getMonstersPrefix(),
+                ArmorSet.name(level + 1), level + 1, price));
     }
 
     // Whoever has the rest unlocks it for everyone, otherwise all own coins go in
@@ -253,21 +303,42 @@ public class WorkbenchManager implements Listener {
     }
 
     // Everything that changes is drawn into the title: tab, stars, button, card and balance
-    private Component title(GamePlayer gamePlayer, Weapon weapon, int row) {
+    // What one upgrade gives, the same card for weapons and armor
+    private record Card(int level, String name1, String now1, String next1, boolean arrow1,
+                        String name2, String now2, String next2, boolean arrow2, int price) {}
+
+    private static Card card(Weapon weapon) {
+        if (weapon.upgradesDamage()) {
+            return new Card(weapon.getLevel(), "Schaden", number(weapon.getDamage()), number(weapon.nextDamage()), true,
+                    "Magazin", String.valueOf(weapon.getMaxMagazine()), String.valueOf(weapon.nextMagazine()), true, upgradePrice(weapon));
+        }
+        // Sniper: only reloads faster, damage and magazine stay
+        return new Card(weapon.getLevel(), "Nachladen", seconds(weapon.getFireRate()), seconds(weapon.nextFireRate()), true,
+                "Magazin", String.valueOf(weapon.getMaxMagazine()), "", false, upgradePrice(weapon));
+    }
+
+    private static Card armorCard(GamePlayer gamePlayer) {
+        int level = gamePlayer.getArmorLevel();
+        return new Card(level, "Schutz", String.valueOf(ArmorSet.protection(level)), String.valueOf(ArmorSet.protection(level + 1)), true,
+                "Set", "", ArmorSet.name(Math.min(level + 1, ArmorSet.MAX_LEVEL)), level < ArmorSet.MAX_LEVEL, ArmorSet.price(level));
+    }
+
+    private Component title(GamePlayer gamePlayer, Card card, int row) {
         WorkbenchTitle title = new WorkbenchTitle().name("Werkbank");
         int coins = gamePlayer.getCoins();
         title.centered("guthaben_name", 52, new WorkbenchTitle.Part("Guthaben", GREY))
                 .centered("guthaben", 52, new WorkbenchTitle.Part(COIN + " " + coins(coins), ORANGE));
-        if (weapon == null) return title.build();
+        if (card == null) return title.build();
 
-        int level = weapon.getLevel();
+        int level = card.level();
         boolean max = level >= Weapon.MAX_LEVEL;
         boolean locked = waveManager.getCurrentWave() < UNLOCK_WAVE;
         boolean open = unlocked;
         boolean values = open && !max || locked;
 
-        title.glyph((char) (0xE010 + row), 6, 21)
-                .glyph((char) (0xE030 + level), level == 0 ? 25 : 22, level == 0 ? 56 : level == Weapon.MAX_LEVEL ? 62 : 59);
+        // Tab of the selected entry (weapons rows 0-2; the armor row has no tab image yet)
+        if (row < WEAPON_SLOTS.length) title.glyph((char) (0xE010 + row), 6, 21);
+        title.glyph((char) (0xE030 + level), level == 0 ? 25 : 22, level == 0 ? 56 : level == Weapon.MAX_LEVEL ? 62 : 59);
 
         // Card: what you get
         title.left("name_0", 117, new WorkbenchTitle.Part("Stufe", GREY));
@@ -275,18 +346,10 @@ public class WorkbenchManager implements Listener {
         else if (values) title.left("wert_0", 117, new WorkbenchTitle.Part(String.valueOf(level), LIGHT),
                 new WorkbenchTitle.Part(ARROW, ORANGE), new WorkbenchTitle.Part(String.valueOf(level + 1), TextColor.color(LEVEL_COLORS[level])));
         else title.left("wert_0", 117, new WorkbenchTitle.Part("-", LIGHT));
-        if (weapon.upgradesDamage()) {
-            title.left("name_1", 117, new WorkbenchTitle.Part("Schaden", GREY));
-            cardValue(title, "wert_1", number(weapon.getDamage()), number(weapon.nextDamage()), values);
-            title.left("name_2", 117, new WorkbenchTitle.Part("Magazin", GREY));
-            cardValue(title, "wert_2", String.valueOf(weapon.getMaxMagazine()), String.valueOf(weapon.nextMagazine()), values);
-        } else {
-            // Sniper: only reloads faster, damage and magazine stay
-            title.left("name_1", 117, new WorkbenchTitle.Part("Nachladen", GREY));
-            cardValue(title, "wert_1", seconds(weapon.getFireRate()), seconds(weapon.nextFireRate()), values);
-            title.left("name_2", 117, new WorkbenchTitle.Part("Magazin", GREY));
-            cardValue(title, "wert_2", String.valueOf(weapon.getMaxMagazine()), "", false);
-        }
+        title.left("name_1", 117, new WorkbenchTitle.Part(card.name1(), GREY));
+        cardValue(title, "wert_1", card.now1(), card.next1(), values && card.arrow1());
+        title.left("name_2", 117, new WorkbenchTitle.Part(card.name2(), GREY));
+        cardValue(title, "wert_2", card.now2().isEmpty() && !(values && card.arrow2()) ? card.next2() : card.now2(), card.next2(), values && card.arrow2());
 
         // Button with price
         if (locked) {
@@ -302,7 +365,7 @@ public class WorkbenchManager implements Listener {
                     .centered("knopf", 132, new WorkbenchTitle.Part("Maximal", TextColor.color(0x3B2A00)))
                     .centered("knopf_2", 132, new WorkbenchTitle.Part("Stufe " + level + "/" + Weapon.MAX_LEVEL, TextColor.color(0x5A4200)));
         } else {
-            int price = upgradePrice(weapon);
+            int price = card.price();
             boolean affordable = coins >= price;
             title.glyph(affordable ? '\uE020' : '\uE021', affordable ? 93 : 95, affordable ? 78 : 74)
                     .centered("knopf", 132, new WorkbenchTitle.Part("Verbessern", affordable ? WHITE : BUTTON_GREY))

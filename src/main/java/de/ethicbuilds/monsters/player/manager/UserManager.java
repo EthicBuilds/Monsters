@@ -111,6 +111,7 @@ public class UserManager {
 
 
             player.heal(20);
+            de.ethicbuilds.monsters.items.ArmorSet.equip(player, gamePlayers.get(uuid).getArmorLevel());
             player.teleport(location);
             player.sendTitle("§aWiederbelebt!", "");
             player.playSound(player.getLocation(), Sound.BLOCK_CONDUIT_ACTIVATE, 0.8F, 1.2F);

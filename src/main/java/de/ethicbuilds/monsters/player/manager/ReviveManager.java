@@ -96,6 +96,7 @@ public class ReviveManager implements Listener {
         // Not even the downed player sees their own player body (F5) or an item in hand
         player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, PotionEffect.INFINITE_DURATION, 0, false, false, false));
         player.getInventory().setHeldItemSlot(EMPTY_SLOT);
+        player.getInventory().setArmorContents(new org.bukkit.inventory.ItemStack[4]);
         Map<Attribute, Double> saved = new HashMap<>();
         for (Attribute attribute : List.of(Attribute.SCALE, Attribute.MOVEMENT_SPEED, Attribute.JUMP_STRENGTH)) {
             AttributeInstance instance = player.getAttribute(attribute);
