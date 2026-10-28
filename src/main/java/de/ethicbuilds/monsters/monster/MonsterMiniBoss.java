@@ -26,9 +26,6 @@ import java.util.concurrent.ThreadLocalRandom;
 public class MonsterMiniBoss extends MonsterZombie {
     private static final String[] NAMES = {"Grabwächter", "Wüstenfürst", "Knochenbrecher", "Mumienkönig", "Sandschlund"};
     private static final int LOOT_COINS = 300;
-    private static final double BIG_SCALE = 1.25;
-    private static final long GROW_DELAY = 60;
-    private static final int GROW_STEPS = 10;
 
     private final String title;
     private BossBar bar;
@@ -43,22 +40,7 @@ public class MonsterMiniBoss extends MonsterZombie {
 
     @Override
     protected void onSpawn() {
-        // Normal size out of the spawn hole, bigger after a few seconds
-        var scale = monster.getAttribute(Attribute.SCALE);
-        if (scale != null) {
-            new BukkitRunnable() {
-                int step = 0;
-
-                @Override
-                public void run() {
-                    if (!monster.isValid() || ++step > GROW_STEPS) {
-                        cancel();
-                        return;
-                    }
-                    scale.setBaseValue(1 + (BIG_SCALE - 1) * step / GROW_STEPS);
-                }
-            }.runTaskTimer(Main.getINSTANCE(), GROW_DELAY, 2L);
-        }
+        // Normal size (under 2 blocks), so it fits through every spawn hole; the gold helmet and boss bar mark it
         var attack = monster.getAttribute(Attribute.ATTACK_DAMAGE);
         if (attack != null) attack.setBaseValue(damage);
         EntityEquipment equipment = monster.getEquipment();
