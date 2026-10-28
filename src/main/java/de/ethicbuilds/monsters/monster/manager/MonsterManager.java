@@ -81,7 +81,7 @@ public class MonsterManager {
         double roll = Math.random();
         if (wave >= 48 && (roll -= 0.10) < 0) return new MonsterZombie(EntityType.VINDICATOR, "§7Diener");
         if (wave >= 24 && (roll -= 0.15) < 0) return new MonsterZombie(EntityType.ZOMBIE_VILLAGER, "§7Zombiedorfbewohner");
-        if (wave >= 12 && (roll -= 0.05) < 0) return new MonsterZombie(EntityType.PARCHED, "§7Vertrockneter");
+        if (wave >= 12 && (roll -= 0.10) < 0) return new MonsterZombie(EntityType.PARCHED, "§7Vertrockneter");
         if (wave >= 6 && (roll -= 0.25) < 0) return new MonsterZombie(EntityType.HUSK, "§7Wüstenzombie");
         return new MonsterZombie();
     }
