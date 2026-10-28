@@ -6,6 +6,7 @@ import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.HealthBars;
+import de.ethicbuilds.monsters.monster.MonsterMiniBoss;
 import de.ethicbuilds.monsters.monster.MonsterSpider;
 import de.ethicbuilds.monsters.monster.MonsterSpiderBoss;
 import de.ethicbuilds.monsters.monster.MonsterZombie;
@@ -31,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MonsterManager {
     public static final int SPIDER_WAVE = 5;
     public static final int BOSS_WAVE = 10;
+    private static final int MINI_BOSS_WAVE = 2;
 
     @Inject
     private MapManager mapManager;
@@ -67,6 +69,8 @@ public class MonsterManager {
         for (int i = 0; i < monsterCount; i++) {
             initialMonsters.add(randomMonster(wave));
         }
+        // From the second wave one of them is a mini boss, it comes last so it is out when the wave is under way
+        if (wave >= MINI_BOSS_WAVE) initialMonsters.set(initialMonsters.size() - 1, new MonsterMiniBoss(wave));
     }
 
     private EnemyMonster randomMonster(int wave) {
