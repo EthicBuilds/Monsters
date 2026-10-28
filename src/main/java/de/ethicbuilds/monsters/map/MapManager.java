@@ -72,7 +72,8 @@ public class MapManager {
         plugin.getWorld().setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
         plugin.getWorld().setGameRule(GameRule.DO_WEATHER_CYCLE, false);
         plugin.getWorld().setStorm(false);
-        plugin.getWorld().setTime(18000);
+        // Like /time set night, not midnight
+        plugin.getWorld().setTime(13000);
 
         createDoorHolos();
         // Maps with weapon crates as decoration do not show the old weapon points
