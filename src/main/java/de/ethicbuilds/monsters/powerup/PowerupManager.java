@@ -58,7 +58,7 @@ public class PowerupManager {
         MEDKIT(0.04, 0x3CC860, GameItems::medkit),
         SPEED(0.02, 0x4FB3FF, () -> model("powerup/tempo")),
         INSTAKILL(0.015, 0xFF3B3B, () -> model("powerup/instakill")),
-        AMMO(0.03, 0xF2C14E, () -> model("powerup/munition"));
+        AMMO(0.01, 0xF2C14E, () -> model("powerup/munition"));
 
         private final double dropChance;
         private final int color;
