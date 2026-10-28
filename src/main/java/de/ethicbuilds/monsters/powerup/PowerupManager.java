@@ -53,6 +53,7 @@ public class PowerupManager {
     private static final double PICKUP_DISTANCE = 1.3;
     private static final int MAX_DROPPED = 3;
     private static final int EFFECT_TICKS = 10 * 20;
+    private static final int MAX_AMMO_PER_WAVE = 1;
 
     public enum Type {
         MEDKIT(0.04, 0x3CC860, GameItems::medkit),
@@ -81,11 +82,13 @@ public class PowerupManager {
     @Inject private Main plugin;
     @Inject private UserManager userManager;
     @Inject private GameManager gameManager;
+    @Inject private de.ethicbuilds.monsters.gameplay.manager.WaveManager waveManager;
 
     private final LinkedList<Location> spots = new LinkedList<>();
     private final Map<ItemDisplay, Type> powerups = new HashMap<>();
     private int nextSpawn = MIN_DELAY;
     private long instakillUntil;
+    private int ammoWave = -1, ammoDrops;
 
     public void start() {
         new BukkitRunnable() {
@@ -124,10 +127,23 @@ public class PowerupManager {
         double roll = ThreadLocalRandom.current().nextDouble();
         for (Type type : Type.values()) {
             if ((roll -= type.dropChance) < 0) {
+                if (type == Type.AMMO && !ammoAllowed()) return;
                 spawn(type, location.toBlockLocation().add(0.5, 0.8, 0.5));
                 return;
             }
         }
+    }
+
+    // Ammo for everyone only once per wave
+    private boolean ammoAllowed() {
+        int wave = waveManager.getCurrentWave();
+        if (wave != ammoWave) {
+            ammoWave = wave;
+            ammoDrops = 0;
+        }
+        if (ammoDrops >= MAX_AMMO_PER_WAVE) return false;
+        ammoDrops++;
+        return true;
     }
 
     private void rememberSpots() {
