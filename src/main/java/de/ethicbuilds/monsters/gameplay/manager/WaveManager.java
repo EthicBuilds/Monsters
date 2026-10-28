@@ -21,6 +21,8 @@ public class WaveManager {
     private static final int SPAWNS_PER_TICK = 3;
     // Measured 28.10.: up to about 170 monsters the server runs smoothly, 120 leaves room
     private static final int MAX_ALIVE = 120;
+    // Every weaver is about 40 animated displays, so fewer of them at once (8 players would bring over 100)
+    private static final int MAX_SPIDERS_ALIVE = 40;
 
     @Inject
     private UserManager userManager;
@@ -76,8 +78,9 @@ public class WaveManager {
         monsterManager.createMonsters(currentWave);
 
         // A few monsters per tick, never more than MAX_ALIVE at once: the rest comes when others die
+        int cap = currentWave % de.ethicbuilds.monsters.monster.manager.MonsterManager.SPIDER_WAVE == 0 ? MAX_SPIDERS_ALIVE : MAX_ALIVE;
         while (monsterManager.hasPendingSpawns() || !monsterManager.getMonsters().isEmpty()) {
-            int room = MAX_ALIVE - monsterManager.getMonsters().size();
+            int room = cap - monsterManager.getMonsters().size();
             if (monsterManager.hasPendingSpawns() && room > 0) {
                 int count = Math.min(SPAWNS_PER_TICK, room);
                 startOnMinecraftThread(() -> monsterManager.summonBatch(count));
