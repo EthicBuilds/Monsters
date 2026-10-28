@@ -3,6 +3,9 @@ package de.ethicbuilds.monsters.monster;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -12,6 +15,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -40,7 +44,9 @@ public final class CrystalBarrage {
     private static final double STUN_RANGE = 3.5;
     private static final double SPREAD = 3.5;
     private static final Color AMETHYST = Color.fromRGB(0xA970FF);
-    private static final Color AMETHYST_DARK = Color.fromRGB(0x6B3FA0);
+    // Bright edge of the marker image at 28.75 px, 0.025 blocks per px
+    private static final float MARK_SCALE = (float) (RADIUS / 0.71875);
+    private static final Key MARK_FONT = Key.key("monsters", "ziel");
 
     private CrystalBarrage() {}
 
@@ -91,6 +97,10 @@ public final class CrystalBarrage {
             display.setPersistent(false);
         });
 
+        // Marker on the ground from the design session: the circle shows where it lands, the thin ring grows up to it
+        TextDisplay circle = decal(target, '', MARK_SCALE, 0.02);
+        TextDisplay countdown = decal(target, '', 0.3F, 0.03);
+
         new BukkitRunnable() {
             int tick = 0;
 
@@ -98,9 +108,13 @@ public final class CrystalBarrage {
             public void run() {
                 tick++;
                 double t = tick / (double) FLIGHT_TICKS;
-                // Shrinking inner ring counts down to the impact, the outer ring shows how far it reaches
-                ring(world, target, RADIUS, AMETHYST, 28);
-                ring(world, target, RADIUS * (1 - t), AMETHYST_DARK, 16);
+                if (tick % 2 == 0) {
+                    float scale = (float) (0.3 + (MARK_SCALE - 0.3) * t);
+                    countdown.setInterpolationDelay(0);
+                    countdown.setInterpolationDuration(2);
+                    countdown.setTransformation(flat(scale));
+                }
+                if (tick == FLIGHT_TICKS - 6) circle.text(mark(''));
 
                 Vector way = target.toVector().subtract(start.toVector());
                 Location at = start.clone().add(way.multiply(t)).add(0, ARC_HEIGHT * 4 * t * (1 - t), 0);
@@ -108,12 +122,14 @@ public final class CrystalBarrage {
                 float spin = (float) (tick * 0.5);
                 crystal.setInterpolationDelay(0);
                 crystal.setInterpolationDuration(1);
-                crystal.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(spin, 1, 0, 1),
+                crystal.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(spin, 0.7071F, 0, 0.7071F),
                         new Vector3f(1.4F), new AxisAngle4f()));
                 world.spawnParticle(Particle.DUST, at, 3, 0.1, 0.1, 0.1, new Particle.DustOptions(AMETHYST, 1.0F));
 
                 if (tick >= FLIGHT_TICKS) {
                     crystal.remove();
+                    circle.remove();
+                    countdown.remove();
                     impact(boss, target);
                     cancel();
                 }
@@ -163,6 +179,33 @@ public final class CrystalBarrage {
                 count++;
             }
         }.runTaskTimer(Main.getINSTANCE(), 0L, 2L);
+    }
+
+    private static TextDisplay decal(Location at, char glyph, float scale, double lift) {
+        Location spot = at.clone().add(0, lift, 0);
+        spot.setYaw(0);
+        spot.setPitch(0);
+        return at.getWorld().spawn(spot, TextDisplay.class, display -> {
+            display.text(mark(glyph));
+            display.setBillboard(Display.Billboard.FIXED);
+            display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
+            display.setDefaultBackground(false);
+            display.setShadowed(false);
+            display.setSeeThrough(false);
+            display.setBrightness(new Display.Brightness(15, 15));
+            display.setTransformation(flat(scale));
+            display.setPersistent(false);
+        });
+    }
+
+    private static Component mark(char glyph) {
+        return Component.text(glyph, NamedTextColor.WHITE).font(MARK_FONT);
+    }
+
+    // Lies flat facing up; the baseline sits 1.5 text pixels above the origin, moved back so the centre is on the spot
+    private static Transformation flat(float scale) {
+        return new Transformation(new Vector3f(0, 0, 1.5F * 0.025F * scale), new AxisAngle4f((float) -Math.PI / 2, 1, 0, 0),
+                new Vector3f(scale), new AxisAngle4f());
     }
 
     private static void ring(World world, Location center, double radius, Color color, int points) {
