@@ -7,6 +7,7 @@ import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.player.GamePlayer;
+import de.ethicbuilds.monsters.player.manager.ReviveManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
@@ -205,8 +206,18 @@ public class PowerupManager {
                 Player player = gamePlayer.getPlayer();
                 if (userManager.isPlayerDead(player.getUniqueId()) || !player.getWorld().equals(powerup.getWorld())) continue;
                 if (player.getLocation().add(0, 0.8, 0).distance(powerup.getLocation()) > PICKUP_DISTANCE) continue;
-                // A medkit stays for someone who is hurt
-                if (entry.getValue() == Type.MEDKIT && player.getHealth() >= player.getAttribute(Attribute.MAX_HEALTH).getValue()) continue;
+                // At full health a medkit goes into the inventory (one at most), otherwise it stays for someone who is hurt
+                if (entry.getValue() == Type.MEDKIT && player.getHealth() >= player.getAttribute(Attribute.MAX_HEALTH).getValue()) {
+                    if (player.getInventory().getItem(ReviveManager.MEDKIT_SLOT) != null) continue;
+                    ItemStack stored = GameItems.medkit();
+                    stored.editMeta(meta -> meta.setLore(java.util.List.of("§7Holt dich einmal pro Runde", "§7wieder hoch, wenn du am Boden liegst")));
+                    player.getInventory().setItem(ReviveManager.MEDKIT_SLOT, stored);
+                    AmmoHud.pause(player);
+                    player.sendActionBar("§aMedkit eingesteckt! §7Es holt dich hoch, wenn du am Boden liegst");
+                    player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 0.8F, 1.2F);
+                    powerup.remove();
+                    return true;
+                }
 
                 pickUp(player, entry.getValue(), powerup.getLocation());
                 powerup.remove();

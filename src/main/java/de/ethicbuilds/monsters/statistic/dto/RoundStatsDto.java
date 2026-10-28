@@ -16,4 +16,6 @@ public class RoundStatsDto {
     private String map;
     private int round;
     private int killedMonsters;
+    private int headshots;
+    private int revives;
 }

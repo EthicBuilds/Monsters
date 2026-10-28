@@ -40,7 +40,9 @@ public class StatisticManager {
                         gamePlayer.getPlayer().getUniqueId(),
                         gameManager.getGameConfig().getMapName(),
                         waveManager.getCurrentWave(),
-                        gamePlayer.getKilledZombies()
+                        gamePlayer.getKilledZombies(),
+                        gamePlayer.getHeadshots(),
+                        gamePlayer.getRevives()
                 )
         );
 

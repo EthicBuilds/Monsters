@@ -13,6 +13,7 @@ import de.ethicbuilds.monsters.map.adapter.LocationAdapter;
 import de.ethicbuilds.monsters.monster.TrackerGlow;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
+import de.ethicbuilds.monsters.reward.DailyChallenge;
 import de.ethicbuilds.monsters.reward.EthicCoins;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.powerup.PowerupManager;
@@ -128,6 +129,7 @@ public class GameManager {
                     broadcastTitle(plugin.getMonstersPrefix(), "§cÜberlebe so lange wie möglich!");
 
                     userManager.startMonsterTrackerTask();
+                    plugin.getInjector().getInstance(de.ethicbuilds.monsters.player.manager.SpectatorHud.class).start();
                     if (Bukkit.getPluginManager().isPluginEnabled("ProtocolLib")) {
                         plugin.getInjector().getInstance(TrackerGlow.class).start();
                     }
@@ -163,6 +165,7 @@ public class GameManager {
         lines.add("§8§m                                              ");
         for (Player player : Bukkit.getOnlinePlayers()) lines.forEach(player::sendMessage);
         rewardWinner(players);
+        DailyChallenge.check(players, waveManager.getCurrentWave());
     }
 
     // The best player of the round wins and gets EthicCoins for the network

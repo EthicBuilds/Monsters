@@ -25,6 +25,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
@@ -42,6 +43,8 @@ public class ReviveManager implements Listener {
     private static final float HITBOX_WIDTH = 1.8F, HITBOX_HEIGHT = 0.7F;
     private static final long CLICK_COOLDOWN = 500;
     private static final int EMPTY_SLOT = 8;
+    public static final int MEDKIT_SLOT = 7;
+    private static final long SELF_REVIVE_DELAY = 60;
     // A lying body has its feet at its position, the head this far along the body
     private static final double HEAD_DISTANCE = 1.3;
 
@@ -54,6 +57,8 @@ public class ReviveManager implements Listener {
     private final Map<UUID, Interaction> hitboxes = new HashMap<>();
     private final Map<UUID, Long> lastClick = new HashMap<>();
     private final Map<UUID, Integer> revives = new HashMap<>();
+    // Self revive with a stored medkit, once per round
+    private final java.util.Set<UUID> selfRevived = new java.util.HashSet<>();
     // Own values of the player before going down (the attribute default of movement speed is 0.7, players walk with 0.1)
     private final Map<UUID, Map<Attribute, Double>> savedBases = new HashMap<>();
 
@@ -112,6 +117,72 @@ public class ReviveManager implements Listener {
         }
 
         views.put(player.getUniqueId(), view);
+        player.sendActionBar("§7Schleichen: §fMitspielern zuschauen");
+        trySelfRevive(player);
+    }
+
+    // A stored medkit gets the player back up after a few seconds, once per round
+    private void trySelfRevive(Player player) {
+        ItemStack stored = player.getInventory().getItem(MEDKIT_SLOT);
+        if (stored == null || stored.getType().isAir() || selfRevived.contains(player.getUniqueId())) return;
+        player.sendTitle("§aMedkit!", "§7Du stehst gleich wieder auf", 5, 40, 10);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!player.isOnline() || !isDown(player.getUniqueId())) return;
+            selfRevived.add(player.getUniqueId());
+            player.getInventory().setItem(MEDKIT_SLOT, null);
+            Location spot = spots.get(player.getUniqueId()).clone();
+            spot.setPitch(0);
+            userManager.revivePlayer(player.getUniqueId(), spot);
+            spot.getWorld().spawnParticle(Particle.HEART, spot.clone().add(0, 1, 0), 8, 0.4, 0.4, 0.4, 0);
+            Bukkit.broadcastMessage(String.format("%s§a%s §7steht mit einem §aMedkit §7wieder auf!", plugin.getMonstersPrefix(), player.getName()));
+        }, SELF_REVIVE_DELAY);
+    }
+
+    public boolean hasStoredMedkit(Player player) {
+        ItemStack stored = player.getInventory().getItem(MEDKIT_SLOT);
+        return stored != null && !stored.getType().isAir();
+    }
+
+    // Sneak: watch the living teammates one after the other, after the last one back to the own body
+    @EventHandler
+    public void onDownedSneak(org.bukkit.event.player.PlayerToggleSneakEvent event) {
+        Player player = event.getPlayer();
+        if (!event.isSneaking() || !isDown(player.getUniqueId()) || player.getGameMode() == org.bukkit.GameMode.SPECTATOR) return;
+        watchNext(player, null);
+    }
+
+    @EventHandler
+    public void onStopWatching(com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent event) {
+        Player player = event.getPlayer();
+        if (!isDown(player.getUniqueId())) return;
+        // Sneaking leaves the camera in vanilla, here it goes on to the next teammate instead
+        event.setCancelled(true);
+        Entity current = event.getSpectatorTarget();
+        Bukkit.getScheduler().runTask(plugin, () -> watchNext(player, current instanceof Player mate ? mate : null));
+    }
+
+    private void watchNext(Player player, Player current) {
+        List<Player> mates = userManager.getGamePlayers().stream().map(GamePlayer::getPlayer)
+                .filter(mate -> mate.isOnline() && !mate.equals(player) && !userManager.isPlayerDead(mate.getUniqueId())).toList();
+        int next = current == null ? 0 : mates.indexOf(current) + 1;
+        if (next >= mates.size()) {
+            backToBody(player);
+            return;
+        }
+        Player mate = mates.get(next);
+        player.setGameMode(org.bukkit.GameMode.SPECTATOR);
+        player.setSpectatorTarget(mate);
+        player.sendActionBar("§7Du schaust §a" + mate.getName() + " §7zu · Schleichen: weiter");
+    }
+
+    private void backToBody(Player player) {
+        if (player.getGameMode() == org.bukkit.GameMode.SPECTATOR) {
+            player.setSpectatorTarget(null);
+            player.setGameMode(org.bukkit.GameMode.ADVENTURE);
+        }
+        Location view = views.get(player.getUniqueId());
+        if (view != null) player.teleport(view);
+        player.sendActionBar("§7Schleichen: §fMitspielern zuschauen");
     }
 
     // The lying body is flat and hard to hit: a click box over the whole body, left and right click count
@@ -226,6 +297,7 @@ public class ReviveManager implements Listener {
     @EventHandler
     public void onDownedMove(PlayerMoveEvent event) {
         if (!isDown(event.getPlayer().getUniqueId()) || !event.hasChangedPosition()) return;
+        if (event.getPlayer().getGameMode() == org.bukkit.GameMode.SPECTATOR) return;
         Location view = views.getOrDefault(event.getPlayer().getUniqueId(), spots.get(event.getPlayer().getUniqueId())).clone();
         view.setYaw(event.getTo().getYaw());
         view.setPitch(event.getTo().getPitch());

@@ -98,6 +98,7 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(new MonsterGuard(), this);
         pm.registerEvents(injector.getInstance(ReviveManager.class), this);
         pm.registerEvents(injector.getInstance(WorkbenchManager.class), this);
+        de.ethicbuilds.monsters.reward.DailyChallenge.load();
         pm.registerEvents(injector.getInstance(de.ethicbuilds.monsters.player.manager.PingManager.class), this);
     }
 

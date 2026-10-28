@@ -62,6 +62,7 @@ public class PreGameListener implements Listener {
 
         player.sendMessage(String.format("%sMap: §6%s", plugin.getMonstersPrefix(), gameManager.getGameConfig().getMapName()));
         player.sendMessage(String.format("%s§aGebaut von §2%s", plugin.getMonstersPrefix(),  String.join("§7, §2", gameManager.getGameConfig().getMapBuilder())));
+        de.ethicbuilds.monsters.reward.DailyChallenge.announce(player);
         player.setHealth(20);
         player.setFlying(false);
 
