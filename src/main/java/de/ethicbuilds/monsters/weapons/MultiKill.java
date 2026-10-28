@@ -11,7 +11,7 @@ import org.bukkit.entity.Player;
  * Several kills with one shot (sniper going through monsters): bonus coins and a short call out
  */
 public final class MultiKill {
-    private static final int BONUS_PER_KILL = 50;
+    private static final int BONUS_PER_KILL = 10;
     private static final String[] NAMES = {"", "", "Doppelkill", "Dreifachkill", "Vierfachkill", "Fünffachkill"};
 
     private MultiKill() {}
