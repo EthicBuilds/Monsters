@@ -70,15 +70,24 @@ public class AnimatedModel {
         dying = true;
         action = DEATH;
         actionTime = 0;
-        Location at = base.getLocation();
+        // The death animation lies on the ground, also when the monster died in the air or while climbing
+        Location at = ground(base.getLocation());
         for (ItemDisplay part : parts) {
             if (part == null) continue;
             part.leaveVehicle();
-            Location spot = at.clone().add(0, Float.isNaN(offsetY) ? 0 : offsetY, 0);
+            Location spot = at.clone();
             spot.setYaw(0);
             spot.setPitch(0);
             part.teleport(spot);
         }
+    }
+
+    private static Location ground(Location at) {
+        Location ground = at.clone();
+        for (int i = 0; i < 8 && !ground.clone().subtract(0, 0.05, 0).getBlock().isSolid(); i++) {
+            ground.setY(Math.floor(ground.getY() - 0.05));
+        }
+        return ground;
     }
 
     public void remove() {
