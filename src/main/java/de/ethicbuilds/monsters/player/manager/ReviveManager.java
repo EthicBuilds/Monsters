@@ -91,9 +91,7 @@ public class ReviveManager implements Listener {
         spots.put(player.getUniqueId(), spot);
         hitboxes.put(player.getUniqueId(), spawnHitbox(spot));
 
-        for (Player other : Bukkit.getOnlinePlayers()) {
-            if (!other.equals(player)) other.hidePlayer(plugin, player);
-        }
+        // The player stays listed for the others (tab list, names), the invisibility hides the standing body
 
         // Not even the downed player sees their own player body (F5) or an item in hand
         player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, PotionEffect.INFINITE_DURATION, 0, false, false, false));
@@ -183,6 +181,8 @@ public class ReviveManager implements Listener {
 
     // Body or click box of a downed player
     private UUID downedBy(Entity entity) {
+        // The invisible downed player stands at the body, a click on them counts as well
+        if (entity instanceof Player player && isDown(player.getUniqueId())) return player.getUniqueId();
         for (Map.Entry<UUID, Mannequin> entry : bodies.entrySet()) {
             if (entry.getValue().equals(entity)) return entry.getKey();
         }
