@@ -52,10 +52,9 @@ public class WorkbenchManager implements Listener {
     private static final int[] WEAPON_SLOTS = {0, 9, 18};
     // Armor is the fourth entry under the weapons
     private static final int ARMOR_SLOT = 27, ARMOR_INDEX = 3;
-    // Crowbar entry, place until the design session gives it its own tile
-    private static final int CROWBAR_SLOT = 28, CROWBAR_INDEX = 4;
+    private static final int CROWBAR_SLOT = 36, CROWBAR_INDEX = 4;
     private static final int[] BUTTON_SLOTS = {32, 33, 34, 35, 41, 42, 43, 44};
-    private static final int BIG_SLOT = 11, LEVEL_SLOT = 5, DAMAGE_SLOT = 14, MAGAZINE_SLOT = 23, CLOSE_SLOT = 36;
+    private static final int BIG_SLOT = 11, LEVEL_SLOT = 5, DAMAGE_SLOT = 14, MAGAZINE_SLOT = 23, CLOSE_SLOT = 45;
 
     private static final Key HUD_FONT = Key.key("monsters", "hud");
     private static final String COIN = "\uE017", ARROW = " \u2192 ";
@@ -103,7 +102,7 @@ public class WorkbenchManager implements Listener {
         Card card = armor ? armorCard(gamePlayer) : crowbar ? crowbarCard(gamePlayer) : weapon != null ? card(weapon) : null;
 
         Menu menu = new Menu(weapons);
-        Inventory inventory = Bukkit.createInventory(menu, 45, title(gamePlayer, card, index));
+        Inventory inventory = Bukkit.createInventory(menu, 54, title(gamePlayer, card, index));
         menu.inventory = inventory;
 
         for (int i = 0; i < WEAPON_SLOTS.length && i < weapons.size(); i++) {
@@ -399,8 +398,8 @@ public class WorkbenchManager implements Listener {
         boolean open = unlocked;
         boolean values = open && !max || locked;
 
-        // Tab of the selected entry: weapons in rows 0-2, armor in row 3 (closed on the right)
-        if (row <= ARMOR_INDEX) title.glyph((char) (0xE010 + row), 6, row == ARMOR_INDEX ? 20 : 21);
+        // Tab of the selected entry: weapons in rows 0-2, armor in row 3, crowbar in row 4 (both closed on the right)
+        if (row <= CROWBAR_INDEX) title.glyph((char) (0xE010 + row), 6, row >= ARMOR_INDEX ? 20 : 21);
         title.glyph((char) (0xE030 + level), level == 0 ? 30 : 27, level == 0 ? 46 : level == Weapon.MAX_LEVEL ? 52 : 49);
 
         // Card: what you get
