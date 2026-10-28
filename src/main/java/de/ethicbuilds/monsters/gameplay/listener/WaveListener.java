@@ -114,7 +114,7 @@ public class WaveListener implements Listener {
         int coins = 20;
 
         gamePlayer.addCoins(coins);
-        createFloatingHologram(enemyMonster.getMonster().getLocation(), String.format("§6+ %d Coins", coins));
+        createFloatingHologram(player, enemyMonster.getMonster().getLocation(), String.format("§6+ %d Coins", coins));
     }
 
     @EventHandler
@@ -456,18 +456,22 @@ public class WaveListener implements Listener {
         }
     }
 
-    private void createFloatingHologram(Location location, String text) {
+    // Only the player who earned the coins sees them
+    private void createFloatingHologram(Player viewer, Location location, String text) {
         Bukkit.getScheduler().runTask(plugin, () -> {
-            ArmorStand hologram = (ArmorStand) location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
-            hologram.setCustomName(text);
-            hologram.setCustomNameVisible(true);
-            hologram.setInvisible(true);
-            hologram.setMarker(true);
-            hologram.setGravity(false);
-            hologram.setInvulnerable(true);
-            hologram.setPersistent(false);
+            ArmorStand hologram = location.getWorld().spawn(location, ArmorStand.class, stand -> {
+                stand.setVisibleByDefault(false);
+                stand.setCustomName(text);
+                stand.setCustomNameVisible(true);
+                stand.setInvisible(true);
+                stand.setMarker(true);
+                stand.setGravity(false);
+                stand.setInvulnerable(true);
+                stand.setPersistent(false);
+                stand.setCollidable(false);
+            });
             MonsterGuard.markHolo(hologram);
-            hologram.setCollidable(false);
+            if (viewer.isOnline()) viewer.showEntity(plugin, hologram);
 
             new BukkitRunnable() {
                 int ticks = 0;
