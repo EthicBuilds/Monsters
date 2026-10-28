@@ -104,8 +104,8 @@ public class DecorationManager implements Listener {
         } else if (WEAPON_CRATES.containsKey(id)) {
             createWeaponStation(block, WEAPON_CRATES.get(id));
         } else if (WORKBENCH_STATION.equals(id)) {
-            workbenchLocked.add(createStation(block, WORKBENCH_STATION, "Werkbank", "<#9AA6B8>ab Welle " + WorkbenchManager.UNLOCK_WAVE + " · "
-                    + price(WorkbenchManager.UNLOCK_PRICE) + "\n<#9AA6B8>Waffen verbessern", "Rechtsklick zum Kaufen", 2.6F, 1.4F));
+            workbenchLocked.add(createStation(block, WORKBENCH_STATION, "Werkbank", workbenchPrices(WorkbenchManager.UNLOCK_PRICE),
+                    "Rechtsklick zum Kaufen", 2.6F, 1.4F));
             TextDisplay open = signAbove(block, "Werkbank", "<#9AA6B8>Waffen verbessern", "Rechtsklick zum Öffnen");
             open.setVisibleByDefault(false);
             workbenchOpen.add(open);
@@ -128,7 +128,18 @@ public class DecorationManager implements Listener {
         return "<white><font:monsters:hud>\uE017</font></white> <#F9A11E>" + coins + " <#9AA6B8>Coins";
     }
 
-    /** The player unlocked the workbench: from now on the sign without the price */
+    /** Coins put together so far: the sign shows what is still missing */
+    public void setWorkbenchPrice(int remaining) {
+        Component text = MiniMessage.miniMessage().deserialize("<#F2F5F8>Werkbank\n" + workbenchPrices(remaining) + "\n<#9AA6B8>Rechtsklick zum Kaufen");
+        workbenchLocked.removeIf(holo -> !holo.isValid());
+        workbenchLocked.forEach(holo -> holo.text(text));
+    }
+
+    private static String workbenchPrices(int coins) {
+        return "<#9AA6B8>ab Welle " + WorkbenchManager.UNLOCK_WAVE + " · " + price(coins) + "\n<#9AA6B8>Waffen verbessern";
+    }
+
+    /** The workbench is unlocked: from now on the sign without the price */
     public void showWorkbenchOpen(Player player) {
         workbenchLocked.removeIf(holo -> !holo.isValid());
         workbenchOpen.removeIf(holo -> !holo.isValid());

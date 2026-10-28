@@ -69,7 +69,9 @@ public class WorkbenchManager implements Listener {
     @Inject private WaveManager waveManager;
     @Inject private DecorationManager decorationManager;
 
-    private final Set<UUID> unlocked = new HashSet<>();
+    // Unlocked once for the whole team, the coins can be put together
+    private boolean unlocked;
+    private int unlockPaid;
     private final Map<UUID, Integer> selected = new HashMap<>();
 
     // Each level 1.5 times the last one, rounded to 500
@@ -131,8 +133,10 @@ public class WorkbenchManager implements Listener {
         if (waveManager.getCurrentWave() < UNLOCK_WAVE) {
             return icon(Material.PAPER, "leer", text("Gesperrt", LIGHT), text("Ab Welle " + UNLOCK_WAVE, RED));
         }
-        if (!unlocked.contains(gamePlayer.getPlayer().getUniqueId())) {
-            return icon(Material.PAPER, "leer", text("Freischalten", LIGHT), price(UNLOCK_PRICE, gamePlayer.getCoins() >= UNLOCK_PRICE));
+        if (!unlocked) {
+            int remaining = UNLOCK_PRICE - unlockPaid;
+            return icon(Material.PAPER, "leer", text("Freischalten", LIGHT), price(remaining, gamePlayer.getCoins() >= remaining),
+                    text("Zu wenig? Dann legst du alles ein, das Team legt zusammen", GREY));
         }
         if (weapon.getLevel() >= Weapon.MAX_LEVEL) {
             return icon(Material.PAPER, "leer", text("Maximal", GOLD));
@@ -146,7 +150,7 @@ public class WorkbenchManager implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        if (unlocked.contains(player.getUniqueId())) {
+        if (unlocked) {
             Bukkit.getScheduler().runTaskLater(plugin, () -> decorationManager.showWorkbenchOpen(player), 5L);
         }
     }
@@ -182,12 +186,8 @@ public class WorkbenchManager implements Listener {
             player.playSound(player.getLocation(), Sound.BLOCK_IRON_TRAPDOOR_CLOSE, 1.0F, 0.6F);
             return;
         }
-        if (!unlocked.contains(player.getUniqueId())) {
-            if (!pay(gamePlayer, UNLOCK_PRICE)) return;
-            unlocked.add(player.getUniqueId());
-            decorationManager.showWorkbenchOpen(player);
-            player.sendMessage(String.format("%s§7Werkbank §afreigeschaltet! §c-%d Coins", plugin.getMonstersPrefix(), UNLOCK_PRICE));
-            player.playSound(player.getLocation(), Sound.BLOCK_SMITHING_TABLE_USE, 1.0F, 1.0F);
+        if (!unlocked) {
+            unlock(gamePlayer);
             open(gamePlayer);
             return;
         }
@@ -212,6 +212,32 @@ public class WorkbenchManager implements Listener {
         open(gamePlayer);
     }
 
+    // Whoever has the rest unlocks it for everyone, otherwise all own coins go in
+    private void unlock(GamePlayer gamePlayer) {
+        Player player = gamePlayer.getPlayer();
+        int remaining = UNLOCK_PRICE - unlockPaid;
+        int coins = gamePlayer.getCoins();
+        if (coins <= 0) {
+            player.sendMessage(String.format("§cNoch §6%d Coins §cfür die Werkbank, legt zusammen!", remaining));
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0F, 1.0F);
+            return;
+        }
+        int paid = Math.min(coins, remaining);
+        gamePlayer.setCoins(coins - paid);
+        unlockPaid += paid;
+        if (unlockPaid < UNLOCK_PRICE) {
+            decorationManager.setWorkbenchPrice(UNLOCK_PRICE - unlockPaid);
+            Bukkit.broadcastMessage(String.format("%s§a%s §7legt §6%d Coins §7für die §aWerkbank §7ein (§6%d§7/§6%d§7). Noch §6%d Coins§7, legt zusammen!",
+                    plugin.getMonstersPrefix(), player.getName(), paid, unlockPaid, UNLOCK_PRICE, UNLOCK_PRICE - unlockPaid));
+            player.playSound(player.getLocation(), Sound.BLOCK_CHAIN_PLACE, 1.0F, 1.2F);
+            return;
+        }
+        unlocked = true;
+        Bukkit.getOnlinePlayers().forEach(decorationManager::showWorkbenchOpen);
+        Bukkit.broadcastMessage(String.format("%s§a%s §7hat die §aWerkbank §7für alle freigeschaltet!", plugin.getMonstersPrefix(), player.getName()));
+        Bukkit.getOnlinePlayers().forEach(p -> p.playSound(p.getLocation(), Sound.BLOCK_SMITHING_TABLE_USE, 1.0F, 1.0F));
+    }
+
     private boolean pay(GamePlayer gamePlayer, int price) {
         Player player = gamePlayer.getPlayer();
         if (gamePlayer.getCoins() < price) {
@@ -234,7 +260,7 @@ public class WorkbenchManager implements Listener {
         int level = weapon.getLevel();
         boolean max = level >= Weapon.MAX_LEVEL;
         boolean locked = waveManager.getCurrentWave() < UNLOCK_WAVE;
-        boolean open = unlocked.contains(gamePlayer.getPlayer().getUniqueId());
+        boolean open = unlocked;
         boolean values = open && !max || locked;
 
         title.glyph((char) (0xE010 + row), 6, 21)
@@ -259,7 +285,7 @@ public class WorkbenchManager implements Listener {
         } else if (!open) {
             title.glyph('\uE022', 93, 78)
                     .centered("knopf", 132, new WorkbenchTitle.Part("Freischalten", WHITE))
-                    .centered("preis", 132, new WorkbenchTitle.Part(COIN + " " + coins(UNLOCK_PRICE), WHITE));
+                    .centered("preis", 132, new WorkbenchTitle.Part(COIN + " " + coins(UNLOCK_PRICE - unlockPaid), WHITE));
         } else if (max) {
             title.glyph('\uE023', 93, 78)
                     .centered("knopf", 132, new WorkbenchTitle.Part("Maximal", TextColor.color(0x3B2A00)))
