@@ -20,6 +20,7 @@ import de.ethicbuilds.monsters.monster.MonsterGuard;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import de.ethicbuilds.monsters.monster.EliteTier;
 import de.ethicbuilds.monsters.weapons.ShotDamage;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
@@ -115,7 +116,7 @@ public class WaveListener implements Listener {
 
         boolean headshot = ShotDamage.isHeadshot();
         if (headshot) gamePlayer.setHeadshots(gamePlayer.getHeadshots() + 1);
-        int coins = headshot ? HEADSHOT_COINS : 20;
+        int coins = (headshot ? HEADSHOT_COINS : 20) + EliteTier.extraCoins(enemyMonster.getTier());
 
         gamePlayer.addCoins(coins);
         createFloatingHologram(player, enemyMonster.getMonster().getLocation(),
@@ -142,7 +143,7 @@ public class WaveListener implements Listener {
         enemyMonster.onDeath();
         monsterManager.removeMonster(enemyMonster);
         powerupManager.dropFrom(monster.getLocation());
-        if (monsterManager.getMonsters().size() <= 3) {
+        if (monsterManager.remaining() <= 3) {
             for (EnemyMonster m : monsterManager.getMonsters().values()) {
                 m.getMonster().addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Integer.MAX_VALUE, 1));
             }
@@ -158,7 +159,11 @@ public class WaveListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onMonsterHealthChange(EntityDamageEvent event) {
-        if (event.getEntity() instanceof Monster monster) HealthBars.updateLater(monster);
+        if (!(event.getEntity() instanceof Monster monster)) return;
+        // The bar only shows for a few seconds after a hit
+        EnemyMonster enemyMonster = monsterManager.getEnemyMonster(monster);
+        if (enemyMonster != null && enemyMonster.showsHealthBar() && plugin.getConfig().getBoolean("health-bars", true)) HealthBars.show(monster);
+        HealthBars.updateLater(monster);
     }
 
     @EventHandler(ignoreCancelled = true)

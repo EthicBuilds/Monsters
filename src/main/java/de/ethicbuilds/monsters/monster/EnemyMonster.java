@@ -34,6 +34,8 @@ public abstract class EnemyMonster {
     protected int coin;
     @Getter
     private Player target;
+    @Getter @lombok.Setter
+    private int tier;
     private int repath;
     private Player chased;
 
@@ -42,7 +44,11 @@ public abstract class EnemyMonster {
     private final UserManager userManager = plugin.getInjector().getInstance(UserManager.class);
 
     public void summon(Player player, Location spawnLocation) {
+        // Elite tiers only for the zombie kinds, bosses keep their own values
+        boolean elite = tier > 0 && this instanceof MonsterZombie && !(this instanceof MonsterMiniBoss);
+        if (elite) health = (int) Math.round(health * EliteTier.healthFactor(tier));
         monster = (Monster) plugin.getWorld().spawnEntity(spawnLocation, type);
+        if (elite) EliteTier.dress(monster, tier);
         monster.setCustomNameVisible(false);
         if (monster instanceof org.bukkit.entity.Ageable ageable) ageable.setAdult();
         var movement = monster.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
@@ -57,7 +63,6 @@ public abstract class EnemyMonster {
         var maxHealth = monster.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
         if (maxHealth != null && maxHealth.getBaseValue() < health) maxHealth.setBaseValue(health);
         monster.setHealth(health);
-        if (showsHealthBar() && plugin.getConfig().getBoolean("health-bars", true)) HealthBars.attach(monster);
         onSpawn();
 
         target = player;
@@ -142,7 +147,7 @@ public abstract class EnemyMonster {
         return 0.23;
     }
 
-    protected boolean showsHealthBar() {
+    public boolean showsHealthBar() {
         return true;
     }
 

@@ -36,7 +36,7 @@ public class MonsterSpiderBoss extends MonsterSpider {
     }
 
     @Override
-    protected boolean showsHealthBar() {
+    public boolean showsHealthBar() {
         return false;
     }
 

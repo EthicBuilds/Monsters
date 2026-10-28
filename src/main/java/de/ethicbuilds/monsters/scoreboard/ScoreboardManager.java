@@ -88,7 +88,7 @@ public class ScoreboardManager {
         lines.add(empty());
         lines.add(line("", "Map", "<#F2F5F8>" + map));
         lines.add(line("", "Runde", "<#F9A11E>" + waveManager.getCurrentWave()));
-        lines.add(line("", "Monster", "<#F2F5F8>" + monsterManager.getMonsters().size()));
+        lines.add(line("", "Monster", "<#F2F5F8>" + monsterManager.remaining()));
         lines.add(line("", "Zeit", "<#F2F5F8>" + String.format("%02d:%02d", time / 60, time % 60)));
         lines.add(empty());
         for (GamePlayer gamePlayer : userManager.getGamePlayers()) {

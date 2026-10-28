@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
+import de.ethicbuilds.monsters.monster.EliteTier;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.HealthBars;
 import de.ethicbuilds.monsters.monster.MonsterMiniBoss;
@@ -66,8 +67,11 @@ public class MonsterManager {
             return;
         }
         // Same number, but more kinds the longer the round goes
+        int tier = EliteTier.of(wave);
         for (int i = 0; i < monsterCount; i++) {
-            initialMonsters.add(randomMonster(wave));
+            EnemyMonster monster = randomMonster(wave);
+            monster.setTier(tier);
+            initialMonsters.add(monster);
         }
         // From the second wave one of them is a mini boss, it comes last so it is out when the wave is under way
         if (wave >= MINI_BOSS_WAVE) initialMonsters.set(initialMonsters.size() - 1, new MonsterMiniBoss(wave));
@@ -88,6 +92,11 @@ public class MonsterManager {
 
     public void removeMonster(EnemyMonster monster) {
         removeMonster(monster.getMonster());
+    }
+
+    /** Alive plus still to come in this wave */
+    public int remaining() {
+        return monsters.size() + initialMonsters.size();
     }
 
     public boolean hasPendingSpawns() {
@@ -155,6 +164,7 @@ public class MonsterManager {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             long now = System.currentTimeMillis();
             HealthBars.removeOrphans(plugin.getWorld());
+            HealthBars.hideIdle(plugin.getWorld());
 
             List<EnemyMonster> toRemove = new ArrayList<>();
 

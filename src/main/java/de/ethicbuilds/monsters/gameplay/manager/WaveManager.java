@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.map.decoration.CrateManager;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
+import de.ethicbuilds.monsters.monster.EliteTier;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import lombok.Getter;
@@ -18,6 +19,8 @@ import java.util.concurrent.CountDownLatch;
 
 public class WaveManager {
     private static final int SPAWNS_PER_TICK = 5;
+    // Measured 28.10.: up to about 170 monsters the server runs smoothly, 120 leaves room
+    private static final int MAX_ALIVE = 120;
 
     @Inject
     private UserManager userManager;
@@ -57,7 +60,10 @@ public class WaveManager {
         Component subtitle = currentWave % MonsterManager.BOSS_WAVE == 0
                 ? MiniMessage.miniMessage().deserialize("<#8B4BD8>Boss-Welle: die Amethyst-Weberin kommt!")
                 : currentWave % MonsterManager.SPIDER_WAVE == 0
-                ? MiniMessage.miniMessage().deserialize("<#8B4BD8>Spinnen-Welle: die Weberinnen kommen!") : Component.empty();
+                ? MiniMessage.miniMessage().deserialize("<#8B4BD8>Spinnen-Welle: die Weberinnen kommen!")
+                : currentWave > 10 && currentWave % 10 == 1
+                ? Component.text("Neue Elite-Stufe: " + EliteTier.name(EliteTier.of(currentWave)).replaceAll("§.", "")).color(net.kyori.adventure.text.format.TextColor.color(0xF9A11E))
+                : Component.empty();
         Bukkit.getOnlinePlayers().forEach(p -> p.showTitle(Title.title(title, subtitle)));
         userManager.broadcastSound(Sound.BLOCK_TRIAL_SPAWNER_AMBIENT_OMINOUS, 2.0F, 1.0F);
 
@@ -69,13 +75,15 @@ public class WaveManager {
 
         monsterManager.createMonsters(currentWave);
 
-        // A few monsters per tick instead of the whole wave at once
-        while (monsterManager.hasPendingSpawns()) {
-            startOnMinecraftThread(() -> monsterManager.summonBatch(SPAWNS_PER_TICK));
-        }
-
-        while (!monsterManager.getMonsters().isEmpty()) {
-            Thread.sleep(100);
+        // A few monsters per tick, never more than MAX_ALIVE at once: the rest comes when others die
+        while (monsterManager.hasPendingSpawns() || !monsterManager.getMonsters().isEmpty()) {
+            int room = MAX_ALIVE - monsterManager.getMonsters().size();
+            if (monsterManager.hasPendingSpawns() && room > 0) {
+                int count = Math.min(SPAWNS_PER_TICK, room);
+                startOnMinecraftThread(() -> monsterManager.summonBatch(count));
+            } else {
+                Thread.sleep(100);
+            }
         }
     }
 

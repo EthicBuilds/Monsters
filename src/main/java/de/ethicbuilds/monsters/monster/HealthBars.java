@@ -47,6 +47,30 @@ public final class HealthBars {
         mob.addPassenger(bar);
     }
 
+    private static final long VISIBLE_MILLIS = 5000;
+    private static final java.util.Map<java.util.UUID, Long> lastHit = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Shows the bar after a hit, it goes away again a few seconds after the last one */
+    public static void show(LivingEntity mob) {
+        lastHit.put(mob.getUniqueId(), System.currentTimeMillis());
+        for (Entity passenger : mob.getPassengers()) {
+            if (isBar(passenger)) return;
+        }
+        attach(mob);
+    }
+
+    /** Bars of monsters that were not hit for a while */
+    public static void hideIdle(World world) {
+        long now = System.currentTimeMillis();
+        for (TextDisplay display : world.getEntitiesByClass(TextDisplay.class)) {
+            if (!isBar(display) || !(display.getVehicle() instanceof LivingEntity mob)) continue;
+            if (now - lastHit.getOrDefault(mob.getUniqueId(), 0L) > VISIBLE_MILLIS) {
+                display.remove();
+                lastHit.remove(mob.getUniqueId());
+            }
+        }
+    }
+
     /** After damage or healing, once the new health is known */
     public static void updateLater(LivingEntity mob) {
         Bukkit.getScheduler().runTask(Main.getINSTANCE(), () -> {
