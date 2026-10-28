@@ -24,6 +24,7 @@ public abstract class EnemyMonster {
     private static final int REPATH_SECONDS = 3;
     private static final double SWITCH_MARGIN = 3;
     private static final double KNOCKBACK_RESISTANCE = 1.0;
+    private static final double SPRINTER_SPEED = 1.35;
 
     protected int health;
     protected int damage;
@@ -38,6 +39,11 @@ public abstract class EnemyMonster {
     private Player target;
     @Getter @lombok.Setter
     private int tier;
+    @lombok.Setter
+    private int wave;
+    // Part of a horde: quicker than the others
+    @lombok.Setter
+    private boolean sprinter;
     private int repath;
     private int trailCursor;
     private Player chased;
@@ -50,6 +56,12 @@ public abstract class EnemyMonster {
         // Elite tiers only for the zombie kinds, bosses keep their own values
         boolean elite = tier > 0 && this instanceof MonsterZombie && !(this instanceof MonsterMiniBoss);
         if (elite) health = (int) Math.round(health * EliteTier.healthFactor(tier));
+        // Bosses have their own values, all others get stronger from wave 15
+        boolean scaled = !(this instanceof MonsterMiniBoss) && !(this instanceof MonsterSpiderBoss);
+        if (scaled) {
+            health = (int) Math.round(health * WaveScaling.health(wave));
+            speed = Math.min(WaveScaling.MAX_SPEED, speed * WaveScaling.speed(wave) * (sprinter ? SPRINTER_SPEED : 1));
+        }
         monster = (Monster) plugin.getWorld().spawnEntity(spawnLocation, type);
         if (elite) EliteTier.dress(monster, tier);
         monster.setCustomNameVisible(false);
@@ -75,6 +87,8 @@ public abstract class EnemyMonster {
         // The server caps max health (spigot.yml), more would fail the whole spawn
         monster.setHealth(maxHealth != null ? Math.min(health, maxHealth.getValue()) : health);
         onSpawn();
+        var attack = monster.getAttribute(org.bukkit.attribute.Attribute.ATTACK_DAMAGE);
+        if (scaled && attack != null) attack.setBaseValue(attack.getBaseValue() * WaveScaling.damage(wave));
 
         target = player;
         Pathfinder pathfinder = monster.getPathfinder();

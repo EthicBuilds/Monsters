@@ -32,6 +32,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MonsterManager {
     public static final int SPIDER_WAVE = 5;
+    private static final int GROWTH_UNTIL = 10;
+    private static final int HORDE_PER_PLAYER = 6;
     private static final double BOSS_LEASH = 40;
     public static final int BOSS_WAVE = 10;
     private static final int MINI_BOSS_WAVE = 2;
@@ -58,12 +60,17 @@ public class MonsterManager {
         spawnIndex = 0;
 
         int players = Math.max(1, userManager.getGamePlayers().size());
-        int monsterCount = players * (2 + 4 * (wave - 1));
+        // Up to wave 10 the waves grow fast, after that only a little, from wave 15 the monsters get stronger instead
+        int monsterCount = players * (2 + 4 * (Math.min(wave, GROWTH_UNTIL) - 1) + Math.max(0, wave - GROWTH_UNTIL));
 
         // Every fifth wave only small amethyst weavers, more each time, every tenth with the big boss weaver
         if (wave % SPIDER_WAVE == 0) {
             int spidersPerPlayer = 3 + 2 * (wave / SPIDER_WAVE);
-            for (int i = 0; i < players * spidersPerPlayer; i++) initialMonsters.add(new MonsterSpider());
+            for (int i = 0; i < players * spidersPerPlayer; i++) {
+                MonsterSpider spider = new MonsterSpider();
+                spider.setWave(wave);
+                initialMonsters.add(spider);
+            }
             if (wave % BOSS_WAVE == 0) initialMonsters.add(new MonsterSpiderBoss(players));
             return;
         }
@@ -72,6 +79,7 @@ public class MonsterManager {
         for (int i = 0; i < monsterCount; i++) {
             EnemyMonster monster = randomMonster(wave);
             monster.setTier(tier);
+            monster.setWave(wave);
             initialMonsters.add(monster);
         }
         // From the second wave one of them is a mini boss, it comes last so it is out when the wave is under way
@@ -85,6 +93,19 @@ public class MonsterManager {
         if (wave >= 12 && (roll -= 0.10) < 0) return new MonsterZombie(EntityType.PARCHED, "§7Vertrockneter");
         if (wave >= 6 && (roll -= 0.25) < 0) return new MonsterZombie(EntityType.HUSK, "§7Wüstenzombie");
         return new MonsterZombie();
+    }
+
+    /** A quick horde that comes out right now, before the rest of the wave */
+    public void addHorde(int wave) {
+        int players = Math.max(1, livingPlayers().size());
+        int tier = EliteTier.of(wave);
+        for (int i = 0; i < players * HORDE_PER_PLAYER; i++) {
+            EnemyMonster monster = new MonsterZombie();
+            monster.setTier(tier);
+            monster.setWave(wave);
+            monster.setSprinter(true);
+            initialMonsters.addFirst(monster);
+        }
     }
 
     public void removeMonster(Monster monster) {

@@ -21,6 +21,9 @@ public class WaveManager {
     private static final int SPAWNS_PER_TICK = 3;
     // Measured 28.10.: up to about 170 monsters the server runs smoothly, 120 leaves room
     private static final int MAX_ALIVE = 120;
+    private static final int HORDE_FROM = 8;
+    private static final double HORDE_CHANCE = 0.5, HORDE_AT = 0.6;
+    private static final long HORDE_WARNING = 3000;
     // Every weaver is about 40 animated displays, so fewer of them at once (8 players would bring over 100)
     private static final int MAX_SPIDERS_ALIVE = 40;
 
@@ -78,8 +81,18 @@ public class WaveManager {
         monsterManager.createMonsters(currentWave);
 
         // A few monsters per tick, never more than MAX_ALIVE at once: the rest comes when others die
+        // From wave 8 every second wave on average: once a good third is beaten, a quick horde storms out
+        int total = monsterManager.remaining();
+        boolean horde = currentWave >= HORDE_FROM && currentWave % de.ethicbuilds.monsters.monster.manager.MonsterManager.SPIDER_WAVE != 0
+                && java.util.concurrent.ThreadLocalRandom.current().nextDouble() < HORDE_CHANCE;
         int cap = currentWave % de.ethicbuilds.monsters.monster.manager.MonsterManager.SPIDER_WAVE == 0 ? MAX_SPIDERS_ALIVE : MAX_ALIVE;
         while (monsterManager.hasPendingSpawns() || !monsterManager.getMonsters().isEmpty()) {
+            if (horde && monsterManager.remaining() <= total * HORDE_AT) {
+                horde = false;
+                startOnMinecraftThread(this::announceHorde);
+                Thread.sleep(HORDE_WARNING);
+                startOnMinecraftThread(() -> monsterManager.addHorde(currentWave));
+            }
             int room = cap - monsterManager.getMonsters().size();
             if (monsterManager.hasPendingSpawns() && room > 0) {
                 int count = Math.min(SPAWNS_PER_TICK, room);
@@ -93,6 +106,13 @@ public class WaveManager {
     private void broadCastMessage(String message) {
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.sendMessage(message);
+        }
+    }
+
+    private void announceHorde() {
+        for (var player : Bukkit.getOnlinePlayers()) {
+            player.sendTitle("§c§lHORDE!", "§7Gleich stürmt eine schnelle Horde los", 5, 40, 10);
+            player.playSound(player.getLocation(), org.bukkit.Sound.EVENT_RAID_HORN, 0.5F, 1.2F);
         }
     }
 
