@@ -67,6 +67,10 @@ public class WaveListener implements Listener {
 
     private boolean isAxeCooldDown;
 
+    private static final int DOOR_PRICE = 2500;
+    // Coins already put into a door by players who did not have enough
+    private final java.util.Map<Door, Integer> doorPayments = new java.util.IdentityHashMap<>();
+
     // Insta-kill powerup: every hit by a player kills, only the boss keeps its health
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onInstakill(EntityDamageByEntityEvent event) {
@@ -314,24 +318,52 @@ public class WaveListener implements Listener {
             player.playSound(player.getLocation(), Sound.BLOCK_IRON_TRAPDOOR_CLOSE, 1.5F, 0.0F);
             return;
         }
-        if (gamePlayer.getCoins() < 2500) {
-            openDoor(gamePlayer, door);
+        int remaining = DOOR_PRICE - doorPayments.getOrDefault(door, 0);
+        if (gamePlayer.getCoins() < remaining) {
+            contribute(gamePlayer, door, remaining);
             return;
         }
 
         doorManager.breakOpen(gamePlayer, door, () -> openDoor(gamePlayer, door));
     }
 
+    // Not enough coins: everything the player has goes into the door, the team fills up the rest
+    private void contribute(GamePlayer gamePlayer, Door door, int remaining) {
+        Player player = gamePlayer.getPlayer();
+        int coins = gamePlayer.getCoins();
+        if (coins <= 0) {
+            player.sendMessage(String.format("§cNoch §6%d Coins §cfür diese Tür, legt zusammen!", remaining));
+            player.playSound(player.getLocation(), Sound.BLOCK_IRON_TRAPDOOR_CLOSE, 1.5F, 0.0F);
+            return;
+        }
+        gamePlayer.setCoins(0);
+        int paid = doorPayments.merge(door, coins, Integer::sum);
+        updateDoorPrice(door, DOOR_PRICE - paid);
+        Bukkit.broadcastMessage(String.format("%s§a%s §7legt §6%d Coins §7für §a%s §7ein (§6%d§7/§6%d§7). Noch §6%d Coins§7, legt zusammen!",
+                plugin.getMonstersPrefix(), player.getName(), coins, door.getName(), paid, DOOR_PRICE, DOOR_PRICE - paid));
+        player.playSound(player.getLocation(), Sound.BLOCK_CHAIN_PLACE, 1.0F, 1.2F);
+    }
+
+    // Price line under the door shows what is still missing
+    private void updateDoorPrice(Door door, int remaining) {
+        Location line = door.getHoloLocation().clone().add(0.5, -0.3, 0.5);
+        for (Entity entity : line.getWorld().getNearbyEntities(line, 0.3, 0.3, 0.3)) {
+            if (entity instanceof ArmorStand stand) stand.setCustomName(String.format("§afür §6%d Coins", remaining));
+        }
+    }
+
     private void openDoor(GamePlayer gamePlayer, Door door) {
         Player player = gamePlayer.getPlayer();
+        int remaining = DOOR_PRICE - doorPayments.getOrDefault(door, 0);
 
-        if (gamePlayer.getCoins() < 2500) {
-            player.sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum diese Türe zu öffnen", 2500 - gamePlayer.getCoins()));
+        if (gamePlayer.getCoins() < remaining) {
+            player.sendMessage(String.format("§cDu brauchst noch §6%d Coins §cum diese Türe zu öffnen", remaining - gamePlayer.getCoins()));
             player.playSound(player.getLocation(), Sound.BLOCK_IRON_TRAPDOOR_CLOSE, 1.5F, 0.0F);
             return;
         }
 
-        gamePlayer.setCoins(gamePlayer.getCoins() - 2500);
+        gamePlayer.setCoins(gamePlayer.getCoins() - remaining);
+        doorPayments.remove(door);
 
         int i = 0;
         for (Location location : door.getClickableLocations()) {
