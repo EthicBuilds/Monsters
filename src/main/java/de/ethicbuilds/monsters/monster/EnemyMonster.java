@@ -46,7 +46,7 @@ public abstract class EnemyMonster {
         monster.setCustomNameVisible(false);
         if (monster instanceof org.bukkit.entity.Ageable ageable) ageable.setAdult();
         var movement = monster.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
-        if (movement != null) movement.setBaseValue(Math.min(movement.getBaseValue(), 0.23));
+        if (movement != null) movement.setBaseValue(Math.min(movement.getBaseValue(), maxSpeed()));
         // Hits do not push them back, otherwise a player can keep them away just by firing
         var knockback = monster.getAttribute(org.bukkit.attribute.Attribute.KNOCKBACK_RESISTANCE);
         if (knockback != null) knockback.setBaseValue(KNOCKBACK_RESISTANCE);
@@ -136,6 +136,11 @@ public abstract class EnemyMonster {
 
     /** The monster hits a player */
     public void onAttack() {}
+
+    /** Movement speed limit, always below the players' walking speed */
+    protected double maxSpeed() {
+        return 0.23;
+    }
 
     protected boolean showsHealthBar() {
         return true;

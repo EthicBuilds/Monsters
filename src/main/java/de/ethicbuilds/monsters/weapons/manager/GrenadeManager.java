@@ -20,8 +20,8 @@ public class GrenadeManager {
     public static final int MAX_GRENADES = 4;
 
     private static final int FUSE_TICKS = 40;
-    private static final double RADIUS = 5.0;
-    private static final double DAMAGE = 30.0;
+    private static final double RADIUS = 6.5;
+    private static final double DAMAGE = 45.0;
     private static final java.util.Set<Integer> TICKS = java.util.Set.of(8, 20, 28, 34, 37, 39);
 
     @Inject private Main plugin;

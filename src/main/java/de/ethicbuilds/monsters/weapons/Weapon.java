@@ -41,7 +41,7 @@ public abstract class Weapon {
     // How many monsters one shot goes through
     protected int pierce = 1;
 
-    // Workbench upgrades: every level +25 % damage and magazine
+    // Workbench upgrades: damage +25 % for levels 1-2 and x1.5 for levels 3-4, magazine +25 % per level
     public static final int MAX_LEVEL = 4;
     protected int level = 0;
     private double baseDamage;
@@ -163,8 +163,13 @@ public abstract class Weapon {
             fireRate = fireRateAt(level);
             return;
         }
-        damage = baseDamage * (1 + 0.25 * level);
+        damage = baseDamage * boost(level);
         maxMagazine = (int) Math.round(baseMagazine * (1 + 0.25 * level));
+    }
+
+    // +25 % for the first two levels, the last two each give 1.5 times as much
+    private static double boost(int level) {
+        return level <= 2 ? 1 + 0.25 * level : 1.5 * boost(level - 1);
     }
 
     /** false: the workbench only makes it fire faster (sniper), damage and magazine stay */
@@ -176,13 +181,14 @@ public abstract class Weapon {
         return fireRateAt(Math.min(level + 1, MAX_LEVEL));
     }
 
-    // 15 % less time between shots per level
+    // 15 % less time between shots for the first two levels, the last two each fire 1.5 times as fast
     private int fireRateAt(int level) {
-        return (int) Math.round(baseFireRate * (1 - 0.15 * level));
+        double rate = level <= 2 ? baseFireRate * (1 - 0.15 * level) : fireRateAt(level - 1) / 1.5;
+        return Math.max(1, (int) Math.round(rate));
     }
 
     public double nextDamage() {
-        return baseDamage * (1 + 0.25 * Math.min(level + 1, MAX_LEVEL));
+        return baseDamage * boost(Math.min(level + 1, MAX_LEVEL));
     }
 
     public int nextMagazine() {

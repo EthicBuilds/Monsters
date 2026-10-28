@@ -74,6 +74,12 @@ public class MonsterSpider extends EnemyMonster {
         return room;
     }
 
+    // The small weavers are a bit quicker than zombies, still slower than a walking player
+    @Override
+    protected double maxSpeed() {
+        return 0.3;
+    }
+
     @Override
     public void onDeath() {
         if (model != null) model.die();

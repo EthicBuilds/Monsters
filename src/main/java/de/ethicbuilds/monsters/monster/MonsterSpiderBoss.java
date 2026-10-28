@@ -31,6 +31,11 @@ public class MonsterSpiderBoss extends MonsterSpider {
     }
 
     @Override
+    protected double maxSpeed() {
+        return 0.23;
+    }
+
+    @Override
     protected boolean showsHealthBar() {
         return false;
     }
