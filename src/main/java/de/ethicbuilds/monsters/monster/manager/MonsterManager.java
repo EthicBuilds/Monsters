@@ -29,8 +29,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MonsterManager {
+    public static final int SPIDER_WAVE = 5;
     public static final int BOSS_WAVE = 10;
-    private static final int SPIDERS_PER_PLAYER = 3;
 
     @Inject
     private MapManager mapManager;
@@ -54,10 +54,11 @@ public class MonsterManager {
         int players = Math.max(1, userManager.getGamePlayers().size());
         int monsterCount = players * (2 + 4 * (wave - 1));
 
-        // Every tenth wave: small amethyst weavers and one big boss weaver
-        if (wave % BOSS_WAVE == 0) {
-            for (int i = 0; i < players * SPIDERS_PER_PLAYER; i++) initialMonsters.add(new MonsterSpider());
-            initialMonsters.add(new MonsterSpiderBoss(players));
+        // Every fifth wave only small amethyst weavers, more each time, every tenth with the big boss weaver
+        if (wave % SPIDER_WAVE == 0) {
+            int spidersPerPlayer = 3 + 2 * (wave / SPIDER_WAVE);
+            for (int i = 0; i < players * spidersPerPlayer; i++) initialMonsters.add(new MonsterSpider());
+            if (wave % BOSS_WAVE == 0) initialMonsters.add(new MonsterSpiderBoss(players));
             return;
         }
         // Same number, but more kinds the longer the round goes
