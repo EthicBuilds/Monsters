@@ -86,6 +86,8 @@ public abstract class Weapon {
         Set<org.bukkit.entity.Entity> hit = new HashSet<>();
         new BukkitRunnable() {
             double distanceTravelled = 0;
+            int kills = 0;
+
             @Override
             public void run() {
                 // 2 blocks per tick, checked every block so no monster is skipped
@@ -96,19 +98,25 @@ public abstract class Weapon {
                     if (step == 1) player.getWorld().spawnParticle(particle, current, 5, 0, 0, 0, 0.01);
 
                     if (current.getBlock().getType().isSolid() || distanceTravelled > maxDistance) {
-                        this.cancel();
+                        finish();
                         return;
                     }
 
                     for (org.bukkit.entity.Entity entity : current.getWorld().getNearbyEntities(current, 0.5, 0.5, 0.5)) {
                         if (!(entity instanceof Monster monster) || !hit.add(entity)) continue;
-                        ShotDamage.shoot(monster, damage, player, current);
+                        ShotDamage.shoot(monster, damageFor(monster, hit.size() - 1), player, current);
+                        if (monster.isDead() || monster.getHealth() <= 0) kills++;
                         if (hit.size() >= pierce) {
-                            this.cancel();
+                            finish();
                             return;
                         }
                     }
                 }
+            }
+
+            private void finish() {
+                cancel();
+                if (kills >= 2) MultiKill.reward(player, kills);
             }
         }.runTaskTimer(Main.getINSTANCE(), 0, 1);
     }
@@ -134,6 +142,11 @@ public abstract class Weapon {
             }
         }
         AmmoHud.show(player, this);
+    }
+
+    /** Damage for the monster hit as number index (0 = first) by one shot */
+    protected double damageFor(Monster monster, int index) {
+        return damage;
     }
 
     /** Full again: after the next reload both magazine and stock are at their maximum */
