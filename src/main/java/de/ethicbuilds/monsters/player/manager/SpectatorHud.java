@@ -18,6 +18,7 @@ import org.bukkit.scheduler.BukkitRunnable;
  * For downed players and watchers: a bar with the wave, the monsters left and the health of every teammate
  */
 public class SpectatorHud {
+    private static final int COMPACT_FROM = 4;
     @Inject private Main plugin;
     @Inject private GameManager gameManager;
     @Inject private WaveManager waveManager;
@@ -42,12 +43,18 @@ public class SpectatorHud {
 
     private void update() {
         StringBuilder team = new StringBuilder();
-        for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
-            Player player = gamePlayer.getPlayer();
-            if (!team.isEmpty()) team.append(" §8· ");
-            if (!player.isOnline()) team.append("§8").append(player.getName());
-            else if (userManager.isPlayerDead(player.getUniqueId())) team.append("§c").append(player.getName()).append(" §7am Boden");
-            else team.append("§f").append(player.getName()).append(" §c❤ ").append((int) Math.ceil(player.getHealth() / 2));
+        // More than 4 names do not fit in the bar, then only who is still standing
+        if (userManager.getGamePlayers().size() > COMPACT_FROM) {
+            long down = userManager.getGamePlayers().stream().filter(p -> userManager.isPlayerDead(p.getPlayer().getUniqueId())).count();
+            team.append("§f").append(userManager.getGamePlayers().size() - down).append(" stehen §8· §c").append(down).append(" am Boden");
+        } else {
+            for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
+                Player player = gamePlayer.getPlayer();
+                if (!team.isEmpty()) team.append(" §8· ");
+                if (!player.isOnline()) team.append("§8").append(player.getName());
+                else if (userManager.isPlayerDead(player.getUniqueId())) team.append("§c").append(player.getName()).append(" §7am Boden");
+                else team.append("§f").append(player.getName()).append(" §c❤ ").append((int) Math.ceil(player.getHealth() / 2));
+            }
         }
         bar.setTitle(String.format("§6Welle %d §8· §f%d Monster §8| %s", waveManager.getCurrentWave(), monsterManager.remaining(), team));
         for (GamePlayer gamePlayer : userManager.getGamePlayers()) {

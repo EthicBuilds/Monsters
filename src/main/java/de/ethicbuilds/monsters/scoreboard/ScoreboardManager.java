@@ -99,7 +99,8 @@ public class ScoreboardManager {
                     + " <white><font:monsters:hud></font></white>" + MARGIN);
             lines.add(new Line(left, right));
         }
-        lines.add(empty());
+        // The sidebar shows 15 lines at most, with 8 players the gap above the website goes
+        if (lines.size() < 14) lines.add(empty());
         lines.add(new Line(MM.deserialize(WEBSITE), Component.empty()));
 
         render(lines);
