@@ -81,7 +81,8 @@ public class MonsterMiniBoss extends MonsterZombie {
         if (!grenade) gamePlayer.addCoins(LOOT_COINS);
         Bukkit.broadcastMessage(String.format("%s§a%s §7hat §c%s §7besiegt und bekommt %s§7!", Main.getINSTANCE().getMonstersPrefix(),
                 killer.getName(), title, grenade ? "§aeine Granate" : "§6" + LOOT_COINS + " Coins"));
-        killer.playSound(killer.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.6F, 1.4F);
-        monster.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, monster.getLocation().add(0, 1, 0), 30, 0.4, 0.6, 0.4, 0.3);
+        killer.playSound(killer.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.5F, 1.3F);
+        killer.playSound(killer.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.4F, 1.2F);
+        monster.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, monster.getLocation().add(0, 1, 0), 12, 0.3, 0.5, 0.3, 0.15);
     }
 }

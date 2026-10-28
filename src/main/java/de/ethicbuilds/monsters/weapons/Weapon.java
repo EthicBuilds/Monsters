@@ -40,6 +40,7 @@ public abstract class Weapon {
     protected int maxDistance = 50;
     // How many monsters one shot goes through
     protected int pierce = 1;
+    private static final double LUCKY_PIERCE = 0.15;
 
     // Workbench upgrades: damage +25 % for levels 1-2 and x1.5 for levels 3-4, magazine +25 % per level
     public static final int MAX_LEVEL = 4;
@@ -86,6 +87,8 @@ public abstract class Weapon {
         player.playSound(player.getLocation(), sound, 0.5F, pitch);
 
         Set<org.bukkit.entity.Entity> hit = new HashSet<>();
+        // With a bit of luck a normal shot goes through into a second monster
+        int maxHits = pierce > 1 ? pierce : Math.random() < LUCKY_PIERCE ? 2 : 1;
         new BukkitRunnable() {
             double distanceTravelled = 0;
             int kills = 0;
@@ -108,7 +111,7 @@ public abstract class Weapon {
                         if (!(entity instanceof Monster monster) || !hit.add(entity)) continue;
                         ShotDamage.shoot(monster, damageFor(monster, hit.size() - 1), player, current);
                         if (monster.isDead() || monster.getHealth() <= 0) kills++;
-                        if (hit.size() >= pierce) {
+                        if (hit.size() >= maxHits) {
                             finish();
                             return;
                         }
