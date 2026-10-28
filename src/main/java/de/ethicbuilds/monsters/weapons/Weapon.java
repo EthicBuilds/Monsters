@@ -42,12 +42,14 @@ public abstract class Weapon {
     protected int pierce = 1;
     private static final double LUCKY_PIERCE = 0.15;
 
-    // Workbench upgrades: damage +25 % for levels 1-2 and x1.5 for levels 3-4, magazine +25 % per level
-    public static final int MAX_LEVEL = 4;
+    // Workbench upgrades: damage +25 % for levels 1-2 and x1.5 for levels 3-5, magazine +25 % per level,
+    // level V also goes through one monster more
+    public static final int MAX_LEVEL = 5;
     protected int level = 0;
     private double baseDamage;
     private int baseMagazine;
     private int baseFireRate;
+    private int basePierce;
 
     protected Particle particle;
 
@@ -57,6 +59,7 @@ public abstract class Weapon {
         baseDamage = damage;
         baseMagazine = maxMagazine;
         baseFireRate = fireRate;
+        basePierce = pierce;
         ammu = maxAmmu;
         magazine = maxMagazine;
 
@@ -167,6 +170,7 @@ public abstract class Weapon {
     public void upgrade() {
         if (level >= MAX_LEVEL) return;
         level++;
+        if (level == MAX_LEVEL) pierce = basePierce + 1;
         if (!upgradesDamage()) {
             fireRate = fireRateAt(level);
             return;
@@ -175,7 +179,7 @@ public abstract class Weapon {
         maxMagazine = (int) Math.round(baseMagazine * (1 + 0.25 * level));
     }
 
-    // +25 % for the first two levels, the last two each give 1.5 times as much
+    // +25 % for the first two levels, the others each give 1.5 times as much
     private static double boost(int level) {
         return level <= 2 ? 1 + 0.25 * level : 1.5 * boost(level - 1);
     }
@@ -189,7 +193,7 @@ public abstract class Weapon {
         return fireRateAt(Math.min(level + 1, MAX_LEVEL));
     }
 
-    // 15 % less time between shots for the first two levels, the last two each fire 1.5 times as fast
+    // 15 % less time between shots for the first two levels, the others each fire 1.5 times as fast
     private int fireRateAt(int level) {
         double rate = level <= 2 ? baseFireRate * (1 - 0.15 * level) : fireRateAt(level - 1) / 1.5;
         return Math.max(1, (int) Math.round(rate));

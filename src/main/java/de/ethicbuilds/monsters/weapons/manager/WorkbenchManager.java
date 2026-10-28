@@ -63,7 +63,11 @@ public class WorkbenchManager implements Listener {
     private static final TextColor BUTTON_GREY = TextColor.color(0xC8CED8);
     private static final TextColor TOO_EXPENSIVE = TextColor.color(0xFF8A80);
     // Level colours of the ammo bar: I green, II blue, III purple, IV gold
-    private static final int[] LEVEL_COLORS = {0x3BDB9A, 0x49A2E8, 0x9678F0, 0xFFCD28};
+    // Level V from the design session
+    private static final int LEVEL_5_COLOR = 0xFF5CCD, STAR_5_WIDTH = 64;
+    private static final int[] LEVEL_COLORS = {0x3BDB9A, 0x49A2E8, 0x9678F0, 0xFFCD28, LEVEL_5_COLOR};
+    // Width of the star glyphs per level (no stars, 1-3, 4 and 5 stars)
+    private static final int[] STAR_WIDTHS = {46, 49, 49, 49, 52, STAR_5_WIDTH};
     private static final TextColor LIGHT = TextColor.color(0xF2F5F8);
     private static final TextColor GREY = TextColor.color(0x9AA6B8);
     private static final TextColor GREEN = TextColor.color(0x3BDB9A);
@@ -352,28 +356,28 @@ public class WorkbenchManager implements Listener {
     // Everything that changes is drawn into the title: tab, stars, button, card and balance
     // What one upgrade gives, the same card for weapons and armor
     private record Card(int level, String name1, String now1, String next1, boolean arrow1,
-                        String name2, String now2, String next2, boolean arrow2, int price) {}
+                        String name2, String now2, String next2, boolean arrow2, int price, int max) {}
 
     private static Card card(Weapon weapon) {
         if (weapon.upgradesDamage()) {
             return new Card(weapon.getLevel(), "Schaden", number(weapon.getDamage()), number(weapon.nextDamage()), true,
-                    "Magazin", String.valueOf(weapon.getMaxMagazine()), String.valueOf(weapon.nextMagazine()), true, upgradePrice(weapon));
+                    "Magazin", String.valueOf(weapon.getMaxMagazine()), String.valueOf(weapon.nextMagazine()), true, upgradePrice(weapon), Weapon.MAX_LEVEL);
         }
         // Sniper: only reloads faster, damage and magazine stay
         return new Card(weapon.getLevel(), "Nachladen", seconds(weapon.getFireRate()), seconds(weapon.nextFireRate()), true,
-                "Magazin", String.valueOf(weapon.getMaxMagazine()), "", false, upgradePrice(weapon));
+                "Magazin", String.valueOf(weapon.getMaxMagazine()), "", false, upgradePrice(weapon), Weapon.MAX_LEVEL);
     }
 
     private static Card armorCard(GamePlayer gamePlayer) {
         int level = gamePlayer.getArmorLevel();
         return new Card(level, "Schutz", String.valueOf(ArmorSet.protection(level)), String.valueOf(ArmorSet.protection(level + 1)), true,
-                "Set", "", ArmorSet.name(Math.min(level + 1, ArmorSet.MAX_LEVEL)), level < ArmorSet.MAX_LEVEL, ArmorSet.price(level));
+                "Set", "", ArmorSet.name(Math.min(level + 1, ArmorSet.MAX_LEVEL)), level < ArmorSet.MAX_LEVEL, ArmorSet.price(level), ArmorSet.MAX_LEVEL);
     }
 
     private static Card crowbarCard(GamePlayer gamePlayer) {
         int level = gamePlayer.getCrowbarLevel();
         return new Card(level, "Tempo", factor(CrowbarLevel.speed(level)), factor(CrowbarLevel.speed(level + 1)), true,
-                "Beute", loot(level), loot(level + 1), true, CrowbarLevel.price(level));
+                "Beute", loot(level), loot(level + 1), true, CrowbarLevel.price(level), CrowbarLevel.MAX_LEVEL);
     }
 
     private static String factor(double value) {
@@ -393,18 +397,18 @@ public class WorkbenchManager implements Listener {
         if (card == null) return title.build();
 
         int level = card.level();
-        boolean max = level >= Weapon.MAX_LEVEL;
+        boolean max = level >= card.max();
         boolean locked = waveManager.getCurrentWave() < UNLOCK_WAVE;
         boolean open = unlocked;
         boolean values = open && !max || locked;
 
         // Tab of the selected entry: weapons in rows 0-2, armor in row 3, crowbar in row 4 (both closed on the right)
         if (row <= CROWBAR_INDEX) title.glyph((char) (0xE010 + row), 6, row >= ARMOR_INDEX ? 20 : 21);
-        title.glyph((char) (0xE030 + level), level == 0 ? 30 : 27, level == 0 ? 46 : level == Weapon.MAX_LEVEL ? 52 : 49);
+        title.glyph((char) (0xE030 + level), level == 0 ? 30 : 27, STAR_WIDTHS[level]);
 
         // Card: what you get
         title.left("name_0", 117, new WorkbenchTitle.Part("Stufe", GREY));
-        if (max) title.left("wert_0", 117, new WorkbenchTitle.Part(level + "/" + Weapon.MAX_LEVEL, LIGHT));
+        if (max) title.left("wert_0", 117, new WorkbenchTitle.Part(level + "/" + card.max(), LIGHT));
         else if (values) title.left("wert_0", 117, new WorkbenchTitle.Part(String.valueOf(level), LIGHT),
                 new WorkbenchTitle.Part(ARROW, ORANGE), new WorkbenchTitle.Part(String.valueOf(level + 1), TextColor.color(LEVEL_COLORS[level])));
         else title.left("wert_0", 117, new WorkbenchTitle.Part("-", LIGHT));
