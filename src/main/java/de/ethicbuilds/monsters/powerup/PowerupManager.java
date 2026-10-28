@@ -55,7 +55,7 @@ public class PowerupManager {
     public enum Type {
         MEDKIT(0.04, 0x3CC860, GameItems::medkit),
         SPEED(0.02, 0x4FB3FF, () -> model("powerup/tempo")),
-        INSTAKILL(0.015, 0xE84848, () -> model("powerup/instakill"));
+        INSTAKILL(0.015, 0xFF3B3B, () -> model("powerup/instakill"));
 
         private final double dropChance;
         private final int color;
@@ -231,18 +231,18 @@ public class PowerupManager {
                         other.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, EFFECT_TICKS, 1, false, false, true));
                     }
                 }
-                announce(player, "§b§lTEMPO!", "§7Alle sind 10 Sekunden schneller", BarColor.BLUE, Sound.ENTITY_BREEZE_WIND_BURST);
+                announce(player, "§x§4§F§B§3§F§F§lTEMPO!", "§7Alle sind 10 Sekunden schneller", BarColor.BLUE, Sound.ENTITY_BREEZE_WIND_BURST);
             }
             case INSTAKILL -> {
                 instakillUntil = System.currentTimeMillis() + EFFECT_TICKS * 50L;
-                announce(player, "§c§lINSTA-KILL!", "§7Jeder Treffer tötet, 10 Sekunden lang", BarColor.RED, Sound.ENTITY_WITHER_SPAWN);
+                announce(player, "§x§F§F§3§B§3§B§lINSTA-KILL!", "§7Jeder Treffer tötet, 10 Sekunden lang", BarColor.RED, Sound.ENTITY_WITHER_SPAWN);
             }
         }
     }
 
     // Title for everyone and a boss bar counting down the 10 seconds
     private void announce(Player finder, String title, String subtitle, BarColor color, Sound sound) {
-        BossBar bar = Bukkit.createBossBar(title + " §7von " + finder.getName(), color, BarStyle.SOLID);
+        BossBar bar = Bukkit.createBossBar(title + " §7von " + finder.getName(), color, BarStyle.SEGMENTED_10);
         for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
             Player player = gamePlayer.getPlayer();
             if (!player.isOnline()) continue;
