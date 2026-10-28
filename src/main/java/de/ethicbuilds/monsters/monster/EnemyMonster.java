@@ -101,6 +101,7 @@ public abstract class EnemyMonster {
                     this.cancel();
                     return;
                 }
+                if (flee(pathfinder)) return;
 
                 // Every monster keeps its own player, a dead one hands it to the least chased living player
                 if (target == null || !target.isOnline() || userManager.isPlayerDead(target.getUniqueId())) {
@@ -158,6 +159,11 @@ public abstract class EnemyMonster {
         }
         monster.setTarget(target);
         if (direct != null) pathfinder.moveTo(direct, speed);
+    }
+
+    /** true: the monster moves on its own this second instead of chasing a player */
+    protected boolean flee(Pathfinder pathfinder) {
+        return false;
     }
 
     /** How far paths are searched */

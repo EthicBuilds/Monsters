@@ -22,6 +22,8 @@ public class WaveManager {
     // Measured 28.10.: up to about 170 monsters the server runs smoothly, 120 leaves room
     private static final int MAX_ALIVE = 120;
     private static final int HORDE_FROM = 8;
+    private static final int BOUNTY_FROM = 5;
+    private static final double BOUNTY_CHANCE = 0.35, BOUNTY_AT = 0.8;
     private static final double HORDE_CHANCE = 0.5, HORDE_AT = 0.6;
     private static final long HORDE_WARNING = 3000;
     // Every weaver is about 40 animated displays, so fewer of them at once (8 players would bring over 100)
@@ -87,8 +89,15 @@ public class WaveManager {
         int total = monsterManager.remaining();
         boolean horde = currentWave >= HORDE_FROM && currentWave % de.ethicbuilds.monsters.monster.manager.MonsterManager.SPIDER_WAVE != 0
                 && java.util.concurrent.ThreadLocalRandom.current().nextDouble() < HORDE_CHANCE;
+        // From wave 5 now and then a bounty zombie once a fifth is beaten
+        boolean bounty = currentWave >= BOUNTY_FROM && currentWave % de.ethicbuilds.monsters.monster.manager.MonsterManager.SPIDER_WAVE != 0
+                && java.util.concurrent.ThreadLocalRandom.current().nextDouble() < BOUNTY_CHANCE;
         int cap = currentWave % de.ethicbuilds.monsters.monster.manager.MonsterManager.SPIDER_WAVE == 0 ? MAX_SPIDERS_ALIVE : MAX_ALIVE;
         while (monsterManager.hasPendingSpawns() || !monsterManager.getMonsters().isEmpty()) {
+            if (bounty && monsterManager.remaining() <= total * BOUNTY_AT) {
+                bounty = false;
+                startOnMinecraftThread(() -> monsterManager.addBounty(currentWave));
+            }
             if (horde && monsterManager.remaining() <= total * HORDE_AT) {
                 horde = false;
                 startOnMinecraftThread(this::announceHorde);

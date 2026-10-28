@@ -8,6 +8,7 @@ import de.ethicbuilds.monsters.monster.EliteTier;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.HealthBars;
 import de.ethicbuilds.monsters.monster.MonsterMiniBoss;
+import de.ethicbuilds.monsters.monster.MonsterBounty;
 import de.ethicbuilds.monsters.monster.MonsterScarab;
 import de.ethicbuilds.monsters.monster.MonsterSpider;
 import de.ethicbuilds.monsters.monster.MonsterSpiderBoss;
@@ -118,6 +119,12 @@ public class MonsterManager {
             scarab.setWave(wave);
             initialMonsters.addFirst(scarab);
         }
+    }
+
+    public void addBounty(int wave) {
+        MonsterBounty bounty = new MonsterBounty(wave);
+        bounty.setWave(wave);
+        initialMonsters.addFirst(bounty);
     }
 
     /** Small weavers the boss calls */
