@@ -61,7 +61,7 @@ public abstract class EnemyMonster {
         if (knockback != null) knockback.setBaseValue(KNOCKBACK_RESISTANCE);
         // Paths are searched this far, otherwise far away monsters just stand around
         var followRange = monster.getAttribute(org.bukkit.attribute.Attribute.FOLLOW_RANGE);
-        if (followRange != null) followRange.setBaseValue(FOLLOW_RANGE);
+        if (followRange != null) followRange.setBaseValue(followRange());
         MonsterGuard.mark(monster);
         // They always hunt a player, wandering and looking around only cost CPU
         var goals = Bukkit.getMobGoals();
@@ -143,6 +143,11 @@ public abstract class EnemyMonster {
         }
         monster.setTarget(target);
         if (direct != null) pathfinder.moveTo(direct, speed);
+    }
+
+    /** How far paths are searched */
+    protected double followRange() {
+        return FOLLOW_RANGE;
     }
 
     /** After spawning, e.g. to put a model on the monster */

@@ -30,6 +30,12 @@ public class MonsterSpiderBoss extends MonsterSpider {
         this.attackCooldown = 30;
     }
 
+    // Finds the players across the whole map
+    @Override
+    protected double followRange() {
+        return 128;
+    }
+
     @Override
     protected double maxSpeed() {
         return 0.23;

@@ -15,6 +15,8 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class OpenGround {
     private static final double MIN_PLAYER_DISTANCE = 10;
+    // The boss weaver appears about this far from the closest player
+    private static final double NEAR_DISTANCE = 16;
 
     private OpenGround() {}
 
@@ -29,6 +31,26 @@ public final class OpenGround {
         }
         double midX = x / spots.size(), midZ = z / spots.size();
         return spots.stream().min(Comparator.comparingDouble(s -> square(s.getX() - midX) + square(s.getZ() - midZ))).orElse(null);
+    }
+
+    /** Free spot in the part of the map where the players are right now, not too close to them, null if there is none */
+    public static Location nearPlayers(Collection<Player> players, int radius, int height) {
+        List<Location> spots = new ArrayList<>();
+        for (Player player : players) {
+            for (Location spot : PlayerTrail.of(player)) {
+                Location block = spot.toBlockLocation().add(0.5, 0, 0.5);
+                if (isFree(block, radius, height)) spots.add(block);
+            }
+        }
+        return spots.stream().min(Comparator.comparingDouble(s -> Math.abs(nearest(players, s) - NEAR_DISTANCE))).orElse(null);
+    }
+
+    private static double nearest(Collection<Player> players, Location spot) {
+        double best = Double.MAX_VALUE;
+        for (Player player : players) {
+            if (player.getWorld().equals(spot.getWorld())) best = Math.min(best, player.getLocation().distance(spot));
+        }
+        return best;
     }
 
     /** Any free spot, null if there is none */

@@ -48,6 +48,8 @@ public final class CrystalBarrage {
     private static final float MARK_SCALE = (float) (RADIUS / 0.71875);
     private static final Key MARK_FONT = Key.key("monsters", "ziel");
 
+    private static final double RANGE = 64;
+
     private CrystalBarrage() {}
 
     /** One volley: a crystal at every living player plus a few close to them */
@@ -57,7 +59,7 @@ public final class CrystalBarrage {
         for (GamePlayer gamePlayer : users.getGamePlayers()) {
             Player player = gamePlayer.getPlayer();
             if (player.isOnline() && !users.isPlayerDead(player.getUniqueId()) && player.getWorld().equals(boss.getWorld())
-                    && player.getLocation().distance(boss.getLocation()) < 40) {
+                    && player.getLocation().distance(boss.getLocation()) < RANGE) {
                 targets.add(player);
             }
         }

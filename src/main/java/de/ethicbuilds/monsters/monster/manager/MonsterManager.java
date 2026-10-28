@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MonsterManager {
     public static final int SPIDER_WAVE = 5;
+    private static final double BOSS_LEASH = 40;
     public static final int BOSS_WAVE = 10;
     private static final int MINI_BOSS_WAVE = 2;
 
@@ -129,7 +130,7 @@ public class MonsterManager {
 
     private Location spiderSpot(MonsterSpider spider, List<Player> players) {
         int height = spider.getRoom() + 1;
-        if (spider instanceof MonsterSpiderBoss) return OpenGround.middle(players, spider.getRoom(), height);
+        if (spider instanceof MonsterSpiderBoss) return OpenGround.nearPlayers(players, spider.getRoom(), height);
         return OpenGround.random(players, spider.getRoom(), height);
     }
 
@@ -184,6 +185,15 @@ public class MonsterManager {
                     continue;
                 }
 
+                // The boss weaver never stays far away from the players
+                if (enemyMonster instanceof MonsterSpiderBoss boss) {
+                    Player nearest = nearestPlayer(loc);
+                    if (nearest != null && nearest.getLocation().distance(loc) > BOSS_LEASH) {
+                        Location open = spiderSpot(boss, livingPlayers());
+                        if (open != null) entity.teleport(open, io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_PASSENGERS);
+                    }
+                }
+
                 Location lastLoc = lastLocation.get(enemyMonster);
 
                 if (lastLoc != null && lastLoc.equals(loc)) {
@@ -191,7 +201,8 @@ public class MonsterManager {
                     // A stuck spider gets free ground instead of being removed, the boss ends the wave
                     if (now - lastMoved >= 10_000 && enemyMonster instanceof MonsterSpider spider) {
                         Location open = spiderSpot(spider, livingPlayers());
-                        if (open != null) entity.teleport(open);
+                        // The model parts ride on it and come along
+                        if (open != null) entity.teleport(open, io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_PASSENGERS);
                         lastMoveTime.put(enemyMonster, now);
                         continue;
                     }
