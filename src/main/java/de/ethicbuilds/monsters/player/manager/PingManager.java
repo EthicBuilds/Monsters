@@ -32,10 +32,11 @@ import java.util.Map;
 import java.util.UUID;
 
 /***
- * Team ping: mouse wheel click (or F) marks the spot the player looks at, the team sees it through walls for 5 seconds
+ * Team ping: mouse wheel click (or F) marks the spot the player looks at up to 30 blocks away, the team sees it
+ * through walls for 5 seconds
  */
 public class PingManager implements Listener {
-    private static final int RANGE = 80;
+    public static final int RANGE = 30;
     private static final long LIFETIME = 5 * 20;
     private static final long COOLDOWN = 4000;
     private static final TextColor NAME_COLOR = TextColor.color(0xA0F2FA);
@@ -47,7 +48,7 @@ public class PingManager implements Listener {
 
     private final Map<UUID, Long> lastPing = new HashMap<>();
 
-    // The wheel click only reaches the server when the player looks at something close by, F works at any distance
+    // The wheel click only reaches the server for blocks within the interaction range, so that range is 30 in Monsters
     @EventHandler(priority = EventPriority.LOW)
     public void onPickBlock(PlayerPickBlockEvent event) {
         event.setCancelled(true);

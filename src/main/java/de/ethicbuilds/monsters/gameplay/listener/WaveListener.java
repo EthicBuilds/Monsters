@@ -69,6 +69,7 @@ public class WaveListener implements Listener {
     private boolean isAxeCooldDown;
 
     private static final int DOOR_PRICE = 2500;
+    private static final double DOOR_REACH = 5;
     private static final int HEADSHOT_COINS = 25;
     // Coins already put into a door by players who did not have enough
     private final java.util.Map<Door, Integer> doorPayments = new java.util.IdentityHashMap<>();
@@ -181,6 +182,8 @@ public class WaveListener implements Listener {
         if (gamePlayer == null || userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) return;
 
         Location location = event.getClickedBlock().getLocation();
+        // The block reach is 30 for the team ping, doors still need the player right in front of them
+        if (event.getPlayer().getEyeLocation().distance(location.clone().add(0.5, 0.5, 0.5)) > DOOR_REACH) return;
 
         for (Door door : mapConfiguration.getDoors()) {
             for (Location loc : door.getClickableLocations()) {

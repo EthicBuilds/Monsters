@@ -76,6 +76,8 @@ public class PreGameListener implements Listener {
         setBase(player, Attribute.SCALE, 1.0);
         setBase(player, Attribute.MOVEMENT_SPEED, 0.1);
         setBase(player, Attribute.JUMP_STRENGTH, 0.42);
+        // Far enough for the team ping with the mouse wheel, doors and stations check their own distance
+        setBase(player, Attribute.BLOCK_INTERACTION_RANGE, de.ethicbuilds.monsters.player.manager.PingManager.RANGE);
         player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
         player.setGameMode(GameMode.ADVENTURE);
         player.setInvulnerable(false);
