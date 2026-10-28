@@ -68,6 +68,13 @@ public class GameListener implements Listener {
 
         if (weapon == null) return;
 
+        // Sniper: left click fires from the hip, right click looks through the scope, reloading goes by itself
+        if (weapon instanceof de.ethicbuilds.monsters.weapons.Sniper) {
+            if (event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK) weapon.shoot(gamePlayer.getPlayer());
+            else if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) de.ethicbuilds.monsters.weapons.SniperScope.rightClick(gamePlayer.getPlayer());
+            return;
+        }
+
         if (event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK) {
             weapon.reload(gamePlayer.getPlayer());
             return;

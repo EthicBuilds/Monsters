@@ -74,7 +74,7 @@ public abstract class Weapon {
         startCoolDown();
 
         Location start = player.getEyeLocation();
-        Vector direction = start.getDirection().normalize();
+        Vector direction = aim(player);
 
         magazine--;
         AmmoHud.show(player, this);
@@ -124,6 +124,11 @@ public abstract class Weapon {
                 if (kills >= 2) MultiKill.reward(player, kills);
             }
         }.runTaskTimer(Main.getINSTANCE(), 0, 1);
+    }
+
+    /** Direction of the shot */
+    protected Vector aim(Player player) {
+        return player.getEyeLocation().getDirection().normalize();
     }
 
     public void reload(Player player) {

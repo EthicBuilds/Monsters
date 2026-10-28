@@ -13,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
 public class Sniper extends Weapon {
     private static final double BASE_DAMAGE = 1000, BOSS_DAMAGE = 50;
     private static final int KILLS = 2;
+    private static final double HIP_SPREAD = 0.06;
 
     public Sniper() {
         this.item = new ItemStack(Material.ARROW);
@@ -29,6 +30,16 @@ public class Sniper extends Weapon {
         this.upgradePrice = 30000;
 
         initialize();
+    }
+
+    // From the hip the shot scatters a little, through the scope it goes exactly to the crosshair
+    @Override
+    protected org.bukkit.util.Vector aim(org.bukkit.entity.Player player) {
+        org.bukkit.util.Vector direction = super.aim(player);
+        if (SniperScope.isAiming(player)) return direction;
+        var random = java.util.concurrent.ThreadLocalRandom.current();
+        return direction.add(new org.bukkit.util.Vector(random.nextDouble(-HIP_SPREAD, HIP_SPREAD),
+                random.nextDouble(-HIP_SPREAD, HIP_SPREAD), random.nextDouble(-HIP_SPREAD, HIP_SPREAD))).normalize();
     }
 
     // At the workbench only the time between shots gets shorter

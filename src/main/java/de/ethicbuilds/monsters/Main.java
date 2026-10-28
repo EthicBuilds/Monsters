@@ -102,6 +102,7 @@ public final class Main extends JavaPlugin {
         de.ethicbuilds.monsters.reward.DailyChallenge.load();
         pm.registerEvents(injector.getInstance(de.ethicbuilds.monsters.player.manager.PingManager.class), this);
         pm.registerEvents(injector.getInstance(JoinMeListener.class), this);
+        pm.registerEvents(new de.ethicbuilds.monsters.weapons.SniperScope(), this);
         getServer().getMessenger().registerOutgoingPluginChannel(this, JoinMeListener.CHANNEL);
     }
 

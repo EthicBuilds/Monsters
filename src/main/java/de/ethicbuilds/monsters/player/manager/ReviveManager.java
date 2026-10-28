@@ -82,6 +82,7 @@ public class ReviveManager implements Listener {
 
     public void down(Player player) {
         // The player keeps the normal view where they fell, only the body lies on the ground
+        de.ethicbuilds.monsters.weapons.SniperScope.stop(player);
         Location view = player.getLocation().clone();
         Location spot = view.clone();
         spot.setYaw(freeYaw(spot));
