@@ -18,7 +18,7 @@ public abstract class EnemyMonster {
     private static final double FOLLOW_RANGE = 128;
     private static final int TRAIL_TRIES = 6;
     private static final double SWITCH_MARGIN = 3;
-    private static final double KNOCKBACK_RESISTANCE = 0.9;
+    private static final double KNOCKBACK_RESISTANCE = 1.0;
 
     protected int health;
     protected int damage;
@@ -42,7 +42,7 @@ public abstract class EnemyMonster {
         if (monster instanceof org.bukkit.entity.Ageable ageable) ageable.setAdult();
         var movement = monster.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
         if (movement != null) movement.setBaseValue(Math.min(movement.getBaseValue(), 0.23));
-        // Shots barely push them back, otherwise a player can keep them away just by firing
+        // Hits do not push them back, otherwise a player can keep them away just by firing
         var knockback = monster.getAttribute(org.bukkit.attribute.Attribute.KNOCKBACK_RESISTANCE);
         if (knockback != null) knockback.setBaseValue(KNOCKBACK_RESISTANCE);
         // Paths are searched this far, otherwise far away monsters just stand around
