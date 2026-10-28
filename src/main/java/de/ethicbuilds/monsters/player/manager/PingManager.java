@@ -38,7 +38,7 @@ import java.util.UUID;
 public class PingManager implements Listener {
     public static final int RANGE = 30;
     private static final long LIFETIME = 5 * 20;
-    private static final long COOLDOWN = 4000;
+    private static final long COOLDOWN = 1000;
     private static final TextColor NAME_COLOR = TextColor.color(0xA0F2FA);
     private static final Key PING_FONT = Key.key("monsters", "ping");
 
@@ -58,6 +58,14 @@ public class PingManager implements Listener {
     @EventHandler(priority = EventPriority.LOW)
     public void onPickEntity(PlayerPickEntityEvent event) {
         event.setCancelled(true);
+        ping(event.getPlayer());
+    }
+
+    // Left or right click with the monster tracker in hand
+    @EventHandler(priority = EventPriority.LOW)
+    public void onTracker(org.bukkit.event.player.PlayerInteractEvent event) {
+        if (event.getHand() != org.bukkit.inventory.EquipmentSlot.HAND || event.getAction() == org.bukkit.event.block.Action.PHYSICAL) return;
+        if (event.getPlayer().getInventory().getItemInMainHand().getType() != org.bukkit.Material.COMPASS) return;
         ping(event.getPlayer());
     }
 

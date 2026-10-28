@@ -5,6 +5,8 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
 import de.ethicbuilds.monsters.items.ArmorSet;
+import de.ethicbuilds.monsters.items.CrowbarLevel;
+import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -50,6 +52,8 @@ public class WorkbenchManager implements Listener {
     private static final int[] WEAPON_SLOTS = {0, 9, 18};
     // Armor is the fourth entry under the weapons
     private static final int ARMOR_SLOT = 27, ARMOR_INDEX = 3;
+    // Crowbar entry, place until the design session gives it its own tile
+    private static final int CROWBAR_SLOT = 28, CROWBAR_INDEX = 4;
     private static final int[] BUTTON_SLOTS = {32, 33, 34, 35, 41, 42, 43, 44};
     private static final int BIG_SLOT = 11, LEVEL_SLOT = 5, DAMAGE_SLOT = 14, MAGAZINE_SLOT = 23, CLOSE_SLOT = 36;
 
@@ -92,10 +96,11 @@ public class WorkbenchManager implements Listener {
         Player player = gamePlayer.getPlayer();
         List<Weapon> weapons = new ArrayList<>(gamePlayer.getWeapons().values());
         int index = selected.getOrDefault(player.getUniqueId(), 0);
-        if (index != ARMOR_INDEX) index = Math.min(index, Math.max(0, weapons.size() - 1));
+        if (index != ARMOR_INDEX && index != CROWBAR_INDEX) index = Math.min(index, Math.max(0, weapons.size() - 1));
         boolean armor = index == ARMOR_INDEX;
-        Weapon weapon = armor || weapons.isEmpty() ? null : weapons.get(index);
-        Card card = armor ? armorCard(gamePlayer) : weapon != null ? card(weapon) : null;
+        boolean crowbar = index == CROWBAR_INDEX;
+        Weapon weapon = armor || crowbar || weapons.isEmpty() ? null : weapons.get(index);
+        Card card = armor ? armorCard(gamePlayer) : crowbar ? crowbarCard(gamePlayer) : weapon != null ? card(weapon) : null;
 
         Menu menu = new Menu(weapons);
         Inventory inventory = Bukkit.createInventory(menu, 45, title(gamePlayer, card, index));
@@ -118,6 +123,13 @@ public class WorkbenchManager implements Listener {
             meta.lore(List.of(text(ArmorSet.name(armorLevel) + " · Stufe " + armorLevel + "/" + ArmorSet.MAX_LEVEL, GREY)));
         });
         inventory.setItem(ARMOR_SLOT, armorIcon);
+        int crowbarLevel = gamePlayer.getCrowbarLevel();
+        ItemStack crowbarIcon = GameItems.crowbar();
+        crowbarIcon.editMeta(meta -> {
+            meta.displayName(text("Brechstange", LIGHT));
+            meta.lore(List.of(text("Stufe " + crowbarLevel + "/" + CrowbarLevel.MAX_LEVEL, GREY)));
+        });
+        inventory.setItem(CROWBAR_SLOT, crowbarIcon);
 
         if (armor) {
             boolean max = armorLevel >= ArmorSet.MAX_LEVEL;
@@ -130,6 +142,19 @@ public class WorkbenchManager implements Listener {
                     change(String.valueOf(ArmorSet.protection(armorLevel)), String.valueOf(ArmorSet.protection(armorLevel + 1)), max)));
             inventory.setItem(MAGAZINE_SLOT, icon(Material.PAPER, "werkbank_magazin", text("Set", GREY),
                     change(ArmorSet.name(armorLevel), ArmorSet.name(armorLevel + 1), max)));
+            ItemStack button = button(gamePlayer, card.level(), card.price());
+            for (int slot : BUTTON_SLOTS) inventory.setItem(slot, button);
+        } else if (crowbar) {
+            boolean max = crowbarLevel >= CrowbarLevel.MAX_LEVEL;
+            ItemStack big = GameItems.crowbar();
+            big.editMeta(meta -> meta.displayName(text("Brechstange", LIGHT)));
+            inventory.setItem(BIG_SLOT, big);
+            inventory.setItem(LEVEL_SLOT, icon(Material.PAPER, "werkbank_stufe", text("Stufe", GREY),
+                    change(crowbarLevel + "/" + CrowbarLevel.MAX_LEVEL, (crowbarLevel + 1) + "/" + CrowbarLevel.MAX_LEVEL, max)));
+            inventory.setItem(DAMAGE_SLOT, icon(Material.PAPER, "werkbank_schaden", text("Tempo bei Kisten und Türen", GREY),
+                    change(factor(CrowbarLevel.speed(crowbarLevel)), factor(CrowbarLevel.speed(crowbarLevel + 1)), max)));
+            inventory.setItem(MAGAZINE_SLOT, icon(Material.PAPER, "werkbank_magazin", text("Beute-Chance in Kisten (%)", GREY),
+                    change(loot(crowbarLevel), loot(crowbarLevel + 1), max)));
             ItemStack button = button(gamePlayer, card.level(), card.price());
             for (int slot : BUTTON_SLOTS) inventory.setItem(slot, button);
         } else if (weapon != null) {
@@ -201,7 +226,11 @@ public class WorkbenchManager implements Listener {
                 return;
             }
         }
-        if (slot == ARMOR_SLOT) {
+        if (slot == CROWBAR_SLOT) {
+            selected.put(player.getUniqueId(), CROWBAR_INDEX);
+            player.playSound(player.getLocation(), Sound.BLOCK_LEVER_CLICK, 0.8F, 1.2F);
+            open(gamePlayer);
+        } else if (slot == ARMOR_SLOT) {
             selected.put(player.getUniqueId(), ARMOR_INDEX);
             player.playSound(player.getLocation(), Sound.BLOCK_LEVER_CLICK, 0.8F, 1.2F);
             open(gamePlayer);
@@ -230,6 +259,11 @@ public class WorkbenchManager implements Listener {
             open(gamePlayer);
             return;
         }
+        if (index == CROWBAR_INDEX) {
+            upgradeCrowbar(gamePlayer);
+            open(gamePlayer);
+            return;
+        }
         if (index >= menu.weapons.size()) return;
         Weapon weapon = menu.weapons.get(index);
         if (weapon.getLevel() >= Weapon.MAX_LEVEL) {
@@ -247,6 +281,20 @@ public class WorkbenchManager implements Listener {
         player.sendMessage(String.format("%s§a%s §7ist jetzt Stufe §6%d§7! §c-%d Coins", plugin.getMonstersPrefix(),
                 weapon.getName(), weapon.getLevel(), price));
         open(gamePlayer);
+    }
+
+    private void upgradeCrowbar(GamePlayer gamePlayer) {
+        Player player = gamePlayer.getPlayer();
+        int level = gamePlayer.getCrowbarLevel();
+        if (level >= CrowbarLevel.MAX_LEVEL) {
+            Sounds.deny(player);
+            return;
+        }
+        int price = CrowbarLevel.price(level);
+        if (!pay(gamePlayer, price)) return;
+        gamePlayer.setCrowbarLevel(level + 1);
+        Sounds.upgrade(player, level + 1 >= CrowbarLevel.MAX_LEVEL);
+        player.sendMessage(String.format("%s§7Deine §aBrechstange §7ist jetzt Stufe §6%d§7! §c-%d Coins", plugin.getMonstersPrefix(), level + 1, price));
     }
 
     private void upgradeArmor(GamePlayer gamePlayer) {
@@ -321,6 +369,21 @@ public class WorkbenchManager implements Listener {
         int level = gamePlayer.getArmorLevel();
         return new Card(level, "Schutz", String.valueOf(ArmorSet.protection(level)), String.valueOf(ArmorSet.protection(level + 1)), true,
                 "Set", "", ArmorSet.name(Math.min(level + 1, ArmorSet.MAX_LEVEL)), level < ArmorSet.MAX_LEVEL, ArmorSet.price(level));
+    }
+
+    private static Card crowbarCard(GamePlayer gamePlayer) {
+        int level = gamePlayer.getCrowbarLevel();
+        return new Card(level, "Tempo", factor(CrowbarLevel.speed(level)), factor(CrowbarLevel.speed(level + 1)), true,
+                "Beute", loot(level), loot(level + 1), true, CrowbarLevel.price(level));
+    }
+
+    private static String factor(double value) {
+        return String.format(Locale.GERMANY, "%.1f", value);
+    }
+
+    // Chance in percent that a crate gives a grenade or coins
+    private static String loot(int level) {
+        return String.valueOf((int) Math.round((0.5 + 2 * CrowbarLevel.extraLoot(Math.min(level, CrowbarLevel.MAX_LEVEL))) * 100));
     }
 
     private Component title(GamePlayer gamePlayer, Card card, int row) {

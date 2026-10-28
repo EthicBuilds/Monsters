@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.gameplay.manager;
 
+import de.ethicbuilds.monsters.items.CrowbarLevel;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.items.GameItems;
@@ -33,6 +34,7 @@ public class DoorManager {
         if (!breaking.add(door)) return;
 
         Player player = gamePlayer.getPlayer();
+        int breakTicks = (int) Math.round(BREAK_TICKS / CrowbarLevel.speed(gamePlayer.getCrowbarLevel()));
         List<Location> blocks = List.copyOf(door.getClickableLocations());
         Location center = center(blocks);
 
@@ -50,7 +52,7 @@ public class DoorManager {
                 }
 
                 ticks++;
-                float progress = (float) ticks / BREAK_TICKS;
+                float progress = (float) ticks / breakTicks;
 
                 if (ticks % 8 == 0) {
                     player.swingMainHand();
@@ -66,7 +68,7 @@ public class DoorManager {
                 }
                 player.sendActionBar(progressBar(progress));
 
-                if (ticks >= BREAK_TICKS) {
+                if (ticks >= breakTicks) {
                     stop(door, blocks, player);
                     center.getWorld().playSound(center, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 1.2F, 1.0F);
                     center.getWorld().spawnParticle(Particle.BLOCK, center, 40, 0.6, 0.8, 0.6, blocks.getFirst().getBlock().getBlockData());

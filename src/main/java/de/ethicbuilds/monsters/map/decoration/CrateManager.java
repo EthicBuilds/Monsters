@@ -4,6 +4,7 @@ import de.ethicbuilds.monsters.weapons.AmmoHud;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
+import de.ethicbuilds.monsters.items.CrowbarLevel;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -38,6 +39,7 @@ public class CrateManager implements Listener {
     private static final double GRENADE_CHANCE = 0.3;
     private static final double COINS_CHANCE = 0.2;
     private static final int COINS = 100;
+    private static final double REACH = 5;
 
     @Inject private UserManager userManager;
     @Inject private GameManager gameManager;
@@ -86,6 +88,7 @@ public class CrateManager implements Listener {
         if (crate == null || crate.damage >= STAGES) return;
 
         Player player = event.getPlayer();
+        if (player.getEyeLocation().distance(crate.block.getLocation().add(0.5, 0.5, 0.5)) > REACH) return;
         GamePlayer gamePlayer = userManager.getGamePlayer(player.getUniqueId());
         if (gamePlayer == null || userManager.isPlayerDead(player.getUniqueId())) return;
 
@@ -96,7 +99,7 @@ public class CrateManager implements Listener {
         }
 
         long now = System.currentTimeMillis();
-        if (now - lastHits.getOrDefault(player.getUniqueId(), 0L) < HIT_COOLDOWN) return;
+        if (now - lastHits.getOrDefault(player.getUniqueId(), 0L) < HIT_COOLDOWN / CrowbarLevel.speed(gamePlayer.getCrowbarLevel())) return;
         lastHits.put(player.getUniqueId(), now);
 
         hit(gamePlayer, crate);
@@ -106,6 +109,9 @@ public class CrateManager implements Listener {
         Player player = gamePlayer.getPlayer();
         Location center = crate.block.getLocation().add(0.5, 0.5, 0.5);
         crate.damage++;
+        // A better crowbar needs fewer hits
+        int hits = Math.max(1, (int) Math.round(STAGES / CrowbarLevel.speed(gamePlayer.getCrowbarLevel())));
+        if (crate.damage >= hits) crate.damage = STAGES;
 
         player.swingMainHand();
         center.getWorld().spawnParticle(Particle.BLOCK, center, 12 * crate.damage, 0.3, 0.3, 0.3, Material.OAK_PLANKS.createBlockData());
@@ -132,13 +138,15 @@ public class CrateManager implements Listener {
     private void loot(GamePlayer gamePlayer) {
         Player player = gamePlayer.getPlayer();
         double roll = ThreadLocalRandom.current().nextDouble();
+        double extra = CrowbarLevel.extraLoot(gamePlayer.getCrowbarLevel());
+        int coins = COINS + CrowbarLevel.extraCoins(gamePlayer.getCrowbarLevel());
 
-        if (roll < GRENADE_CHANCE && grenadeManager.give(player)) {
+        if (roll < GRENADE_CHANCE + extra && grenadeManager.give(player)) {
             player.sendActionBar("§aGlück gehabt! §7Du hast eine §aGranate §7gefunden");
             player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1.0F, 1.2F);
-        } else if (roll < GRENADE_CHANCE + COINS_CHANCE) {
-            gamePlayer.addCoins(COINS);
-            player.sendActionBar(String.format("§6+%d Coins §7gefunden", COINS));
+        } else if (roll < GRENADE_CHANCE + COINS_CHANCE + 2 * extra) {
+            gamePlayer.addCoins(coins);
+            player.sendActionBar(String.format("§6+%d Coins §7gefunden", coins));
             player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0F, 1.4F);
         } else {
             player.sendActionBar("§7Die Kiste war leer");
