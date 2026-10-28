@@ -9,6 +9,9 @@ import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -32,6 +35,7 @@ public class PreGameListener implements Listener {
             event.getPlayer().kickPlayer("§cDie Runde wird gerade vorbereitet, versuch es gleich nochmal!");
             return;
         }
+        reset(event.getPlayer());
         if (gameManager.getCurrentPhase() == GamePhase.WAVE) {
             joinRunning(event);
             return;
@@ -64,6 +68,30 @@ public class PreGameListener implements Listener {
         Bukkit.broadcastMessage(String.format("%s§a%s §7hat die Runde betreten!", plugin.getMonstersPrefix(), event.getPlayer().getDisplayName()));
 
         event.setJoinMessage("");
+    }
+
+    // The server keeps player data between rounds: nothing from the last round stays (tiny from lying down,
+    // no speed, effects, old position). A teleport during the join event does not always take, so again a tick later.
+    private void reset(Player player) {
+        setBase(player, Attribute.SCALE, 1.0);
+        setBase(player, Attribute.MOVEMENT_SPEED, 0.1);
+        setBase(player, Attribute.JUMP_STRENGTH, 0.42);
+        player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
+        player.setGameMode(GameMode.ADVENTURE);
+        player.setInvulnerable(false);
+        player.setAllowFlight(false);
+        player.setFlying(false);
+        player.setFireTicks(0);
+        player.setFallDistance(0);
+        player.getInventory().setHeldItemSlot(1);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (player.isOnline()) player.teleport(mapManager.getMapConfiguration().getSpawn());
+        });
+    }
+
+    private static void setBase(Player player, Attribute attribute, double value) {
+        AttributeInstance instance = player.getAttribute(attribute);
+        if (instance != null) instance.setBaseValue(value);
     }
 
     // Rejoin or late join during the waves
