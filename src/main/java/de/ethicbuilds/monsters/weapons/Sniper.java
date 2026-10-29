@@ -28,6 +28,9 @@ public class Sniper extends Weapon {
         this.model = "sniper_3";
         this.price = 10000;
         this.upgradePrice = 30000;
+        // Left click shoots, the arm does not swing forward
+        item.setData(io.papermc.paper.datacomponent.DataComponentTypes.SWING_ANIMATION,
+                io.papermc.paper.datacomponent.item.SwingAnimation.swingAnimation().type(io.papermc.paper.datacomponent.item.SwingAnimation.Animation.NONE).build());
 
         initialize();
     }

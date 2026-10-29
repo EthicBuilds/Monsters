@@ -138,9 +138,10 @@ public class WaveEvents {
         countdown("§6§lGoldrausch", BarColor.YELLOW, GOLD_SECONDS * 20);
     }
 
+    // No title, the beetles simply come out of the sand now and then
     private void scarabs() {
         monsterManager.addScarabs(waveManager.getCurrentWave());
-        announce("§6§lSKARABÄEN!", "§7Ein Schwarm kriecht aus dem Sand", Sound.ENTITY_SILVERFISH_AMBIENT, 1.0F, 0.6F);
+        for (Player player : living()) player.playSound(player.getLocation(), Sound.ENTITY_SILVERFISH_AMBIENT, 0.6F, 0.6F);
     }
 
     // The team holds one spot for long: warning first, then the desert drives them out

@@ -39,7 +39,7 @@ import java.util.UUID;
 /***
  * Downed players: a mannequin with their skin lies where they died, they themselves are hidden and
  * look up from the ground until the next wave or until a teammate revives them for coins.
- * With key 5 they watch the living teammates meanwhile, through their eyes in spectator mode.
+ * With two items (keys 4/5 or the mouse wheel) they watch the living teammates meanwhile, through their eyes in spectator mode.
  */
 public class ReviveManager implements Listener {
     private static final int BASE_COST = 1000;
@@ -53,8 +53,9 @@ public class ReviveManager implements Listener {
     private static final long SELF_REVIVE_DELAY = 60;
     // A lying body has its feet at its position, the head this far along the body
     private static final double HEAD_DISTANCE = 1.3;
-    // Key 5 while lying starts watching, the held slot stays empty
-    private static final int WATCH_SLOT = 4;
+    // Two items while lying: previous and next teammate (keys 4 and 5 or the mouse wheel), the held slot stays empty
+    private static final int PREV_SLOT = 3, WATCH_SLOT = 4;
+    private static final String WATCH_HINT = "§7Mausrad oder Taste 4/5: §fMitspielern zuschauen";
 
     @Inject private Main plugin;
     @Inject private UserManager userManager;
@@ -72,6 +73,8 @@ public class ReviveManager implements Listener {
     private final Map<UUID, Map<Attribute, Double>> savedBases = new HashMap<>();
     private final Map<UUID, Player> watching = new HashMap<>();
     private final Map<UUID, ItemStack> savedWatchSlot = new HashMap<>();
+    private final Map<UUID, ItemStack> savedPrevSlot = new HashMap<>();
+    private final Map<UUID, Player> lastWatched = new HashMap<>();
     private BukkitRunnable watchCheck;
 
     /** Every revive of the same player costs 1000 more */
@@ -132,8 +135,11 @@ public class ReviveManager implements Listener {
         views.put(player.getUniqueId(), view);
         ItemStack watchSlot = player.getInventory().getItem(WATCH_SLOT);
         savedWatchSlot.put(player.getUniqueId(), watchSlot == null ? new ItemStack(Material.AIR) : watchSlot);
-        player.getInventory().setItem(WATCH_SLOT, watchItem());
-        player.sendActionBar("§7Taste 5: §fMitspielern zuschauen");
+        ItemStack prevSlot = player.getInventory().getItem(PREV_SLOT);
+        savedPrevSlot.put(player.getUniqueId(), prevSlot == null ? new ItemStack(Material.AIR) : prevSlot);
+        player.getInventory().setItem(PREV_SLOT, watchItem("§a« Voriger Mitspieler", "§7Taste 4 oder Mausrad hoch"));
+        player.getInventory().setItem(WATCH_SLOT, watchItem("§aNächster Mitspieler »", "§7Taste 5 oder Mausrad runter"));
+        player.sendActionBar(WATCH_HINT);
         trySelfRevive(player);
     }
 
@@ -159,13 +165,26 @@ public class ReviveManager implements Listener {
         return stored != null && !stored.getType().isAir();
     }
 
-    // Key 5 while lying: watch the living teammates in spectator mode, right through their eyes
+    // Keys 4/5 or the mouse wheel while lying: watch the previous or next living teammate through their eyes
     @EventHandler
     public void onDownedSlotChange(org.bukkit.event.player.PlayerItemHeldEvent event) {
         Player player = event.getPlayer();
         if (!isDown(player.getUniqueId())) return;
         event.setCancelled(true);
-        if (event.getNewSlot() == WATCH_SLOT && !watching.containsKey(player.getUniqueId())) watch(player, null);
+        int step = Math.floorMod(event.getNewSlot() - event.getPreviousSlot(), 9);
+        int direction = event.getNewSlot() == PREV_SLOT ? -1 : event.getNewSlot() == WATCH_SLOT ? 1 : step == 8 ? -1 : step == 1 ? 1 : 0;
+        if (direction != 0) cycle(player, direction);
+    }
+
+    private void cycle(Player player, int direction) {
+        List<Player> mates = mates(player);
+        if (mates.isEmpty()) {
+            watch(player, null);
+            return;
+        }
+        int index = mates.indexOf(lastWatched.get(player.getUniqueId()));
+        index = index < 0 ? (direction > 0 ? 0 : mates.size() - 1) : Math.floorMod(index + direction, mates.size());
+        watch(player, mates.get(index));
     }
 
     // The heads in the spectator hotbar (key 1) switch the teammate, nobody flies around freely.
@@ -192,11 +211,15 @@ public class ReviveManager implements Listener {
         if (!(event.getNewSpectatorTarget() instanceof Player mate) || !mates(player).contains(mate)) event.setCancelled(true);
     }
 
-    // Sneaking would leave the camera, the view stays with the teammate
+    // Sneaking leaves the teammate's view and goes back to the body, where the two items are again
     @EventHandler
     public void onStopWatching(com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent event) {
         Player player = event.getPlayer();
-        if (watching.containsKey(player.getUniqueId()) && event.getSpectatorTarget().isValid()) event.setCancelled(true);
+        if (!watching.containsKey(player.getUniqueId()) || !event.getSpectatorTarget().isValid()) return;
+        event.setCancelled(true);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (watching.containsKey(player.getUniqueId())) backToBody(player);
+        });
     }
 
     private List<Player> mates(Player player) {
@@ -214,9 +237,10 @@ public class ReviveManager implements Listener {
             return;
         }
         watching.put(player.getUniqueId(), mate);
+        lastWatched.put(player.getUniqueId(), mate);
         player.setGameMode(org.bukkit.GameMode.SPECTATOR);
         player.setSpectatorTarget(mate);
-        player.sendActionBar("§7Du schaust §a" + mate.getName() + " §7zu §8· §7Taste 1: Mitspieler wechseln");
+        player.sendActionBar("§7Du schaust §a" + mate.getName() + " §7zu §8· §7Taste 1: wechseln §8· §7Schleichen: zurück");
         startWatchCheck();
     }
 
@@ -248,7 +272,8 @@ public class ReviveManager implements Listener {
         stopWatching(player);
         Location view = views.get(player.getUniqueId());
         if (view != null) player.teleport(view);
-        player.sendActionBar("§7Taste 5: §fMitspielern zuschauen");
+        player.getInventory().setHeldItemSlot(EMPTY_SLOT);
+        player.sendActionBar(WATCH_HINT);
     }
 
     private void stopWatching(Player player) {
@@ -258,11 +283,11 @@ public class ReviveManager implements Listener {
         player.setGameMode(org.bukkit.GameMode.ADVENTURE);
     }
 
-    private static ItemStack watchItem() {
+    private static ItemStack watchItem(String name, String hint) {
         ItemStack item = new ItemStack(Material.ENDER_EYE);
         item.editMeta(meta -> {
-            meta.setDisplayName("§aMitspielern zuschauen");
-            meta.setLore(List.of("§7Taste 5"));
+            meta.setDisplayName(name);
+            meta.setLore(List.of(hint));
         });
         return item;
     }
@@ -301,6 +326,9 @@ public class ReviveManager implements Listener {
         reviveProgress.remove(player.getUniqueId());
         ItemStack watchSlot = savedWatchSlot.remove(player.getUniqueId());
         if (watchSlot != null) player.getInventory().setItem(WATCH_SLOT, watchSlot);
+        ItemStack prevSlot = savedPrevSlot.remove(player.getUniqueId());
+        if (prevSlot != null) player.getInventory().setItem(PREV_SLOT, prevSlot);
+        lastWatched.remove(player.getUniqueId());
         Mannequin body = bodies.remove(player.getUniqueId());
         if (body != null) body.remove();
         Interaction hitbox = hitboxes.remove(player.getUniqueId());

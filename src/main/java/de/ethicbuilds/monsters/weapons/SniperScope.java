@@ -25,12 +25,14 @@ import java.util.Map;
 import java.util.UUID;
 
 /***
- * Sniper scope: right click looks through the scope (a little zoom, the scope overlay, walking slowly),
- * right click again or another item in hand ends it
+ * Sniper scope: right click looks through the scope (zoom like the spyglass, the scope overlay, walking slowly),
+ * the mouse wheel sets the zoom in 5 steps, right click again or a number key ends it
  */
 public class SniperScope implements Listener {
-    // Slower walking narrows the view a bit, that is the zoom
     private static final double AIM_SPEED = 0.03;
+    // The client narrows the view by (speed / walk speed + 1) / 2, a negative walk speed zooms in up to 0.1 like the spyglass
+    private static final double[] ZOOM = {0.6, 0.45, 0.32, 0.2, 0.1};
+    private static final int START_ZOOM = 2;
     // Held down the right click arrives every 4 ticks, that still counts as one click
     private static final long TOGGLE_GAP = 300;
     private static final Key OVERLAY = Key.key("monsters", "misc/zielfernrohr");
@@ -39,6 +41,8 @@ public class SniperScope implements Listener {
     private static final Map<UUID, Double> savedSpeed = new HashMap<>();
     private static final Map<UUID, ItemStack> savedHelmet = new HashMap<>();
     private static final Map<UUID, Long> lastRightClick = new HashMap<>();
+    private static final Map<UUID, Float> savedWalkSpeed = new HashMap<>();
+    private static final Map<UUID, Integer> zoomLevel = new HashMap<>();
 
     public static boolean isAiming(Player player) {
         return savedSpeed.containsKey(player.getUniqueId());
@@ -56,7 +60,8 @@ public class SniperScope implements Listener {
         AttributeInstance speed = player.getAttribute(Attribute.MOVEMENT_SPEED);
         if (speed == null) return;
         savedSpeed.put(player.getUniqueId(), speed.getBaseValue());
-        speed.setBaseValue(AIM_SPEED);
+        savedWalkSpeed.put(player.getUniqueId(), player.getWalkSpeed());
+        applyZoom(player);
         ItemStack helmet = player.getInventory().getHelmet();
         savedHelmet.put(player.getUniqueId(), helmet == null ? new ItemStack(Material.AIR) : helmet);
         player.getInventory().setHelmet(scopeHelmet(helmet));
@@ -66,6 +71,9 @@ public class SniperScope implements Listener {
     public static void stop(Player player) {
         Double speed = savedSpeed.remove(player.getUniqueId());
         if (speed == null) return;
+        // Setting the walk speed also sets the speed attribute, so the attribute comes after
+        Float walkSpeed = savedWalkSpeed.remove(player.getUniqueId());
+        player.setWalkSpeed(walkSpeed != null ? walkSpeed : 0.2F);
         AttributeInstance attribute = player.getAttribute(Attribute.MOVEMENT_SPEED);
         if (attribute != null) attribute.setBaseValue(speed);
         ItemStack helmet = savedHelmet.remove(player.getUniqueId());
@@ -87,15 +95,38 @@ public class SniperScope implements Listener {
         return scope;
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    private static void applyZoom(Player player) {
+        double fov = ZOOM[zoomLevel.getOrDefault(player.getUniqueId(), START_ZOOM)];
+        // Bukkit walk speed is twice the client value
+        player.setWalkSpeed((float) (2 * AIM_SPEED / (2 * fov - 1)));
+        AttributeInstance speed = player.getAttribute(Attribute.MOVEMENT_SPEED);
+        if (speed != null) speed.setBaseValue(AIM_SPEED);
+    }
+
+    // Mouse wheel up zooms in, down zooms out. Other keys leave the scope and change the slot
+    @EventHandler(priority = EventPriority.LOW)
     public void onSlotChange(PlayerItemHeldEvent event) {
-        stop(event.getPlayer());
+        Player player = event.getPlayer();
+        if (!isAiming(player)) return;
+        int step = Math.floorMod(event.getNewSlot() - event.getPreviousSlot(), 9);
+        if (step != 1 && step != 8) {
+            stop(player);
+            return;
+        }
+        event.setCancelled(true);
+        int level = Math.clamp(zoomLevel.getOrDefault(player.getUniqueId(), START_ZOOM) + (step == 8 ? 1 : -1), 0, ZOOM.length - 1);
+        zoomLevel.put(player.getUniqueId(), level);
+        applyZoom(player);
+        AmmoHud.pause(player);
+        player.sendActionBar(String.format("§7Zoom §f%d§7/%d", level + 1, ZOOM.length));
+        player.playSound(player.getLocation(), Sound.ITEM_SPYGLASS_USE, 0.4F, 0.8F + 0.1F * level);
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         stop(event.getPlayer());
         lastRightClick.remove(event.getPlayer().getUniqueId());
+        zoomLevel.remove(event.getPlayer().getUniqueId());
     }
 
     // A monster right in front gets hit as an attack, with the sniper that is a shot as well
