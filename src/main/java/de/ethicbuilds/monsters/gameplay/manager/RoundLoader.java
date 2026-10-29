@@ -65,7 +65,8 @@ public class RoundLoader {
     private void heartbeat() {
         String body = new Gson().toJson(Map.of(
                 "serverName", plugin.getConfig().getString("server-name", ""),
-                "state", loaded ? "round" : "waiting"));
+                "state", loaded ? "round" : "waiting",
+                "started", loaded && gameManager.getCurrentPhase() != de.ethicbuilds.monsters.gameplay.model.GamePhase.PRE_GAME));
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(STATUS_URL))
                 .header("Content-Type", "application/json")
