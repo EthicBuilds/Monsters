@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.items;
 
+import de.ethicbuilds.monsters.lang.Lang;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -13,6 +14,7 @@ public final class ArmorSet {
     public static final int MAX_LEVEL = 4;
     private static final int FIRST_PRICE = 2000;
     private static final String[] NAMES = {"Keine", "Leder", "Kette", "Eisen", "Diamant"};
+    private static final String[] NAMES_EN = {"None", "Leather", "Chain", "Iron", "Diamond"};
     private static final int[] PROTECTION = {0, 7, 12, 15, 20};
     private static final Material[][] PARTS = {
             {},
@@ -27,8 +29,8 @@ public final class ArmorSet {
         return FIRST_PRICE * (1 << level);
     }
 
-    public static String name(int level) {
-        return NAMES[Math.max(0, Math.min(level, MAX_LEVEL))];
+    public static String name(Player player, int level) {
+        return (Lang.english(player) ? NAMES_EN : NAMES)[Math.max(0, Math.min(level, MAX_LEVEL))];
     }
 
     public static int protection(int level) {

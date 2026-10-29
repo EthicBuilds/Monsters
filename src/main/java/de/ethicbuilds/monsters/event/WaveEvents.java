@@ -5,6 +5,8 @@ import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
+import de.ethicbuilds.monsters.lang.DualBar;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
@@ -18,7 +20,6 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
-import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -102,7 +103,7 @@ public class WaveEvents {
                 switch (ThreadLocalRandom.current().nextInt(3)) {
                     case 0 -> {
                         Location middle = teamMiddle();
-                        if (middle != null) sandstorm(middle, "§7Ein Sandsturm zieht auf, raus aus dem Sand!");
+                        if (middle != null) sandstorm(middle, "§7Ein Sandsturm zieht auf, raus aus dem Sand!", "§7A sandstorm is coming, get out of the sand!");
                     }
                     case 1 -> scarabs();
                     default -> goldRush();
@@ -117,7 +118,8 @@ public class WaveEvents {
                 && ThreadLocalRandom.current().nextDouble() < BLOOD_MOON_CHANCE;
         Bukkit.getScheduler().runTask(plugin, () -> {
             setBloodMoon(moon);
-            if (moon) announce("§4§lBLUTMOND", "§cDie Monster sind schneller §8· §6doppelte Coins", Sound.ENTITY_WITHER_SPAWN, 0.4F, 0.6F);
+            if (moon) announce("§4§lBLUTMOND", "§4§lBLOOD MOON", "§cDie Monster sind schneller §8· §6doppelte Coins",
+                    "§cMonsters are faster §8· §6double Coins", Sound.ENTITY_WITHER_SPAWN, 0.4F, 0.6F);
         });
     }
 
@@ -134,8 +136,9 @@ public class WaveEvents {
 
     private void goldRush() {
         goldUntil = System.currentTimeMillis() + GOLD_SECONDS * 1000L;
-        announce("§6§lGOLDRAUSCH!", "§e30 Sekunden doppelte Coins und mehr Powerups", Sound.ENTITY_PLAYER_LEVELUP, 0.6F, 1.4F);
-        countdown("§6§lGoldrausch", BarColor.YELLOW, GOLD_SECONDS * 20);
+        announce("§6§lGOLDRAUSCH!", "§6§lGOLD RUSH!", "§e30 Sekunden doppelte Coins und mehr Powerups",
+                "§e30 seconds of double Coins and more powerups", Sound.ENTITY_PLAYER_LEVELUP, 0.6F, 1.4F);
+        countdown("§6§lGoldrausch", "§6§lGold Rush", BarColor.YELLOW, GOLD_SECONDS * 20);
     }
 
     // No title, the beetles simply come out of the sand now and then
@@ -155,19 +158,21 @@ public class WaveEvents {
         }
         campSeconds++;
         if (campSeconds == CAMP_WARN) {
-            for (Player player : living()) player.sendTitle("", "§eIhr bleibt zu lange hier, die Wüste wird unruhig", 5, 50, 10);
+            for (Player player : living()) {
+                player.sendTitle("", Lang.t(player, "§eIhr bleibt zu lange hier, die Wüste wird unruhig", "§eYou've stayed here too long, the desert is getting restless"), 5, 50, 10);
+            }
         }
         if (campSeconds < CAMP_PUNISH) return;
         campSeconds = 0;
-        sandstorm(middle, "§cIhr habt zu lange hier ausgeharrt!");
+        sandstorm(middle, "§cIhr habt zu lange hier ausgeharrt!", "§cYou held out here too long!");
         for (EnemyMonster monster : List.copyOf(monsterManager.getMonsters().values())) {
             if (monster.getMonster() != null) monster.getMonster().addPotionEffect(new PotionEffect(PotionEffectType.SPEED, CAMP_SPEED_TICKS, 0, false, false));
         }
     }
 
     /** Sand around the spot, warned first, then it hurts and slows whoever stays inside */
-    public void sandstorm(Location center, String subtitle) {
-        announce("§6§lSANDSTURM!", subtitle, Sound.ENTITY_BREEZE_WIND_BURST, 1.0F, 0.6F);
+    public void sandstorm(Location center, String subtitle, String subtitleEn) {
+        announce("§6§lSANDSTURM!", "§6§lSANDSTORM!", subtitle, subtitleEn, Sound.ENTITY_BREEZE_WIND_BURST, 1.0F, 0.6F);
         World world = center.getWorld();
         new BukkitRunnable() {
             int ticks = 0;
@@ -220,15 +225,15 @@ public class WaveEvents {
                 .filter(player -> player.isOnline() && !userManager.isPlayerDead(player.getUniqueId())).toList();
     }
 
-    private void announce(String title, String subtitle, Sound sound, float volume, float pitch) {
+    private void announce(String title, String titleEn, String subtitle, String subtitleEn, Sound sound, float volume, float pitch) {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.sendTitle(title, subtitle, 5, 40, 10);
+            player.sendTitle(Lang.t(player, title, titleEn), Lang.t(player, subtitle, subtitleEn), 5, 40, 10);
             player.playSound(player.getLocation(), sound, volume, pitch);
         }
     }
 
-    private void countdown(String title, BarColor color, int ticks) {
-        BossBar bar = Bukkit.createBossBar(title, color, BarStyle.SEGMENTED_10);
+    private void countdown(String title, String titleEn, BarColor color, int ticks) {
+        DualBar bar = new DualBar(title, titleEn, color, BarStyle.SEGMENTED_10);
         Bukkit.getOnlinePlayers().forEach(bar::addPlayer);
         new BukkitRunnable() {
             int left = ticks;

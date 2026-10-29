@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.gameplay;
 
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.monster.MonsterGuard;
 import org.bukkit.Location;
 import org.bukkit.entity.ArmorStand;
@@ -44,7 +45,7 @@ public final class CoinPopups {
                 popup.age = 0;
                 popup.last = now;
                 popup.stand.teleport(at);
-                popup.stand.setCustomName(text(popup, headshot));
+                popup.stand.setCustomName(text(viewer, popup, headshot));
                 return;
             }
 
@@ -54,7 +55,7 @@ public final class CoinPopups {
             created.last = now;
             created.stand = at.getWorld().spawn(at, ArmorStand.class, stand -> {
                 stand.setVisibleByDefault(false);
-                stand.setCustomName(text(created, headshot));
+                stand.setCustomName(text(viewer, created, headshot));
                 stand.setCustomNameVisible(true);
                 stand.setInvisible(true);
                 stand.setMarker(true);
@@ -82,8 +83,8 @@ public final class CoinPopups {
         });
     }
 
-    private static String text(Popup popup, boolean headshot) {
+    private static String text(Player viewer, Popup popup, boolean headshot) {
         String combo = popup.hits > 1 ? String.format("§6+ %d Coins §e×%d", popup.coins, popup.hits) : String.format("§6+ %d Coins", popup.coins);
-        return headshot ? combo + " §c§lKOPFSCHUSS" : combo;
+        return headshot ? combo + Lang.t(viewer, " §c§lKOPFSCHUSS", " §c§lHEADSHOT") : combo;
     }
 }

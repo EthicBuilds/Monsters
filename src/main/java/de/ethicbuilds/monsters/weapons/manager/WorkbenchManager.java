@@ -7,6 +7,7 @@ import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
 import de.ethicbuilds.monsters.items.ArmorSet;
 import de.ethicbuilds.monsters.items.CrowbarLevel;
 import de.ethicbuilds.monsters.items.GameItems;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -36,7 +37,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -121,72 +121,76 @@ public class WorkbenchManager implements Listener {
         boolean armor = index == ARMOR_INDEX;
         boolean crowbar = index == CROWBAR_INDEX;
         Weapon weapon = armor || crowbar || weapons.isEmpty() ? null : weapons.get(index);
-        Card card = armor ? armorCard(gamePlayer) : crowbar ? crowbarCard(gamePlayer) : weapon != null ? card(weapon) : null;
+        Card card = armor ? armorCard(gamePlayer) : crowbar ? crowbarCard(gamePlayer) : weapon != null ? card(player, weapon) : null;
 
         Menu menu = new Menu(weapons);
         Inventory inventory = Bukkit.createInventory(menu, 54, title(gamePlayer, card, index, weapon));
         menu.inventory = inventory;
 
+        String levelLabel = Lang.t(player, "Stufe", "Level");
         for (int i = 0; i < WEAPON_SLOTS.length && i < weapons.size(); i++) {
             ItemStack item = weapons.get(i).getItem().clone();
             item.setAmount(1);
             int finalI = i;
             item.editMeta(meta -> {
-                meta.displayName(text(weapons.get(finalI).getName().replaceAll("§.", ""), LIGHT));
-                meta.lore(List.of(text("Stufe " + weapons.get(finalI).getLevel() + "/" + Weapon.MAX_LEVEL, GREY)));
+                meta.displayName(text(weapons.get(finalI).getName(player).replaceAll("§.", ""), LIGHT));
+                meta.lore(List.of(text(levelLabel + " " + weapons.get(finalI).getLevel() + "/" + Weapon.MAX_LEVEL, GREY)));
             });
             inventory.setItem(WEAPON_SLOTS[i], item);
         }
         int armorLevel = gamePlayer.getArmorLevel();
         ItemStack armorIcon = ArmorSet.icon(armorLevel);
         armorIcon.editMeta(meta -> {
-            meta.displayName(text("Rüstung", LIGHT));
-            meta.lore(List.of(text(ArmorSet.name(armorLevel) + " · Stufe " + armorLevel + "/" + ArmorSet.MAX_LEVEL, GREY)));
+            meta.displayName(text(Lang.t(player, "Rüstung", "Armor"), LIGHT));
+            meta.lore(List.of(text(ArmorSet.name(player, armorLevel) + " · " + levelLabel + " " + armorLevel + "/" + ArmorSet.MAX_LEVEL, GREY)));
         });
         inventory.setItem(ARMOR_SLOT, armorIcon);
         int crowbarLevel = gamePlayer.getCrowbarLevel();
-        ItemStack crowbarIcon = GameItems.crowbar();
+        String crowbarName = Lang.t(player, "Brechstange", "Crowbar");
+        ItemStack crowbarIcon = GameItems.crowbar(player);
         crowbarIcon.editMeta(meta -> {
-            meta.displayName(text("Brechstange", LIGHT));
-            meta.lore(List.of(text("Stufe " + crowbarLevel + "/" + CrowbarLevel.MAX_LEVEL, GREY)));
+            meta.displayName(text(crowbarName, LIGHT));
+            meta.lore(List.of(text(levelLabel + " " + crowbarLevel + "/" + CrowbarLevel.MAX_LEVEL, GREY)));
         });
         inventory.setItem(CROWBAR_SLOT, crowbarIcon);
 
         if (armor) {
             boolean max = armorLevel >= ArmorSet.MAX_LEVEL;
             ItemStack big = ArmorSet.icon(max ? armorLevel : armorLevel + 1);
-            big.editMeta(meta -> meta.displayName(text("Rüstung: " + ArmorSet.name(max ? armorLevel : armorLevel + 1), LIGHT)));
+            big.editMeta(meta -> meta.displayName(text(Lang.t(player, "Rüstung: ", "Armor: ") + ArmorSet.name(player, max ? armorLevel : armorLevel + 1), LIGHT)));
             inventory.setItem(BIG_SLOT, big);
-            inventory.setItem(LEVEL_SLOT, icon(Material.PAPER, "werkbank_stufe", text("Stufe", GREY),
+            inventory.setItem(LEVEL_SLOT, icon(Material.PAPER, "werkbank_stufe", text(levelLabel, GREY),
                     change(armorLevel + "/" + ArmorSet.MAX_LEVEL, (armorLevel + 1) + "/" + ArmorSet.MAX_LEVEL, max)));
-            inventory.setItem(DAMAGE_SLOT, icon(Material.PAPER, "werkbank_schaden", text("Schutz", GREY),
+            inventory.setItem(DAMAGE_SLOT, icon(Material.PAPER, "werkbank_schaden", text(Lang.t(player, "Schutz", "Protection"), GREY),
                     change(String.valueOf(ArmorSet.protection(armorLevel)), String.valueOf(ArmorSet.protection(armorLevel + 1)), max)));
             inventory.setItem(MAGAZINE_SLOT, icon(Material.PAPER, "werkbank_magazin", text("Set", GREY),
-                    change(ArmorSet.name(armorLevel), ArmorSet.name(armorLevel + 1), max)));
+                    change(ArmorSet.name(player, armorLevel), ArmorSet.name(player, armorLevel + 1), max)));
             ItemStack button = button(gamePlayer, card.level(), card.price());
             for (int slot : BUTTON_SLOTS) inventory.setItem(slot, button);
         } else if (crowbar) {
             boolean max = crowbarLevel >= CrowbarLevel.MAX_LEVEL;
-            ItemStack big = GameItems.crowbar();
-            big.editMeta(meta -> meta.displayName(text("Brechstange", LIGHT)));
+            ItemStack big = GameItems.crowbar(player);
+            big.editMeta(meta -> meta.displayName(text(crowbarName, LIGHT)));
             inventory.setItem(BIG_SLOT, big);
-            inventory.setItem(LEVEL_SLOT, icon(Material.PAPER, "werkbank_stufe", text("Stufe", GREY),
+            inventory.setItem(LEVEL_SLOT, icon(Material.PAPER, "werkbank_stufe", text(levelLabel, GREY),
                     change(crowbarLevel + "/" + CrowbarLevel.MAX_LEVEL, (crowbarLevel + 1) + "/" + CrowbarLevel.MAX_LEVEL, max)));
-            inventory.setItem(DAMAGE_SLOT, icon(Material.PAPER, "werkbank_schaden", text("Tempo bei Kisten und Türen", GREY),
-                    change(factor(CrowbarLevel.speed(crowbarLevel)), factor(CrowbarLevel.speed(crowbarLevel + 1)), max)));
-            inventory.setItem(MAGAZINE_SLOT, icon(Material.PAPER, "werkbank_magazin", text("Beute-Chance in Kisten (%)", GREY),
+            inventory.setItem(DAMAGE_SLOT, icon(Material.PAPER, "werkbank_schaden", text(Lang.t(player, "Tempo bei Kisten und Türen", "Speed at crates and doors"), GREY),
+                    change(factor(player, CrowbarLevel.speed(crowbarLevel)), factor(player, CrowbarLevel.speed(crowbarLevel + 1)), max)));
+            inventory.setItem(MAGAZINE_SLOT, icon(Material.PAPER, "werkbank_magazin", text(Lang.t(player, "Beute-Chance in Kisten (%)", "Loot chance in crates (%)"), GREY),
                     change(loot(crowbarLevel), loot(crowbarLevel + 1), max)));
             ItemStack button = button(gamePlayer, card.level(), card.price());
             for (int slot : BUTTON_SLOTS) inventory.setItem(slot, button);
         } else if (weapon != null) {
             boolean max = weapon.getLevel() >= Weapon.MAX_LEVEL;
-            inventory.setItem(BIG_SLOT, icon(Material.PAPER, "waffe_" + weapon.getModel(), text(weapon.getName().replaceAll("§.", ""), LIGHT)));
-            inventory.setItem(LEVEL_SLOT, icon(Material.PAPER, "werkbank_stufe", text("Stufe", GREY),
+            inventory.setItem(BIG_SLOT, icon(Material.PAPER, "waffe_" + weapon.getModel(), text(weapon.getName(player).replaceAll("§.", ""), LIGHT)));
+            inventory.setItem(LEVEL_SLOT, icon(Material.PAPER, "werkbank_stufe", text(levelLabel, GREY),
                     change(weapon.getLevel() + "/" + Weapon.MAX_LEVEL, (weapon.getLevel() + 1) + "/" + Weapon.MAX_LEVEL, max)));
             inventory.setItem(DAMAGE_SLOT, weapon.upgradesDamage()
-                    ? icon(Material.PAPER, "werkbank_schaden", text("Schaden", GREY), change(number(weapon.getDamage()), number(weapon.nextDamage()), max))
-                    : icon(Material.PAPER, "werkbank_schaden", text("Nachladen in Sekunden", GREY), change(seconds(weapon.getFireRate()), seconds(weapon.nextFireRate()), max)));
-            inventory.setItem(MAGAZINE_SLOT, icon(Material.PAPER, "werkbank_magazin", text("Magazin", GREY), weapon.upgradesDamage()
+                    ? icon(Material.PAPER, "werkbank_schaden", text(Lang.t(player, "Schaden", "Damage"), GREY),
+                            change(number(player, weapon.getDamage()), number(player, weapon.nextDamage()), max))
+                    : icon(Material.PAPER, "werkbank_schaden", text(Lang.t(player, "Nachladen in Sekunden", "Reload in seconds"), GREY),
+                            change(seconds(player, weapon.getFireRate()), seconds(player, weapon.nextFireRate()), max)));
+            inventory.setItem(MAGAZINE_SLOT, icon(Material.PAPER, "werkbank_magazin", text(Lang.t(player, "Magazin", "Magazine"), GREY), weapon.upgradesDamage()
                     ? change(String.valueOf(weapon.getMaxMagazine()), String.valueOf(weapon.nextMagazine()), max)
                     : change(String.valueOf(weapon.getMaxMagazine()), "", true)));
             ItemStack button = button(gamePlayer, weapon.getLevel(), upgradePrice(weapon));
@@ -200,7 +204,7 @@ public class WorkbenchManager implements Listener {
         ItemStack close = new ItemStack(Material.BARRIER);
         close.editMeta(meta -> {
             meta.setItemModel(new NamespacedKey("ethicbuilds", "gui/icon_zurueck"));
-            meta.displayName(text("Schließen", LIGHT));
+            meta.displayName(text(Lang.t(player, "Schließen", "Close"), LIGHT));
         });
         inventory.setItem(CLOSE_SLOT, close);
 
@@ -209,27 +213,32 @@ public class WorkbenchManager implements Listener {
     }
 
     private ItemStack button(GamePlayer gamePlayer, int level, int price) {
+        Player player = gamePlayer.getPlayer();
         if (waveManager.getCurrentWave() < UNLOCK_WAVE) {
-            return icon(Material.PAPER, "leer", text("Gesperrt", LIGHT), text("Ab Welle " + UNLOCK_WAVE, RED));
+            return icon(Material.PAPER, "leer", text(Lang.t(player, "Gesperrt", "Locked"), LIGHT),
+                    text(Lang.t(player, "Ab Welle ", "From wave ") + UNLOCK_WAVE, RED));
         }
         if (!unlocked) {
             int remaining = UNLOCK_PRICE - unlockPaid;
-            return icon(Material.PAPER, "leer", text("Freischalten", LIGHT), price(remaining, gamePlayer.getCoins() >= remaining),
-                    text("Zu wenig? Dann legst du alles ein, das Team legt zusammen", GREY));
+            return icon(Material.PAPER, "leer", text(Lang.t(player, "Freischalten", "Unlock"), LIGHT), price(player, remaining, gamePlayer.getCoins() >= remaining),
+                    text(Lang.t(player, "Zu wenig? Dann legst du alles ein, das Team legt zusammen", "Not enough? You put in all you have, the team chips in"), GREY));
         }
         if (level >= Weapon.MAX_LEVEL) {
-            return icon(Material.PAPER, "leer", text("Maximal", GOLD));
+            return icon(Material.PAPER, "leer", text(Lang.t(player, "Maximal", "Max"), GOLD));
         }
         boolean affordable = gamePlayer.getCoins() >= price;
-        return icon(Material.PAPER, "leer", text("Verbessern", GREEN).decoration(TextDecoration.BOLD, true), price(price, affordable));
+        return icon(Material.PAPER, "leer", text(Lang.t(player, "Verbessern", "Upgrade"), GREEN).decoration(TextDecoration.BOLD, true),
+                price(player, price, affordable));
     }
 
     private ItemStack scrapButton(Player player, Weapon weapon) {
         int value = weapon == null ? 0 : scrapValue(weapon);
-        if (value <= 0) return icon(Material.PAPER, "leer", text("Nicht möglich", BUTTON_GREY),
-                text(weapon == null ? "Nur Waffen lassen sich verschrotten" : "Die Startpistole ohne Upgrades nicht", GREY));
-        return icon(Material.PAPER, "leer", text(isScrapAsked(player) ? "Sicher?" : "Verschrotten", RED).decoration(TextDecoration.BOLD, true),
-                price(value, true), text("3/4 von Kaufpreis und Upgrades zurück", GREY));
+        if (value <= 0) return icon(Material.PAPER, "leer", text(Lang.t(player, "Nicht möglich", "Not possible"), BUTTON_GREY),
+                text(weapon == null ? Lang.t(player, "Nur Waffen lassen sich verschrotten", "Only weapons can be scrapped")
+                        : Lang.t(player, "Die Startpistole ohne Upgrades nicht", "Not the start pistol without upgrades"), GREY));
+        String label = isScrapAsked(player) ? Lang.t(player, "Sicher?", "Sure?") : Lang.t(player, "Verschrotten", "Scrap");
+        return icon(Material.PAPER, "leer", text(label, RED).decoration(TextDecoration.BOLD, true),
+                price(player, value, true), text(Lang.t(player, "3/4 von Kaufpreis und Upgrades zurück", "3/4 of price and upgrades back"), GREY));
     }
 
     private boolean isScrapAsked(Player player) {
@@ -266,17 +275,19 @@ public class WorkbenchManager implements Listener {
         ItemStack replacement;
         if (pistol) {
             Pistol fresh = new Pistol();
+            fresh.localize(player);
             gamePlayer.addWeapon(fresh);
             replacement = fresh.getItem();
         } else {
-            replacement = GamePlayer.emptySlot(slot);
+            replacement = GamePlayer.emptySlot(slot, player);
         }
         if (slot >= 0) player.getInventory().setItem(slot, replacement);
         gamePlayer.setCoins(gamePlayer.getCoins() + value);
         player.playSound(player.getLocation(), Sound.BLOCK_GRINDSTONE_USE, 1.0F, 0.9F);
         player.playSound(player.getLocation(), Sound.ENTITY_ITEM_BREAK, 0.5F, 0.8F);
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6F, 1.2F);
-        player.sendMessage(String.format("%s§a%s §7verschrottet! §6+%d Coins", plugin.getMonstersPrefix(), weapon.getName(), value));
+        player.sendMessage(Lang.f(player, "%s§a%s §7verschrottet! §6+%d Coins", "%s§a%s §7scrapped! §6+%d Coins",
+                plugin.getMonstersPrefix(), weapon.getName(player), value));
         open(gamePlayer);
     }
 
@@ -365,8 +376,8 @@ public class WorkbenchManager implements Listener {
         weapon.reload(player);
         if (player.getInventory().getItemInMainHand().equals(weapon.getItem())) AmmoHud.refresh(player, weapon);
         Sounds.upgrade(player, weapon.getLevel() >= Weapon.MAX_LEVEL);
-        player.sendMessage(String.format("%s§a%s §7ist jetzt Stufe §6%d§7! §c-%d Coins", plugin.getMonstersPrefix(),
-                weapon.getName(), weapon.getLevel(), price));
+        player.sendMessage(Lang.f(player, "%s§a%s §7ist jetzt Stufe §6%d§7! §c-%d Coins", "%s§a%s §7is now level §6%d§7! §c-%d Coins",
+                plugin.getMonstersPrefix(), weapon.getName(player), weapon.getLevel(), price));
         open(gamePlayer);
     }
 
@@ -381,7 +392,8 @@ public class WorkbenchManager implements Listener {
         if (!pay(gamePlayer, price)) return;
         gamePlayer.setCrowbarLevel(level + 1);
         Sounds.upgrade(player, level + 1 >= CrowbarLevel.MAX_LEVEL);
-        player.sendMessage(String.format("%s§7Deine §aBrechstange §7ist jetzt Stufe §6%d§7! §c-%d Coins", plugin.getMonstersPrefix(), level + 1, price));
+        player.sendMessage(Lang.f(player, "%s§7Deine §aBrechstange §7ist jetzt Stufe §6%d§7! §c-%d Coins",
+                "%s§7Your §aCrowbar §7is now level §6%d§7! §c-%d Coins", plugin.getMonstersPrefix(), level + 1, price));
     }
 
     private void upgradeArmor(GamePlayer gamePlayer) {
@@ -396,8 +408,9 @@ public class WorkbenchManager implements Listener {
         gamePlayer.setArmorLevel(level + 1);
         ArmorSet.equip(player, level + 1);
         Sounds.upgrade(player, level + 1 >= ArmorSet.MAX_LEVEL);
-        player.sendMessage(String.format("%s§7Deine Rüstung ist jetzt §a%s §7(Stufe §6%d§7)! §c-%d Coins", plugin.getMonstersPrefix(),
-                ArmorSet.name(level + 1), level + 1, price));
+        player.sendMessage(Lang.f(player, "%s§7Deine Rüstung ist jetzt §a%s §7(Stufe §6%d§7)! §c-%d Coins",
+                "%s§7Your armor is now §a%s §7(level §6%d§7)! §c-%d Coins", plugin.getMonstersPrefix(),
+                ArmorSet.name(player, level + 1), level + 1, price));
     }
 
     // Whoever has the rest unlocks it for everyone, otherwise all own coins go in
@@ -406,7 +419,8 @@ public class WorkbenchManager implements Listener {
         int remaining = UNLOCK_PRICE - unlockPaid;
         int coins = gamePlayer.getCoins();
         if (coins <= 0) {
-            player.sendMessage(String.format("§cNoch §6%d Coins §cfür die Werkbank, legt zusammen!", remaining));
+            player.sendMessage(Lang.f(player, "§cNoch §6%d Coins §cfür die Werkbank, legt zusammen!",
+                    "§cStill §6%d Coins §cneeded for the Workbench, chip in!", remaining));
             Sounds.deny(player);
             return;
         }
@@ -415,21 +429,23 @@ public class WorkbenchManager implements Listener {
         unlockPaid += paid;
         if (unlockPaid < UNLOCK_PRICE) {
             decorationManager.setWorkbenchPrice(UNLOCK_PRICE - unlockPaid);
-            Bukkit.broadcastMessage(String.format("%s§a%s §7legt §6%d Coins §7für die §aWerkbank §7ein (§6%d§7/§6%d§7). Noch §6%d Coins§7, legt zusammen!",
-                    plugin.getMonstersPrefix(), player.getName(), paid, unlockPaid, UNLOCK_PRICE, UNLOCK_PRICE - unlockPaid));
+            Lang.broadcast("%s§a%s §7legt §6%d Coins §7für die §aWerkbank §7ein (§6%d§7/§6%d§7). Noch §6%d Coins§7, legt zusammen!",
+                    "%s§a%s §7puts §6%d Coins §7into the §aWorkbench §7(§6%d§7/§6%d§7). Still §6%d Coins§7 needed, chip in!",
+                    plugin.getMonstersPrefix(), player.getName(), paid, unlockPaid, UNLOCK_PRICE, UNLOCK_PRICE - unlockPaid);
             player.playSound(player.getLocation(), Sound.BLOCK_CHAIN_PLACE, 1.0F, 1.2F);
             return;
         }
         unlocked = true;
         Bukkit.getOnlinePlayers().forEach(decorationManager::showWorkbenchOpen);
-        Bukkit.broadcastMessage(String.format("%s§a%s §7hat die §aWerkbank §7für alle freigeschaltet!", plugin.getMonstersPrefix(), player.getName()));
+        Lang.broadcast("%s§a%s §7hat die §aWerkbank §7für alle freigeschaltet!", "%s§a%s §7unlocked the §aWorkbench §7for everyone!",
+                plugin.getMonstersPrefix(), player.getName());
         Bukkit.getOnlinePlayers().forEach(p -> p.playSound(p.getLocation(), Sound.BLOCK_SMITHING_TABLE_USE, 1.0F, 1.0F));
     }
 
     private boolean pay(GamePlayer gamePlayer, int price) {
         Player player = gamePlayer.getPlayer();
         if (gamePlayer.getCoins() < price) {
-            player.sendMessage(String.format("§cDu brauchst noch §6%d Coins", price - gamePlayer.getCoins()));
+            player.sendMessage(Lang.f(player, "§cDu brauchst noch §6%d Coins", "§cNot enough coins, §6%d Coins §cmissing", price - gamePlayer.getCoins()));
             Sounds.deny(player);
             return false;
         }
@@ -442,30 +458,33 @@ public class WorkbenchManager implements Listener {
     private record Card(int level, String name1, String now1, String next1, boolean arrow1,
                         String name2, String now2, String next2, boolean arrow2, int price, int max) {}
 
-    private static Card card(Weapon weapon) {
+    private static Card card(Player player, Weapon weapon) {
+        String magazine = Lang.t(player, "Magazin", "Magazine");
         if (weapon.upgradesDamage()) {
-            return new Card(weapon.getLevel(), "Schaden", number(weapon.getDamage()), number(weapon.nextDamage()), true,
-                    "Magazin", String.valueOf(weapon.getMaxMagazine()), String.valueOf(weapon.nextMagazine()), true, upgradePrice(weapon), Weapon.MAX_LEVEL);
+            return new Card(weapon.getLevel(), Lang.t(player, "Schaden", "Damage"), number(player, weapon.getDamage()), number(player, weapon.nextDamage()), true,
+                    magazine, String.valueOf(weapon.getMaxMagazine()), String.valueOf(weapon.nextMagazine()), true, upgradePrice(weapon), Weapon.MAX_LEVEL);
         }
         // Sniper: only reloads faster, damage and magazine stay
-        return new Card(weapon.getLevel(), "Nachladen", seconds(weapon.getFireRate()), seconds(weapon.nextFireRate()), true,
-                "Magazin", String.valueOf(weapon.getMaxMagazine()), "", false, upgradePrice(weapon), Weapon.MAX_LEVEL);
+        return new Card(weapon.getLevel(), Lang.t(player, "Nachladen", "Reload"), seconds(player, weapon.getFireRate()), seconds(player, weapon.nextFireRate()), true,
+                magazine, String.valueOf(weapon.getMaxMagazine()), "", false, upgradePrice(weapon), Weapon.MAX_LEVEL);
     }
 
     private static Card armorCard(GamePlayer gamePlayer) {
+        Player player = gamePlayer.getPlayer();
         int level = gamePlayer.getArmorLevel();
-        return new Card(level, "Schutz", String.valueOf(ArmorSet.protection(level)), String.valueOf(ArmorSet.protection(level + 1)), true,
-                "Set", "", ArmorSet.name(Math.min(level + 1, ArmorSet.MAX_LEVEL)), level < ArmorSet.MAX_LEVEL, ArmorSet.price(level), ArmorSet.MAX_LEVEL);
+        return new Card(level, Lang.t(player, "Schutz", "Protection"), String.valueOf(ArmorSet.protection(level)), String.valueOf(ArmorSet.protection(level + 1)), true,
+                "Set", "", ArmorSet.name(player, Math.min(level + 1, ArmorSet.MAX_LEVEL)), level < ArmorSet.MAX_LEVEL, ArmorSet.price(level), ArmorSet.MAX_LEVEL);
     }
 
     private static Card crowbarCard(GamePlayer gamePlayer) {
+        Player player = gamePlayer.getPlayer();
         int level = gamePlayer.getCrowbarLevel();
-        return new Card(level, "Tempo", factor(CrowbarLevel.speed(level)), factor(CrowbarLevel.speed(level + 1)), true,
-                "Beute", loot(level), loot(level + 1), true, CrowbarLevel.price(level), CrowbarLevel.MAX_LEVEL);
+        return new Card(level, Lang.t(player, "Tempo", "Speed"), factor(player, CrowbarLevel.speed(level)), factor(player, CrowbarLevel.speed(level + 1)), true,
+                Lang.t(player, "Beute", "Loot"), loot(level), loot(level + 1), true, CrowbarLevel.price(level), CrowbarLevel.MAX_LEVEL);
     }
 
-    private static String factor(double value) {
-        return String.format(Locale.GERMANY, "%.1f", value);
+    private static String factor(Player player, double value) {
+        return Lang.f(player, "%.1f", "%.1f", value);
     }
 
     // Chance in percent that a crate gives a grenade or coins
@@ -474,10 +493,11 @@ public class WorkbenchManager implements Listener {
     }
 
     private Component title(GamePlayer gamePlayer, Card card, int row, Weapon weapon) {
-        WorkbenchTitle title = new WorkbenchTitle().name("Werkbank");
+        Player player = gamePlayer.getPlayer();
+        WorkbenchTitle title = new WorkbenchTitle().name(Lang.t(player, "Werkbank", "Workbench"));
         int coins = gamePlayer.getCoins();
-        title.centered("guthaben_name", 52, new WorkbenchTitle.Part("Guthaben", GREY))
-                .centered("guthaben", 52, new WorkbenchTitle.Part(COIN + " " + coins(coins), ORANGE));
+        title.centered("guthaben_name", 52, new WorkbenchTitle.Part(Lang.t(player, "Guthaben", "Balance"), GREY))
+                .centered("guthaben", 52, new WorkbenchTitle.Part(COIN + " " + coins(player, coins), ORANGE));
         if (card == null) return title.build();
 
         int level = card.level();
@@ -491,7 +511,7 @@ public class WorkbenchManager implements Listener {
         title.glyph((char) (0xE030 + level), level == 0 ? 30 : 27, STAR_WIDTHS[level]);
 
         // Card: what you get
-        title.left("name_0", 117, new WorkbenchTitle.Part("Stufe", GREY));
+        title.left("name_0", 117, new WorkbenchTitle.Part(Lang.t(player, "Stufe", "Level"), GREY));
         if (max) title.left("wert_0", 117, new WorkbenchTitle.Part(level + "/" + card.max(), LIGHT));
         else if (values) title.left("wert_0", 117, new WorkbenchTitle.Part(String.valueOf(level), LIGHT),
                 new WorkbenchTitle.Part(ARROW, ORANGE), new WorkbenchTitle.Part(String.valueOf(level + 1), TextColor.color(LEVEL_COLORS[level])));
@@ -504,34 +524,34 @@ public class WorkbenchManager implements Listener {
         // Button with price
         if (locked) {
             title.glyph('\uE024', 95, 74)
-                    .centered("knopf", 132, new WorkbenchTitle.Part("Gesperrt", BUTTON_GREY))
-                    .centered("knopf_2", 132, new WorkbenchTitle.Part("Ab Welle " + UNLOCK_WAVE, ORANGE));
+                    .centered("knopf", 132, new WorkbenchTitle.Part(Lang.t(player, "Gesperrt", "Locked"), BUTTON_GREY))
+                    .centered("knopf_2", 132, new WorkbenchTitle.Part(Lang.t(player, "Ab Welle ", "From wave ") + UNLOCK_WAVE, ORANGE));
         } else if (!open) {
             title.glyph('\uE022', 93, 78)
-                    .centered("knopf", 132, new WorkbenchTitle.Part("Freischalten", WHITE))
-                    .centered("preis", 132, new WorkbenchTitle.Part(COIN + " " + coins(UNLOCK_PRICE - unlockPaid), WHITE));
+                    .centered("knopf", 132, new WorkbenchTitle.Part(Lang.t(player, "Freischalten", "Unlock"), WHITE))
+                    .centered("preis", 132, new WorkbenchTitle.Part(COIN + " " + coins(player, UNLOCK_PRICE - unlockPaid), WHITE));
         } else if (max) {
             title.glyph('\uE023', 93, 78)
-                    .centered("knopf", 132, new WorkbenchTitle.Part("Maximal", TextColor.color(0x3B2A00)))
-                    .centered("knopf_2", 132, new WorkbenchTitle.Part("Stufe " + level + "/" + Weapon.MAX_LEVEL, TextColor.color(0x5A4200)));
+                    .centered("knopf", 132, new WorkbenchTitle.Part(Lang.t(player, "Maximal", "Max"), TextColor.color(0x3B2A00)))
+                    .centered("knopf_2", 132, new WorkbenchTitle.Part(Lang.t(player, "Stufe ", "Level ") + level + "/" + Weapon.MAX_LEVEL, TextColor.color(0x5A4200)));
         } else {
             int price = card.price();
             boolean affordable = coins >= price;
             title.glyph(affordable ? '\uE020' : '\uE021', affordable ? 93 : 95, affordable ? 78 : 74)
-                    .centered("knopf", 132, new WorkbenchTitle.Part("Verbessern", affordable ? WHITE : BUTTON_GREY))
+                    .centered("knopf", 132, new WorkbenchTitle.Part(Lang.t(player, "Verbessern", "Upgrade"), affordable ? WHITE : BUTTON_GREY))
                     .centered("preis", 132, new WorkbenchTitle.Part(COIN, affordable ? TextColor.color(0xFFD36B) : TOO_EXPENSIVE),
-                            new WorkbenchTitle.Part(" " + coins(price), affordable ? WHITE : TOO_EXPENSIVE));
+                            new WorkbenchTitle.Part(" " + coins(player, price), affordable ? WHITE : TOO_EXPENSIVE));
         }
 
         // Scrap button over the whole bottom row, one line of text
         int scrap = weapon == null ? 0 : scrapValue(weapon);
         if (scrap <= 0) {
-            title.glyph('', 26, 143).centered("schrott", 97, new WorkbenchTitle.Part("Nicht möglich", SCRAP_GREY));
+            title.glyph('', 26, 143).centered("schrott", 97, new WorkbenchTitle.Part(Lang.t(player, "Nicht möglich", "Not possible"), SCRAP_GREY));
         } else {
-            boolean asked = isScrapAsked(gamePlayer.getPlayer());
+            boolean asked = isScrapAsked(player);
             title.glyph(asked ? '' : '', asked ? 24 : 26, asked ? 147 : 143)
-                    .centered("schrott", 97, new WorkbenchTitle.Part(asked ? "Sicher? " : "Verschrotten ", WHITE),
-                            new WorkbenchTitle.Part(COIN + " " + coins(scrap), SCRAP_GOLD));
+                    .centered("schrott", 97, new WorkbenchTitle.Part(asked ? Lang.t(player, "Sicher? ", "Sure? ") : Lang.t(player, "Verschrotten ", "Scrap "), WHITE),
+                            new WorkbenchTitle.Part(COIN + " " + coins(player, scrap), SCRAP_GOLD));
         }
         return title.build();
     }
@@ -545,12 +565,12 @@ public class WorkbenchManager implements Listener {
     }
 
     // Seconds between shots, short enough for the card
-    private static String seconds(int ticks) {
-        return String.format(Locale.GERMANY, "%.1f", ticks / 20.0);
+    private static String seconds(Player player, int ticks) {
+        return Lang.f(player, "%.1f", "%.1f", ticks / 20.0);
     }
 
-    private static String coins(int coins) {
-        return String.format(Locale.GERMANY, "%,d", coins);
+    private static String coins(Player player, int coins) {
+        return Lang.f(player, "%,d", "%,d", coins);
     }
 
     private static ItemStack icon(Material material, String model, Component name, Component... lore) {
@@ -568,15 +588,15 @@ public class WorkbenchManager implements Listener {
         return text(now, LIGHT).append(text(" → ", GREY)).append(text(next, GREEN));
     }
 
-    private static Component price(int coins, boolean affordable) {
-        return text(String.format(Locale.GERMANY, "%,d", coins), affordable ? ORANGE : RED)
+    private static Component price(Player player, int coins, boolean affordable) {
+        return text(coins(player, coins), affordable ? ORANGE : RED)
                 .append(text(" "))
                 .append(Component.text("", NamedTextColor.WHITE).font(HUD_FONT).decoration(TextDecoration.ITALIC, false))
                 .append(text(" Coins", GREY));
     }
 
-    private static String number(double value) {
-        return value == Math.rint(value) ? String.valueOf((int) value) : String.format(Locale.GERMANY, "%.2f", value).replaceAll("0$", "");
+    private static String number(Player player, double value) {
+        return value == Math.rint(value) ? String.valueOf((int) value) : Lang.f(player, "%.2f", "%.2f", value).replaceAll("0$", "");
     }
 
     private static Component text(String content, TextColor color) {

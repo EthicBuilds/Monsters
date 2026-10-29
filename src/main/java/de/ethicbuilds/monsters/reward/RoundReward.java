@@ -1,7 +1,7 @@
 package de.ethicbuilds.monsters.reward;
 
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.player.GamePlayer;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -69,7 +69,7 @@ public final class RoundReward {
     public static void payOut(List<GamePlayer> ranked, int wave, String prefix) {
         countMinute();
         if (System.currentTimeMillis() - roundStart < MIN_ROUND_MILLIS) {
-            ranked.forEach(p -> { if (p.getPlayer().isOnline()) p.getPlayer().sendMessage(prefix + "§7Die Runde war zu kurz für EthicCoins."); });
+            ranked.forEach(p -> { if (p.getPlayer().isOnline()) p.getPlayer().sendMessage(prefix + Lang.t(p.getPlayer(), "§7Die Runde war zu kurz für EthicCoins.", "§7The round was too short for EthicCoins.")); });
             return;
         }
         for (int i = 0; i < ranked.size(); i++) {
@@ -79,9 +79,10 @@ public final class RoundReward {
             if (base <= 0) continue;
             long coins = EthicCoins.withRankBonus(player, base);
             if (!EthicCoins.deposit(player.getUniqueId(), coins, "Monsters Runde")) continue;
-            player.sendMessage(String.format("%s§7Du bekommst §6%d EthicCoins §7für diese Runde%s", prefix, coins, i == 0 ? " §8(§6Rundenbester§8)" : ""));
+            player.sendMessage(Lang.f(player, "%s§7Du bekommst §6%d EthicCoins §7für diese Runde%s", "%s§7You get §6%d EthicCoins §7for this round%s", prefix, coins,
+                    i == 0 ? Lang.t(player, " §8(§6Rundenbester§8)", " §8(§6Best player§8)") : ""));
             if (i == 0) {
-                Bukkit.broadcastMessage(String.format("%s§6%s §7war der beste Spieler der Runde!", prefix, player.getName()));
+                Lang.broadcast("%s§6%s §7war der beste Spieler der Runde!", "%s§6%s §7was the best player of the round!", prefix, player.getName());
                 DailyWin.reward(player, prefix);
             }
         }

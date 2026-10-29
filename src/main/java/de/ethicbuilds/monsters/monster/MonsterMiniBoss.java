@@ -1,6 +1,8 @@
 package de.ethicbuilds.monsters.monster;
 
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.lang.DualBar;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
@@ -11,7 +13,6 @@ import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
-import org.bukkit.boss.BossBar;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EntityEquipment;
@@ -25,14 +26,16 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class MonsterMiniBoss extends MonsterZombie {
     private static final String[] NAMES = {"Grabwächter", "Wüstenfürst", "Knochenbrecher", "Mumienkönig", "Sandschlund"};
+    private static final String[] NAMES_EN = {"Tomb Warden", "Desert Lord", "Bonecrusher", "Mummy King", "Sand Maw"};
     private static final int LOOT_COINS = 300;
 
-    private final String title;
-    private BossBar bar;
+    private final String title, titleEn;
+    private DualBar bar;
 
     public MonsterMiniBoss(int wave) {
         super(EntityType.ZOMBIE, "§c" + NAMES[wave % NAMES.length]);
         this.title = NAMES[wave % NAMES.length];
+        this.titleEn = NAMES_EN[wave % NAMES.length];
         this.health = 30 + 15 * wave / 2;
         this.damage = 4;
         this.coin = 100;
@@ -51,7 +54,7 @@ public class MonsterMiniBoss extends MonsterZombie {
             equipment.setChestplateDropChance(0);
         }
 
-        bar = Bukkit.createBossBar("§c§l" + title, BarColor.RED, BarStyle.SEGMENTED_6);
+        bar = new DualBar("§c§l" + title, "§c§l" + titleEn, BarColor.RED, BarStyle.SEGMENTED_6);
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -79,7 +82,12 @@ public class MonsterMiniBoss extends MonsterZombie {
         // Grenade if there is room for one, otherwise coins
         boolean grenade = ThreadLocalRandom.current().nextBoolean() && injector.getInstance(GrenadeManager.class).give(killer);
         if (!grenade) gamePlayer.addCoins(LOOT_COINS);
-        Bukkit.broadcastMessage(String.format("%s§a%s §7hat §c%s §7besiegt und bekommt %s§7!", Main.getINSTANCE().getMonstersPrefix(),
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.sendMessage(Lang.f(player, "%s§a%s §7hat §c%s §7besiegt und bekommt %s§7!", "%s§a%s §7defeated §c%s §7and gets %s§7!",
+                    Main.getINSTANCE().getMonstersPrefix(), killer.getName(), Lang.t(player, title, titleEn),
+                    grenade ? Lang.t(player, "§aeine Granate", "§aa grenade") : "§6" + LOOT_COINS + " Coins"));
+        }
+        Bukkit.getConsoleSender().sendMessage(String.format("%s§a%s §7hat §c%s §7besiegt und bekommt %s§7!", Main.getINSTANCE().getMonstersPrefix(),
                 killer.getName(), title, grenade ? "§aeine Granate" : "§6" + LOOT_COINS + " Coins"));
         killer.playSound(killer.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.5F, 1.3F);
         killer.playSound(killer.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.4F, 1.2F);

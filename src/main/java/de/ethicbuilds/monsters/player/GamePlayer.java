@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.player;
 
 import de.ethicbuilds.monsters.items.GameItems;
+import de.ethicbuilds.monsters.lang.Lang;
 import lombok.Getter;
 import lombok.Setter;
 import de.ethicbuilds.monsters.weapons.Pistol;
@@ -42,10 +43,10 @@ public class GamePlayer extends GameUser {
     protected void initInventory() {
         player.getInventory().clear();
 
-        ItemStack melee = GameItems.knife();
+        ItemStack melee = GameItems.knife(player);
 
-        ItemStack weaponSlot1 = emptySlot(2);
-        ItemStack weaponSlot2 = emptySlot(3);
+        ItemStack weaponSlot1 = emptySlot(2, player);
+        ItemStack weaponSlot2 = emptySlot(3, player);
         ItemStack monsterTracker = new ItemStack(Material.COMPASS);
 
         ItemMeta monsterTrackerMeta = monsterTracker.getItemMeta();
@@ -56,19 +57,21 @@ public class GamePlayer extends GameUser {
         player.getInventory().setItem(2, weaponSlot1);
         player.getInventory().setItem(3, weaponSlot2);
         player.getInventory().setItem(5, monsterTracker);
-        player.getInventory().setItem(GameItems.CROWBAR_SLOT, GameItems.crowbar());
+        player.getInventory().setItem(GameItems.CROWBAR_SLOT, GameItems.crowbar(player));
 
         Pistol pistol = new Pistol();
+        pistol.localize(player);
         addWeapon(pistol);
 
         player.getInventory().setItem(1, pistol.getItem());
     }
 
     /** Grey dye marking a free weapon slot (hotbar 2 and 3) */
-    public static ItemStack emptySlot(int slot) {
+    public static ItemStack emptySlot(int slot, Player player) {
         ItemStack item = new ItemStack(Material.LIGHT_GRAY_DYE);
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(slot >= 2 ? "§aWaffen Slot " + (slot - 1) : "§aWaffen Slot");
+        String name = Lang.t(player, "§aWaffen Slot", "§aWeapon Slot");
+        meta.setDisplayName(slot >= 2 ? name + " " + (slot - 1) : name);
         item.setItemMeta(meta);
         return item;
     }

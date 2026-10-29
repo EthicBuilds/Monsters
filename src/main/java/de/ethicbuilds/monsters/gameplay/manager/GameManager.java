@@ -8,6 +8,7 @@ import de.ethicbuilds.monsters.dto.StopServerDto;
 import de.ethicbuilds.monsters.gameplay.model.GameConfig;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.gameplay.repository.GameStates;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.adapter.LocationAdapter;
 import de.ethicbuilds.monsters.monster.TrackerGlow;
@@ -98,7 +99,7 @@ public class GameManager {
     }
 
     public void gameStart() {
-        broadcastMessage(String.format("%s§aDas Spiel beginnt in 20 Sekunden!", plugin.getMonstersPrefix()));
+        Lang.broadcast("%s§aDas Spiel beginnt in 20 Sekunden!", "%s§aThe game starts in 20 seconds!", plugin.getMonstersPrefix());
         gameStartTask = new BukkitRunnable() {
             int i = 20;
             @Override
@@ -106,7 +107,7 @@ public class GameManager {
                 if(!userManager.isFull()) this.cancel();
 
                 if (i <= 5) {
-                    broadcastMessage(String.format("%s§aDas spiel startet in %d Sekunden!", plugin.getMonstersPrefix(), i));
+                    Lang.broadcast("%s§aDas spiel startet in %d Sekunden!", "%s§aThe game starts in %d seconds!", plugin.getMonstersPrefix(), i);
                 }
 
                 if (i <= 1) {
@@ -129,7 +130,7 @@ public class GameManager {
                         }
                     }
 
-                    broadcastTitle(plugin.getMonstersPrefix(), "§cÜberlebe so lange wie möglich!");
+                    broadcastTitle(plugin.getMonstersPrefix(), "§cÜberlebe so lange wie möglich!", "§cSurvive as long as you can!");
 
                     userManager.startMonsterTrackerTask();
                     plugin.getInjector().getInstance(de.ethicbuilds.monsters.player.manager.SpectatorHud.class).start();
@@ -155,38 +156,43 @@ public class GameManager {
     private void sendSummary() {
         List<GamePlayer> players = new ArrayList<>(userManager.getGamePlayers());
         players.sort(Comparator.comparingInt(GamePlayer::getKilledZombies).reversed());
-        List<String> lines = new ArrayList<>();
-        lines.add("§8§m                                              ");
-        lines.add(String.format("%s§fRunde vorbei auf §6%s §7· §fWelle §6%d", plugin.getMonstersPrefix(),
-                gameConfig.getMapName(), waveManager.getCurrentWave()));
-        for (int i = 0; i < players.size(); i++) {
-            GamePlayer gamePlayer = players.get(i);
-            lines.add(String.format("§%s%d. §f%s §8» §a%d Kills §8· §c%d Kopfschüsse §8· §d%d wiederbelebt §8· §6%s Coins",
-                    i == 0 ? "6" : "7", i + 1, gamePlayer.getPlayer().getName(), gamePlayer.getKilledZombies(), gamePlayer.getHeadshots(),
-                    gamePlayer.getRevives(), String.format(java.util.Locale.GERMANY, "%,d", gamePlayer.getEarnedCoins())));
-        }
-        lines.addAll(awards(players));
-        lines.add("§8§m                                              ");
-        for (Player player : Bukkit.getOnlinePlayers()) lines.forEach(player::sendMessage);
+        for (Player player : Bukkit.getOnlinePlayers()) summary(player, players).forEach(player::sendMessage);
         de.ethicbuilds.monsters.reward.RoundReward.payOut(players, waveManager.getCurrentWave(), plugin.getMonstersPrefix());
         DailyChallenge.check(players, waveManager.getCurrentWave());
     }
 
-    // Best of the round in a few categories, only when someone did something there
-    private List<String> awards(List<GamePlayer> players) {
+    private List<String> summary(Player viewer, List<GamePlayer> players) {
         List<String> lines = new ArrayList<>();
-        award(lines, players, "Meiste Kills", GamePlayer::getKilledZombies);
-        award(lines, players, "Meiste Kopfschüsse", GamePlayer::getHeadshots);
-        award(lines, players, "Bester Retter", GamePlayer::getRevives);
-        award(lines, players, "Meiste Coins", GamePlayer::getEarnedCoins);
+        lines.add("§8§m                                              ");
+        lines.add(Lang.f(viewer, "%s§fRunde vorbei auf §6%s §7· §fWelle §6%d", "%s§fRound over on §6%s §7· §fWave §6%d", plugin.getMonstersPrefix(),
+                gameConfig.getMapName(), waveManager.getCurrentWave()));
+        for (int i = 0; i < players.size(); i++) {
+            GamePlayer gamePlayer = players.get(i);
+            lines.add(Lang.f(viewer, "§%s%d. §f%s §8» §a%d Kills §8· §c%d Kopfschüsse §8· §d%d wiederbelebt §8· §6%,d Coins",
+                    "§%s%d. §f%s §8» §a%d Kills §8· §c%d Headshots §8· §d%d Revives §8· §6%,d Coins",
+                    i == 0 ? "6" : "7", i + 1, gamePlayer.getPlayer().getName(), gamePlayer.getKilledZombies(), gamePlayer.getHeadshots(),
+                    gamePlayer.getRevives(), gamePlayer.getEarnedCoins()));
+        }
+        lines.addAll(awards(viewer, players));
+        lines.add("§8§m                                              ");
+        return lines;
+    }
+
+    // Best of the round in a few categories, only when someone did something there
+    private List<String> awards(Player viewer, List<GamePlayer> players) {
+        List<String> lines = new ArrayList<>();
+        award(lines, viewer, players, Lang.t(viewer, "Meiste Kills", "Most kills"), GamePlayer::getKilledZombies);
+        award(lines, viewer, players, Lang.t(viewer, "Meiste Kopfschüsse", "Most headshots"), GamePlayer::getHeadshots);
+        award(lines, viewer, players, Lang.t(viewer, "Bester Retter", "Most revives"), GamePlayer::getRevives);
+        award(lines, viewer, players, Lang.t(viewer, "Meiste Coins", "Most coins"), GamePlayer::getEarnedCoins);
         if (!lines.isEmpty()) lines.addFirst(plugin.getMonstersPrefix() + "§6§lMVP");
         return lines;
     }
 
-    private void award(List<String> lines, List<GamePlayer> players, String title, java.util.function.ToIntFunction<GamePlayer> value) {
+    private void award(List<String> lines, Player viewer, List<GamePlayer> players, String title, java.util.function.ToIntFunction<GamePlayer> value) {
         players.stream().max(Comparator.comparingInt(value)).filter(best -> value.applyAsInt(best) > 0).ifPresent(best ->
-                lines.add(String.format("§7%s §8» §f%s §8(§e%s§8)", title, best.getPlayer().getName(),
-                        String.format(java.util.Locale.GERMANY, "%,d", value.applyAsInt(best)))));
+                lines.add(Lang.f(viewer, "§7%s §8» §f%s §8(§e%,d§8)", "§7%s §8» §f%s §8(§e%,d§8)", title, best.getPlayer().getName(),
+                        value.applyAsInt(best))));
     }
 
     public void gameEnd() {
@@ -213,7 +219,7 @@ public class GameManager {
         }
 
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.sendTitle("§4Spiel Vorbei", String.format("§cIhr habt es bis Runde §7%d §cgeschaft!", waveManager.getCurrentWave()));
+            player.sendTitle(Lang.t(player, "§4Spiel Vorbei", "§4Game Over"), Lang.f(player, "§cIhr habt es bis Runde §7%d §cgeschaft!", "§cYou made it to wave §7%d§c!", waveManager.getCurrentWave()));
         }
         sendSummary();
 
@@ -225,13 +231,13 @@ public class GameManager {
             @Override
             public void run() {
                 if(i <= 5) {
-                    broadcastMessage(String.format("%s§cDer Server startet in §4%d §cSekuden neu", plugin.getMonstersPrefix(), i));
+                    Lang.broadcast("%s§cDer Server startet in §4%d §cSekuden neu", "%s§cServer restarts in §4%d §cseconds", plugin.getMonstersPrefix(), i);
                 }
 
                 if(Bukkit.getOnlinePlayers().isEmpty() || i <= 1) {
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "minecraft:kill @e");
 
-                    broadcastMessage(String.format("%s§cDer Server staret §4jetzt §cneu!", plugin.getMonstersPrefix()));
+                    Lang.broadcast("%s§cDer Server staret §4jetzt §cneu!", "%s§cServer restarts §4now§c!", plugin.getMonstersPrefix());
                     Bukkit.shutdown();
                 }
                 i--;
@@ -257,15 +263,9 @@ public class GameManager {
         return gameStates.getCurrentPhase();
     }
 
-    private void broadcastMessage(String message) {
+    private void broadcastTitle(String s, String de, String en) {
         for (Player p : Bukkit.getOnlinePlayers()) {
-            p.sendMessage(message);
-        }
-    }
-
-    private void broadcastTitle(String s, String s2) {
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            p.sendTitle(s, s2);
+            p.sendTitle(s, Lang.t(p, de, en));
         }
     }
 }

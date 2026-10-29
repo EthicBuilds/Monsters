@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.weapons;
 
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.items.GameItems;
+import de.ethicbuilds.monsters.lang.Lang;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Location;
@@ -23,6 +24,8 @@ public abstract class Weapon {
 
     protected ItemStack item;
     protected String name;
+    // English name, without one the German name counts for both
+    protected String nameEn;
     protected double damage;
     protected int fireRate;
     protected int ammu;
@@ -69,6 +72,18 @@ public abstract class Weapon {
         meta.setMaxStackSize(1);
         item.setItemMeta(meta);
         if (model != null) GameItems.setModel(item, model);
+    }
+
+    /** Name in the player's language */
+    public String getName(Player player) {
+        return Lang.t(player, name, nameEn != null ? nameEn : name);
+    }
+
+    /** Item name in the owner's language, before the item goes into the inventory */
+    public void localize(Player player) {
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(getName(player));
+        item.setItemMeta(meta);
     }
 
     public void shoot(Player player) {
@@ -142,7 +157,8 @@ public abstract class Weapon {
         }
         if (ammu <= 0) {
             AmmoHud.pause(player);
-            player.sendTitle("§4Keine Munition", "§7Kaufe Munition an der §aMunitionskiste", 0, 20, 0);
+            player.sendTitle(Lang.t(player, "§4Keine Munition", "§4No ammo"),
+                    Lang.t(player, "§7Kaufe Munition an der §aMunitionskiste", "§7Buy ammo at the §aAmmo crate"), 0, 20, 0);
             return;
         }
 

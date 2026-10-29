@@ -4,6 +4,7 @@ import de.ethicbuilds.monsters.items.CrowbarLevel;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.items.GameItems;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.map.elements.Door;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -45,7 +46,7 @@ public class DoorManager {
             public void run() {
                 if (!canContinue(player, center)) {
                     stop(door, blocks, player);
-                    player.sendActionBar("§cAufbrechen abgebrochen");
+                    player.sendActionBar(Lang.t(player, "§cAufbrechen abgebrochen", "§cBreaking open cancelled"));
                     center.getWorld().playSound(center, Sound.BLOCK_NOTE_BLOCK_BASS, 0.5F, 0.7F);
                     cancel();
                     return;

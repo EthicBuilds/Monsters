@@ -113,9 +113,9 @@ public class MapManager {
         for (Door door : mapConfiguration.getDoors()) {
             Location base = door.getHoloLocation().clone();
 
-            createHolo("§aÖffne", base.clone().add(0.5, 0.3, 0.5));
+            createHolo("§aÖffnen §8· §aOpen", base.clone().add(0.5, 0.3, 0.5));
             createHolo(String.format("§4%s", door.getName()), base.clone().add(0.5, 0, 0.5));
-            createHolo("§afür §62500 Coins", base.clone().add(0.5, -0.3, 0.5));
+            createHolo("§62500 Coins", base.clone().add(0.5, -0.3, 0.5));
         }
     }
 

@@ -8,6 +8,7 @@ public class Rifle extends Weapon {
     public Rifle() {
         this.item = new ItemStack(Material.FEATHER);
         this.name = "§6Sturmgewehr";
+        this.nameEn = "§6Assault Rifle";
         this.damage = 4.0;
         this.fireRate = 2;
         this.maxAmmu = 800;

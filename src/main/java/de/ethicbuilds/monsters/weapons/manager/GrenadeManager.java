@@ -32,7 +32,7 @@ public class GrenadeManager {
         int amount = GameItems.isGrenade(current) ? current.getAmount() : 0;
         if (amount >= MAX_GRENADES) return false;
 
-        player.getInventory().setItem(GameItems.GRENADE_SLOT, GameItems.grenade(amount + 1));
+        player.getInventory().setItem(GameItems.GRENADE_SLOT, GameItems.grenade(player, amount + 1));
         return true;
     }
 
@@ -44,7 +44,7 @@ public class GrenadeManager {
         player.getInventory().setItem(GameItems.GRENADE_SLOT, current.getAmount() > 0 ? current : null);
 
         Location start = player.getEyeLocation();
-        Item grenade = player.getWorld().dropItem(start, GameItems.grenade(1), item -> {
+        Item grenade = player.getWorld().dropItem(start, GameItems.grenade(player, 1), item -> {
             item.setPickupDelay(Integer.MAX_VALUE);
             item.setCanMobPickup(false);
             item.setUnlimitedLifetime(true);

@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.gameplay.manager;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.map.decoration.CrateManager;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.EliteTier;
@@ -9,7 +10,6 @@ import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
@@ -28,6 +28,7 @@ public class WaveManager {
     private static final long HORDE_WARNING = 3000;
     // Every weaver is about 40 animated displays, so fewer of them at once (8 players would bring over 100)
     private static final int MAX_SPIDERS_ALIVE = 40;
+    private static final String[] TIERS_EN = {"", "Bronze", "Silver", "Gold", "Diamond", "Netherite"};
 
     @Inject
     private UserManager userManager;
@@ -62,16 +63,8 @@ public class WaveManager {
 
     private void startWave() throws InterruptedException {
         currentWave++;
-        broadCastMessage(String.format("%s§aStarte Welle §4%d", plugin.getMonstersPrefix(), currentWave));
-        Component title = MiniMessage.miniMessage().deserialize("<bold><gradient:#F9A11E:#8B4BD8>Welle " + currentWave + "</gradient></bold>");
-        Component subtitle = currentWave % MonsterManager.BOSS_WAVE == 0
-                ? MiniMessage.miniMessage().deserialize("<#8B4BD8>Boss-Welle: die Amethyst-Weberin kommt! <#D58BFF>Stufe " + currentWave / MonsterManager.BOSS_WAVE)
-                : currentWave % MonsterManager.SPIDER_WAVE == 0
-                ? MiniMessage.miniMessage().deserialize("<#8B4BD8>Spinnen-Welle: die Weberinnen kommen!")
-                : currentWave > 10 && currentWave % 10 == 1
-                ? Component.text("Neue Elite-Stufe: " + EliteTier.name(EliteTier.of(currentWave)).replaceAll("§.", "")).color(net.kyori.adventure.text.format.TextColor.color(0xF9A11E))
-                : Component.empty();
-        Bukkit.getOnlinePlayers().forEach(p -> p.showTitle(Title.title(title, subtitle)));
+        Lang.broadcast("%s§aStarte Welle §4%d", "%s§aStarting wave §4%d", plugin.getMonstersPrefix(), currentWave);
+        Bukkit.getOnlinePlayers().forEach(p -> p.showTitle(Title.title(waveTitle(p), waveSubtitle(p))));
         userManager.broadcastSound(Sound.BLOCK_TRIAL_SPAWNER_AMBIENT_OMINOUS, 2.0F, 1.0F);
 
         startOnMinecraftThread(crateManager::resetAll);
@@ -114,15 +107,31 @@ public class WaveManager {
         }
     }
 
-    private void broadCastMessage(String message) {
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            p.sendMessage(message);
+    private Component waveTitle(Player player) {
+        return Lang.mm(player, "<bold><gradient:#F9A11E:#8B4BD8>Welle " + currentWave + "</gradient></bold>",
+                "<bold><gradient:#F9A11E:#8B4BD8>Wave " + currentWave + "</gradient></bold>");
+    }
+
+    private Component waveSubtitle(Player player) {
+        if (currentWave % MonsterManager.BOSS_WAVE == 0) {
+            int stage = currentWave / MonsterManager.BOSS_WAVE;
+            return Lang.mm(player, "<#8B4BD8>Boss-Welle: die Amethyst-Weberin kommt! <#D58BFF>Stufe " + stage,
+                    "<#8B4BD8>Boss wave: the Amethyst Weaver is coming! <#D58BFF>Stage " + stage);
         }
+        if (currentWave % MonsterManager.SPIDER_WAVE == 0) {
+            return Lang.mm(player, "<#8B4BD8>Spinnen-Welle: die Weberinnen kommen!", "<#8B4BD8>Spider wave: the Weavers are coming!");
+        }
+        if (currentWave > 10 && currentWave % 10 == 1) {
+            int tier = EliteTier.of(currentWave);
+            String text = Lang.english(player) ? "New elite tier: " + TIERS_EN[tier] : "Neue Elite-Stufe: " + EliteTier.name(tier).replaceAll("§.", "");
+            return Component.text(text).color(net.kyori.adventure.text.format.TextColor.color(0xF9A11E));
+        }
+        return Component.empty();
     }
 
     private void announceHorde() {
         for (var player : Bukkit.getOnlinePlayers()) {
-            player.sendTitle("§c§lHORDE!", "§7Gleich stürmt eine schnelle Horde los", 5, 40, 10);
+            player.sendTitle("§c§lHORDE!", Lang.t(player, "§7Gleich stürmt eine schnelle Horde los", "§7A fast horde is about to charge"), 5, 40, 10);
             player.playSound(player.getLocation(), org.bukkit.Sound.EVENT_RAID_HORN, 0.5F, 1.2F);
         }
     }

@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.reward;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -42,8 +43,22 @@ public final class DailyChallenge {
         // A waiting server can stand overnight, then the next day's challenge is fetched
         if (challenge == null || !challenge.get("date").getAsString().equals(java.time.LocalDate.now().toString())) load();
         if (challenge == null) return;
-        player.sendMessage(String.format("%s§eTagesaufgabe: §f%s §8· §6%d EthicCoins", Main.getINSTANCE().getMonstersPrefix(),
-                challenge.get("text").getAsString(), challenge.get("reward").getAsInt()));
+        player.sendMessage(Lang.f(player, "%s§eTagesaufgabe: §f%s §8· §6%d EthicCoins", "%s§eDaily challenge: §f%s §8· §6%d EthicCoins",
+                Main.getINSTANCE().getMonstersPrefix(), text(player, challenge), challenge.get("reward").getAsInt()));
+    }
+
+    // The GameManager only sends the German text, the English one is built from type and goal
+    private static String text(Player player, JsonObject challenge) {
+        String german = challenge.get("text").getAsString();
+        if (!Lang.english(player)) return german;
+        int goal = challenge.get("goal").getAsInt();
+        return switch (challenge.get("type").getAsString()) {
+            case "WAVE" -> "Reach wave " + goal;
+            case "HEADSHOTS" -> goal + " headshots in one round";
+            case "REVIVES" -> "Revive " + goal + " teammates";
+            case "KILLS" -> goal + " kills in one round";
+            default -> german;
+        };
     }
 
     /** At the end of the round: everyone who made it today gets the reward once */
@@ -69,7 +84,7 @@ public final class DailyChallenge {
                     if (!player.isOnline()) return;
                     long coins = EthicCoins.withRankBonus(player, reward);
                     if (!EthicCoins.deposit(player.getUniqueId(), coins, "Monsters Tagesaufgabe")) return;
-                    player.sendMessage(String.format("%s§aTagesaufgabe geschafft! §6+%d EthicCoins", Main.getINSTANCE().getMonstersPrefix(), coins));
+                    player.sendMessage(Lang.f(player, "%s§aTagesaufgabe geschafft! §6+%d EthicCoins", "%s§aDaily challenge done! §6+%d EthicCoins", Main.getINSTANCE().getMonstersPrefix(), coins));
                 });
             });
         }

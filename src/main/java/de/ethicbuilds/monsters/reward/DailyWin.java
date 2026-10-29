@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.reward;
 
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.lang.Lang;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.node.NodeType;
@@ -37,7 +38,7 @@ public final class DailyWin {
                 if (!player.isOnline()) return;
                 long coins = EthicCoins.withRankBonus(player, COINS);
                 if (EthicCoins.deposit(player.getUniqueId(), coins, "Monsters Tagessieg")) {
-                    player.sendMessage(String.format("%s§6Erster Sieg heute! §e+%d EthicCoins", prefix, coins));
+                    player.sendMessage(Lang.f(player, "%s§6Erster Sieg heute! §e+%d EthicCoins", "%s§6First win today! §e+%d EthicCoins", prefix, coins));
                 }
             });
         });

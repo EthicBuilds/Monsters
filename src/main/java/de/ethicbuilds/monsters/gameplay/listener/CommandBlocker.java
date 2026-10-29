@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.gameplay.listener;
 
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.lang.Lang;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -21,7 +22,7 @@ public class CommandBlocker implements Listener {
         String label = event.getMessage().substring(1).split(" ", 2)[0].toLowerCase(Locale.ROOT);
         if (!BLOCKED.contains(label.substring(label.indexOf(':') + 1))) return;
         event.setCancelled(true);
-        event.getPlayer().sendMessage(Main.getINSTANCE().getMonstersPrefix() + "§7Diesen Befehl gibt es in Monsters nicht.");
+        event.getPlayer().sendMessage(Main.getINSTANCE().getMonstersPrefix() + Lang.t(event.getPlayer(), "§7Diesen Befehl gibt es in Monsters nicht.", "§7This command does not exist in Monsters."));
     }
 
     @EventHandler

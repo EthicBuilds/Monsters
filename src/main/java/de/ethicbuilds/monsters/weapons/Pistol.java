@@ -12,6 +12,7 @@ public class Pistol extends Weapon {
         meta.setUnbreakable(true);
         item.setItemMeta(meta);
         this.name = "§6Pistole";
+        this.nameEn = "§6Pistol";
         this.damage = 7.0;
         this.fireRate = 15;
         this.maxAmmu = 1000;

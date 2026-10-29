@@ -5,6 +5,7 @@ import com.google.auto.service.AutoService;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
@@ -73,7 +74,8 @@ public class UserManager {
         // Watches in spectator mode, so the others see the player in the tab list as spectator
         player.setGameMode(GameMode.SPECTATOR);
         player.teleport(mapManager.getMapConfiguration().getSpawn());
-        player.sendTitle("§7Du schaust zu", "§aAb der nächsten Welle spielst du mit", 10, 60, 10);
+        player.sendTitle(Lang.t(player, "§7Du schaust zu", "§7Spectating"),
+                Lang.t(player, "§aAb der nächsten Welle spielst du mit", "§aYou'll join in from the next wave"), 10, 60, 10);
     }
 
     public void killPlayer(UUID uuid) {
@@ -83,7 +85,9 @@ public class UserManager {
             reviveManager.down(gamePlayer.getPlayer());
 
             if (!allPlayersDead()) {
-                gamePlayer.getPlayer().sendTitle("§4Du liegst am Boden!", String.format("§7Ein Mitspieler belebt dich für §6%d Coins §7wieder", reviveManager.cost(uuid)));
+                Player player = gamePlayer.getPlayer();
+                player.sendTitle(Lang.t(player, "§4Du liegst am Boden!", "§4You're downed!"),
+                        Lang.f(player, "§7Ein Mitspieler belebt dich für §6%d Coins §7wieder", "§7A teammate can revive you for §6%d Coins", reviveManager.cost(uuid)));
                 return;
             }
 
@@ -113,7 +117,7 @@ public class UserManager {
             player.heal(20);
             de.ethicbuilds.monsters.items.ArmorSet.equip(player, gamePlayers.get(uuid).getArmorLevel());
             player.teleport(location);
-            player.sendTitle("§aWiederbelebt!", "");
+            player.sendTitle(Lang.t(player, "§aWiederbelebt!", "§aRevived!"), "");
             player.playSound(player.getLocation(), Sound.BLOCK_CONDUIT_ACTIVATE, 0.8F, 1.2F);
         }
     }

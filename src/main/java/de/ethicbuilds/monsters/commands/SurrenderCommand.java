@@ -4,13 +4,13 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -40,7 +40,7 @@ public class SurrenderCommand implements CommandExecutor {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String @NotNull [] args) {
         if (!(sender instanceof Player player) || !userManager.isGamePlayer(player.getUniqueId())) return true;
         if (gameManager.getCurrentPhase() != GamePhase.WAVE) {
-            player.sendMessage(plugin.getMonstersPrefix() + "§cGerade läuft keine Runde.");
+            player.sendMessage(plugin.getMonstersPrefix() + Lang.t(player, "§cGerade läuft keine Runde.", "§cNo round is running right now."));
             return true;
         }
         long now = System.currentTimeMillis();
@@ -49,23 +49,23 @@ public class SurrenderCommand implements CommandExecutor {
             voteStart = now;
         }
         if (!votes.add(player.getUniqueId())) {
-            player.sendMessage(plugin.getMonstersPrefix() + "§7Du hast schon zugestimmt.");
+            player.sendMessage(plugin.getMonstersPrefix() + Lang.t(player, "§7Du hast schon zugestimmt.", "§7You already voted."));
             return true;
         }
 
         List<Player> present = userManager.getGamePlayers().stream().map(GamePlayer::getPlayer).filter(Player::isOnline).toList();
         long agreed = present.stream().filter(p -> votes.contains(p.getUniqueId())).count();
         if (agreed >= present.size()) {
-            Bukkit.broadcastMessage(plugin.getMonstersPrefix() + "§cDas Team gibt auf.");
+            Lang.broadcast("%s§cDas Team gibt auf.", "%s§cThe team surrenders.", plugin.getMonstersPrefix());
             votes.clear();
             gameManager.gameEnd();
             return true;
         }
-        Component vote = Component.text(plugin.getMonstersPrefix() + "§e" + player.getName() + " §7will aufgeben §8(§f" + agreed + "/" + present.size() + "§8) ")
-                .append(Component.text("[Zustimmen]", NamedTextColor.GREEN)
+        present.forEach(p -> p.sendMessage(Component.text(plugin.getMonstersPrefix() + "§e" + player.getName()
+                        + Lang.t(p, " §7will aufgeben §8(§f", " §7wants to surrender §8(§f") + agreed + "/" + present.size() + "§8) ")
+                .append(Component.text(Lang.t(p, "[Zustimmen]", "[Agree]"), NamedTextColor.GREEN)
                         .clickEvent(ClickEvent.runCommand("/aufgeben"))
-                        .hoverEvent(HoverEvent.showText(Component.text("Runde beenden, Statistik wird gespeichert"))));
-        present.forEach(p -> p.sendMessage(vote));
+                        .hoverEvent(HoverEvent.showText(Component.text(Lang.t(p, "Runde beenden, Statistik wird gespeichert", "End the round, stats are saved")))))));
         return true;
     }
 }

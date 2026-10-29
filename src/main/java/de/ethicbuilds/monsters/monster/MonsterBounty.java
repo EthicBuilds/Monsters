@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.monster;
 import com.destroystokyo.paper.entity.Pathfinder;
 import com.destroystokyo.paper.entity.ai.GoalType;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -49,7 +50,8 @@ public class MonsterBounty extends EnemyMonster {
             equipment.setChestplateDropChance(0);
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.sendTitle("§6§lKOPFGELD!", "§7Ein goldener Zombie flieht §8· §6" + reward + " Coins", 5, 40, 10);
+            player.sendTitle(Lang.t(player, "§6§lKOPFGELD!", "§6§lBOUNTY!"),
+                    Lang.t(player, "§7Ein goldener Zombie flieht §8· §6", "§7A golden zombie is fleeing §8· §6") + reward + " Coins", 5, 40, 10);
             player.playSound(player.getLocation(), Sound.BLOCK_BELL_USE, 0.8F, 1.6F);
         }
     }
@@ -86,7 +88,7 @@ public class MonsterBounty extends EnemyMonster {
         Main.getINSTANCE().getInjector().getInstance(MonsterManager.class).removeMonster(this);
         monster.getWorld().spawnParticle(Particle.CLOUD, monster.getLocation().add(0, 1, 0), 20, 0.3, 0.6, 0.3, 0.05);
         monster.remove();
-        Bukkit.broadcastMessage(Main.getINSTANCE().getMonstersPrefix() + "§7Der Kopfgeld-Zombie ist entkommen!");
+        Lang.broadcast("%s§7Der Kopfgeld-Zombie ist entkommen!", "%s§7The Bounty Zombie got away!", Main.getINSTANCE().getMonstersPrefix());
     }
 
     @Override
@@ -97,6 +99,6 @@ public class MonsterBounty extends EnemyMonster {
         if (hunter == null) return;
         hunter.addCoins(reward);
         killer.playSound(killer.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.7F, 1.6F);
-        Bukkit.broadcastMessage(String.format("%s§6%s §7hat das Kopfgeld geholt: §6+%d Coins", Main.getINSTANCE().getMonstersPrefix(), killer.getName(), reward));
+        Lang.broadcast("%s§6%s §7hat das Kopfgeld geholt: §6+%d Coins", "%s§6%s §7claimed the bounty: §6+%d Coins", Main.getINSTANCE().getMonstersPrefix(), killer.getName(), reward);
     }
 }

@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.player.manager;
 import de.ethicbuilds.monsters.sound.Sounds;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
@@ -55,7 +56,6 @@ public class ReviveManager implements Listener {
     private static final double HEAD_DISTANCE = 1.3;
     // Two items while lying: previous and next teammate (keys 4 and 5 or the mouse wheel), the held slot stays empty
     private static final int PREV_SLOT = 3, WATCH_SLOT = 4;
-    private static final String WATCH_HINT = "§7Mausrad oder Taste 4/5: §fMitspielern zuschauen";
 
     @Inject private Main plugin;
     @Inject private UserManager userManager;
@@ -106,7 +106,7 @@ public class ReviveManager implements Listener {
             mannequin.setPersistent(false);
             mannequin.setCustomName("§c" + player.getName());
             mannequin.setCustomNameVisible(true);
-            mannequin.setDescription(Component.text(String.format("§7Wiederbeleben: §6%d Coins", cost)));
+            mannequin.setDescription(Component.text(String.format("§a♥ §6%d Coins", cost)));
         });
         bodies.put(player.getUniqueId(), body);
         spots.put(player.getUniqueId(), spot);
@@ -140,9 +140,11 @@ public class ReviveManager implements Listener {
         savedWatchSlot.put(player.getUniqueId(), watchSlot == null ? new ItemStack(Material.AIR) : watchSlot);
         ItemStack prevSlot = player.getInventory().getItem(PREV_SLOT);
         savedPrevSlot.put(player.getUniqueId(), prevSlot == null ? new ItemStack(Material.AIR) : prevSlot);
-        player.getInventory().setItem(PREV_SLOT, watchItem("§a« Voriger Mitspieler", "§7Taste 4 oder Mausrad hoch"));
-        player.getInventory().setItem(WATCH_SLOT, watchItem("§aNächster Mitspieler »", "§7Taste 5 oder Mausrad runter"));
-        player.sendActionBar(WATCH_HINT);
+        player.getInventory().setItem(PREV_SLOT, watchItem(Lang.t(player, "§a« Voriger Mitspieler", "§a« Previous teammate"),
+                Lang.t(player, "§7Taste 4 oder Mausrad hoch", "§7Key 4 or mouse wheel up")));
+        player.getInventory().setItem(WATCH_SLOT, watchItem(Lang.t(player, "§aNächster Mitspieler »", "§aNext teammate »"),
+                Lang.t(player, "§7Taste 5 oder Mausrad runter", "§7Key 5 or mouse wheel down")));
+        player.sendActionBar(watchHint(player));
         trySelfRevive(player);
     }
 
@@ -150,7 +152,7 @@ public class ReviveManager implements Listener {
     private void trySelfRevive(Player player) {
         ItemStack stored = player.getInventory().getItem(MEDKIT_SLOT);
         if (stored == null || stored.getType().isAir() || selfRevived.contains(player.getUniqueId())) return;
-        player.sendTitle("§aMedkit!", "§7Du stehst gleich wieder auf", 5, 40, 10);
+        player.sendTitle("§aMedkit!", Lang.t(player, "§7Du stehst gleich wieder auf", "§7You'll be back up in a moment"), 5, 40, 10);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!player.isOnline() || !isDown(player.getUniqueId())) return;
             selfRevived.add(player.getUniqueId());
@@ -159,7 +161,7 @@ public class ReviveManager implements Listener {
             spot.setPitch(0);
             userManager.revivePlayer(player.getUniqueId(), spot);
             spot.getWorld().spawnParticle(Particle.HEART, spot.clone().add(0, 1, 0), 8, 0.4, 0.4, 0.4, 0);
-            Bukkit.broadcastMessage(String.format("%s§a%s §7steht mit einem §aMedkit §7wieder auf!", plugin.getMonstersPrefix(), player.getName()));
+            Lang.broadcast("%s§a%s §7steht mit einem §aMedkit §7wieder auf!", "%s§a%s §7is back up with a §aMedkit§7!", plugin.getMonstersPrefix(), player.getName());
         }, SELF_REVIVE_DELAY);
     }
 
@@ -201,7 +203,7 @@ public class ReviveManager implements Listener {
                 .filter(mate -> mate.getWorld().equals(event.getTo().getWorld()) && mate.getLocation().distanceSquared(event.getTo()) < 1)
                 .findFirst().orElse(null);
         if (target == null) {
-            player.sendActionBar("§7Du kannst nur lebenden Mitspielern zuschauen");
+            player.sendActionBar(Lang.t(player, "§7Du kannst nur lebenden Mitspielern zuschauen", "§7You can only watch living teammates"));
             return;
         }
         watch(player, target);
@@ -236,14 +238,15 @@ public class ReviveManager implements Listener {
         if (mate == null) mate = mates.isEmpty() ? null : mates.get(0);
         if (mate == null) {
             backToBody(player);
-            player.sendActionBar("§7Gerade steht niemand, dem du zuschauen kannst");
+            player.sendActionBar(Lang.t(player, "§7Gerade steht niemand, dem du zuschauen kannst", "§7Nobody is standing right now to watch"));
             return;
         }
         watching.put(player.getUniqueId(), mate);
         lastWatched.put(player.getUniqueId(), mate);
         player.setGameMode(org.bukkit.GameMode.SPECTATOR);
         player.setSpectatorTarget(mate);
-        player.sendActionBar("§7Du schaust §a" + mate.getName() + " §7zu §8· §7Taste 1: wechseln §8· §7Schleichen: zurück");
+        player.sendActionBar(Lang.t(player, "§7Du schaust §a" + mate.getName() + " §7zu §8· §7Taste 1: wechseln §8· §7Schleichen: zurück",
+                "§7Watching §a" + mate.getName() + " §8· §7Key 1: switch §8· §7Sneak: back"));
         startWatchCheck();
     }
 
@@ -276,7 +279,11 @@ public class ReviveManager implements Listener {
         Location view = views.get(player.getUniqueId());
         if (view != null) player.teleport(view);
         player.getInventory().setHeldItemSlot(EMPTY_SLOT);
-        player.sendActionBar(WATCH_HINT);
+        player.sendActionBar(watchHint(player));
+    }
+
+    private static String watchHint(Player player) {
+        return Lang.t(player, "§7Mausrad oder Taste 4/5: §fMitspielern zuschauen", "§7Mouse wheel or keys 4/5: §fWatch teammates");
     }
 
     private void stopWatching(Player player) {
@@ -396,15 +403,17 @@ public class ReviveManager implements Listener {
 
         int cost = cost(downed);
         if (helperPlayer.getCoins() < cost) {
-            helper.sendActionBar(String.format("§cDu brauchst noch §6%d Coins §cum %s wiederzubeleben", cost - helperPlayer.getCoins(), downedPlayer.getPlayer().getName()));
+            helper.sendActionBar(Lang.f(helper, "§cDu brauchst noch §6%d Coins §cum %s wiederzubeleben", "§cYou need §6%d more Coins §cto revive %s",
+                    cost - helperPlayer.getCoins(), downedPlayer.getPlayer().getName()));
             if (reviveProgress.putIfAbsent(downed, 0) == null) Sounds.deny(helper);
             return;
         }
         int progress = reviveProgress.merge(downed, STEP_MILLIS, Integer::sum);
         if (progress < REVIVE_MILLIS) {
             String bar = progressBar(progress / (double) REVIVE_MILLIS);
-            helper.sendActionBar("§7Wiederbeleben " + bar + " §8· §7Klick halten");
-            downedPlayer.getPlayer().sendActionBar("§a" + helper.getName() + " §7belebt dich wieder " + bar);
+            helper.sendActionBar(Lang.t(helper, "§7Wiederbeleben ", "§7Reviving ") + bar + Lang.t(helper, " §8· §7Klick halten", " §8· §7Hold click"));
+            Player downedOne = downedPlayer.getPlayer();
+            downedOne.sendActionBar("§a" + helper.getName() + Lang.t(downedOne, " §7belebt dich wieder ", " §7is reviving you ") + bar);
             return;
         }
         reviveProgress.remove(downed);
@@ -417,8 +426,8 @@ public class ReviveManager implements Listener {
         userManager.revivePlayer(downed, spot);
 
         spot.getWorld().spawnParticle(Particle.HEART, spot.clone().add(0, 1, 0), 8, 0.4, 0.4, 0.4, 0);
-        Bukkit.broadcastMessage(String.format("%s§a%s §7hat §a%s §7wiederbelebt! §c-%d Coins", plugin.getMonstersPrefix(),
-                helper.getName(), downedPlayer.getPlayer().getName(), cost));
+        Lang.broadcast("%s§a%s §7hat §a%s §7wiederbelebt! §c-%d Coins", "%s§a%s §7revived §a%s§7! §c-%d Coins", plugin.getMonstersPrefix(),
+                helper.getName(), downedPlayer.getPlayer().getName(), cost);
     }
 
     private static String progressBar(double done) {

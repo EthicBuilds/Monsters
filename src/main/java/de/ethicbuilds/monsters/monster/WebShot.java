@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.monster;
 
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -65,7 +66,7 @@ public final class WebShot {
         for (Player player : at.getWorld().getPlayers()) {
             if (users.isPlayerDead(player.getUniqueId()) || player.getLocation().distance(at) > RADIUS) continue;
             player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, SLOW_TICKS, 2, false, false));
-            player.sendActionBar("§fEingesponnen!");
+            player.sendActionBar(Lang.t(player, "§fEingesponnen!", "§fSpun in!"));
         }
     }
 }

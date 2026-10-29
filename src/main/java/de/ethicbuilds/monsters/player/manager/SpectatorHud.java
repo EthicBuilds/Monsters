@@ -5,6 +5,7 @@ import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import org.bukkit.Bukkit;
@@ -25,7 +26,9 @@ public class SpectatorHud {
     @Inject private MonsterManager monsterManager;
     @Inject private UserManager userManager;
 
+    // One bar per language
     private final BossBar bar = Bukkit.createBossBar("", BarColor.WHITE, BarStyle.SOLID);
+    private final BossBar barEn = Bukkit.createBossBar("", BarColor.WHITE, BarStyle.SOLID);
 
     public void start() {
         new BukkitRunnable() {
@@ -33,6 +36,7 @@ public class SpectatorHud {
             public void run() {
                 if (gameManager.getCurrentPhase() != GamePhase.WAVE) {
                     bar.removeAll();
+                    barEn.removeAll();
                     cancel();
                     return;
                 }
@@ -42,26 +46,35 @@ public class SpectatorHud {
     }
 
     private void update() {
+        bar.setTitle(String.format("§6Welle %d §8· §f%d Monster §8| %s", waveManager.getCurrentWave(), monsterManager.remaining(), team(false)));
+        barEn.setTitle(String.format("§6Wave %d §8· §f%d Monsters §8| %s", waveManager.getCurrentWave(), monsterManager.remaining(), team(true)));
+        for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
+            Player player = gamePlayer.getPlayer();
+            if (!player.isOnline()) continue;
+            boolean english = Lang.english(player);
+            BossBar own = english ? barEn : bar;
+            (english ? bar : barEn).removePlayer(player);
+            if (userManager.isPlayerDead(player.getUniqueId())) own.addPlayer(player);
+            else own.removePlayer(player);
+        }
+    }
+
+    private String team(boolean english) {
         StringBuilder team = new StringBuilder();
         // More than 4 names do not fit in the bar, then only who is still standing
         if (userManager.getGamePlayers().size() > COMPACT_FROM) {
             long down = userManager.getGamePlayers().stream().filter(p -> userManager.isPlayerDead(p.getPlayer().getUniqueId())).count();
-            team.append("§f").append(userManager.getGamePlayers().size() - down).append(" stehen §8· §c").append(down).append(" am Boden");
+            team.append("§f").append(userManager.getGamePlayers().size() - down).append(english ? " standing §8· §c" : " stehen §8· §c")
+                    .append(down).append(english ? " downed" : " am Boden");
         } else {
             for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
                 Player player = gamePlayer.getPlayer();
                 if (!team.isEmpty()) team.append(" §8· ");
                 if (!player.isOnline()) team.append("§8").append(player.getName());
-                else if (userManager.isPlayerDead(player.getUniqueId())) team.append("§c").append(player.getName()).append(" §7am Boden");
+                else if (userManager.isPlayerDead(player.getUniqueId())) team.append("§c").append(player.getName()).append(english ? " §7downed" : " §7am Boden");
                 else team.append("§f").append(player.getName()).append(" §c❤ ").append((int) Math.ceil(player.getHealth() / 2));
             }
         }
-        bar.setTitle(String.format("§6Welle %d §8· §f%d Monster §8| %s", waveManager.getCurrentWave(), monsterManager.remaining(), team));
-        for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
-            Player player = gamePlayer.getPlayer();
-            if (!player.isOnline()) continue;
-            if (userManager.isPlayerDead(player.getUniqueId())) bar.addPlayer(player);
-            else bar.removePlayer(player);
-        }
+        return team.toString();
     }
 }

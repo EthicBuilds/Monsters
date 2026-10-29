@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.monster;
 
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.lang.Lang;
 import static de.ethicbuilds.monsters.monster.GroundMark.decal;
 import static de.ethicbuilds.monsters.monster.GroundMark.flat;
 import static de.ethicbuilds.monsters.monster.GroundMark.ground;
@@ -159,7 +160,7 @@ public final class CrystalBarrage {
             if (distance <= SHAKE_RANGE) shake(player, distance);
             if (distance <= STUN_RANGE) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 30, 1, false, false, true));
-                player.sendActionBar("§5§lErschüttert!");
+                player.sendActionBar(Lang.t(player, "§5§lErschüttert!", "§5§lShaken!"));
             }
         }
     }

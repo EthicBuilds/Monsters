@@ -2,6 +2,9 @@ server-name: " "
 # Lebensanzeige ueber den Monstern (Schrift monsters:healthbar im Monsters-Paket)
 health-bars: true
 
+# Statistik-Zeile je Spieler in der Tab-Liste, setzt Monsters selbst (nur dieser Server sieht sie)
+tab-player-lines: true
+
 # Monsters-Paket (Werkbank, Lebensanzeige, Munition, Scoreboard-Icons), wird beim Betreten zusaetzlich zum Lobby-Paket geschickt
 resource-pack:
   url: "http://136.243.146.245:25567/Monsters-pack-14.zip"

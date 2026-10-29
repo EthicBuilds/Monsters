@@ -6,10 +6,11 @@ import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.items.GameItems;
+import de.ethicbuilds.monsters.lang.DualBar;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.ReviveManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
-import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -19,7 +20,6 @@ import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
-import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
@@ -57,7 +57,7 @@ public class PowerupManager {
     private static final int MAX_AMMO_PER_WAVE = 1;
 
     public enum Type {
-        MEDKIT(0.04, 0x3CC860, GameItems::medkit),
+        MEDKIT(0.04, 0x3CC860, () -> GameItems.medkit(null)),
         SPEED(0.02, 0x4FB3FF, () -> model("powerup/tempo")),
         INSTAKILL(0.015, 0xFF3B3B, () -> model("powerup/instakill")),
         AMMO(0.01, 0xF2C14E, () -> model("powerup/munition"));
@@ -230,11 +230,14 @@ public class PowerupManager {
                 // At full health a medkit goes into the inventory (one at most), otherwise it stays for someone who is hurt
                 if (entry.getValue() == Type.MEDKIT && player.getHealth() >= player.getAttribute(Attribute.MAX_HEALTH).getValue()) {
                     if (player.getInventory().getItem(ReviveManager.MEDKIT_SLOT) != null) continue;
-                    ItemStack stored = GameItems.medkit();
-                    stored.editMeta(meta -> meta.setLore(java.util.List.of("§7Holt dich einmal pro Runde", "§7wieder hoch, wenn du am Boden liegst")));
+                    ItemStack stored = GameItems.medkit(player);
+                    stored.editMeta(meta -> meta.setLore(Lang.english(player)
+                            ? java.util.List.of("§7Gets you back up once", "§7per round when you are down")
+                            : java.util.List.of("§7Holt dich einmal pro Runde", "§7wieder hoch, wenn du am Boden liegst")));
                     player.getInventory().setItem(ReviveManager.MEDKIT_SLOT, stored);
                     AmmoHud.pause(player);
-                    player.sendActionBar("§aMedkit eingesteckt! §7Es holt dich hoch, wenn du am Boden liegst");
+                    player.sendActionBar(Lang.t(player, "§aMedkit eingesteckt! §7Es holt dich hoch, wenn du am Boden liegst",
+                            "§aMedkit stored! §7It gets you back up when you are down"));
                     player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 0.8F, 1.2F);
                     powerup.remove();
                     return true;
@@ -253,13 +256,14 @@ public class PowerupManager {
             case MEDKIT -> {
                 player.setHealth(player.getAttribute(Attribute.MAX_HEALTH).getValue());
                 AmmoHud.pause(player);
-                player.sendActionBar("§aErste Hilfe! §7Du bist wieder voll geheilt");
+                player.sendActionBar(Lang.t(player, "§aErste Hilfe! §7Du bist wieder voll geheilt", "§aMedkit! §7You are fully healed"));
                 player.playSound(location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0F, 1.2F);
                 player.playSound(location, Sound.BLOCK_NOTE_BLOCK_CHIME, 1.0F, 1.5F);
                 location.getWorld().spawnParticle(Particle.HEART, location, 6, 0.4, 0.3, 0.4, 0);
             }
             case SPEED -> {
-                int left = announce(player, type, "§x§4§F§B§3§F§F§lTEMPO!", "§7Alle sind 10 Sekunden schneller", BarColor.BLUE, Sound.ENTITY_BREEZE_WIND_BURST, 1.3F, null);
+                int left = announce(player, type, "§x§4§F§B§3§F§F§lTEMPO!", "§x§4§F§B§3§F§F§lSPEED!", "§7Alle sind 10 Sekunden schneller",
+                        "§7Everyone is faster for 10 seconds", BarColor.BLUE, Sound.ENTITY_BREEZE_WIND_BURST, 1.3F, null);
                 for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
                     Player other = gamePlayer.getPlayer();
                     if (other.isOnline() && !userManager.isPlayerDead(other.getUniqueId())) {
@@ -268,7 +272,8 @@ public class PowerupManager {
                 }
             }
             case INSTAKILL -> {
-                int left = announce(player, type, "§x§F§F§3§B§3§B§lINSTA-KILL!", "§7Jeder Treffer tötet, 10 Sekunden lang", BarColor.RED, Sound.ENTITY_EVOKER_CAST_SPELL, 1.4F, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE);
+                int left = announce(player, type, "§x§F§F§3§B§3§B§lINSTA-KILL!", "§x§F§F§3§B§3§B§lINSTA-KILL!", "§7Jeder Treffer tötet, 10 Sekunden lang",
+                        "§7Every hit kills for 10 seconds", BarColor.RED, Sound.ENTITY_EVOKER_CAST_SPELL, 1.4F, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE);
                 instakillUntil = System.currentTimeMillis() + left * 50L;
             }
             case AMMO -> {
@@ -276,7 +281,8 @@ public class PowerupManager {
                     Player other = gamePlayer.getPlayer();
                     if (!other.isOnline()) continue;
                     if (!userManager.isPlayerDead(other.getUniqueId())) gamePlayer.refillWeapons();
-                    other.sendTitle("§x§F§2§C§1§4§E§lMUNITION!", "§7Alle Waffen aufgefüllt §8· §7von " + player.getName(), 5, 30, 10);
+                    other.sendTitle(Lang.t(other, "§x§F§2§C§1§4§E§lMUNITION!", "§x§F§2§C§1§4§E§lAMMO!"),
+                            Lang.t(other, "§7Alle Waffen aufgefüllt §8· §7von ", "§7All weapons refilled §8· §7by ") + player.getName(), 5, 30, 10);
                     other.playSound(other.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 0.8F, 1.2F);
                     other.playSound(other.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.6F, 1.5F);
                 }
@@ -285,29 +291,32 @@ public class PowerupManager {
     }
 
     private static final class Countdown {
-        private final BossBar bar;
+        private final DualBar bar;
         private int left = EFFECT_TICKS, total = EFFECT_TICKS;
 
-        private Countdown(BossBar bar) {
+        private Countdown(DualBar bar) {
             this.bar = bar;
         }
     }
 
     // Title for everyone and one boss bar per powerup, picking it up again adds 10 seconds. Returns the ticks left
-    private int announce(Player finder, Type type, String title, String subtitle, BarColor color, Sound sound, float pitch, Sound extra) {
+    private int announce(Player finder, Type type, String title, String titleEn, String subtitle, String subtitleEn,
+                         BarColor color, Sound sound, float pitch, Sound extra) {
         Countdown running = countdowns.get(type);
-        Countdown countdown = running != null ? running : new Countdown(Bukkit.createBossBar("", color, BarStyle.SEGMENTED_10));
+        Countdown countdown = running != null ? running : new Countdown(new DualBar("", "", color, BarStyle.SEGMENTED_10));
         if (running != null) {
             countdown.left += EFFECT_TICKS;
             countdown.total = countdown.left;
-            subtitle = String.format("§7+10 Sekunden §8· §7noch %d Sekunden", countdown.left / 20);
         }
-        countdown.bar.setTitle(title + " §7von " + finder.getName());
+        countdown.bar.setTitle(title + " §7von " + finder.getName(), titleEn + " §7by " + finder.getName());
         countdown.bar.setProgress(1);
         for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
             Player player = gamePlayer.getPlayer();
             if (!player.isOnline()) continue;
-            player.sendTitle(title, subtitle, 5, 30, 10);
+            String sub = running != null
+                    ? Lang.f(player, "§7+10 Sekunden §8· §7noch %d Sekunden", "§7+10 seconds §8· §7%d seconds left", countdown.left / 20)
+                    : Lang.t(player, subtitle, subtitleEn);
+            player.sendTitle(Lang.t(player, title, titleEn), sub, 5, 30, 10);
             player.playSound(player.getLocation(), sound, 0.6F, pitch);
             if (extra != null) player.playSound(player.getLocation(), extra, 0.6F, 0.7F);
             countdown.bar.addPlayer(player);
@@ -315,7 +324,7 @@ public class PowerupManager {
         if (running != null) return countdown.left;
 
         countdowns.put(type, countdown);
-        BossBar bar = countdown.bar;
+        DualBar bar = countdown.bar;
         new BukkitRunnable() {
             @Override
             public void run() {

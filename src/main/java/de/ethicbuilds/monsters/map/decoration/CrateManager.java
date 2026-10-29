@@ -6,6 +6,7 @@ import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.items.CrowbarLevel;
 import de.ethicbuilds.monsters.items.GameItems;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
@@ -95,7 +96,7 @@ public class CrateManager implements Listener {
 
         if (!GameItems.isCrowbar(player.getInventory().getItemInMainHand())) {
             AmmoHud.pause(player);
-            player.sendActionBar("§7Zerschlage die Kiste mit der §6Brechstange");
+            player.sendActionBar(Lang.t(player, "§7Zerschlage die Kiste mit der §6Brechstange", "§7Smash the crate with the §6Crowbar"));
             return;
         }
 
@@ -143,18 +144,18 @@ public class CrateManager implements Listener {
         int coins = COINS + CrowbarLevel.extraCoins(gamePlayer.getCrowbarLevel());
 
         if (roll < GRENADE_CHANCE + extra && grenadeManager.give(player)) {
-            player.sendActionBar("§aGlück gehabt! §7Du hast eine §aGranate §7gefunden");
+            player.sendActionBar(Lang.t(player, "§aGlück gehabt! §7Du hast eine §aGranate §7gefunden", "§aLucky! §7You found a §aGrenade"));
             player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1.0F, 1.2F);
         } else if (roll < GRENADE_CHANCE + COINS_CHANCE + 2 * extra) {
             gamePlayer.addCoins(coins);
-            player.sendActionBar(String.format("§6+%d Coins §7gefunden", coins));
+            player.sendActionBar(Lang.f(player, "§6+%d Coins §7gefunden", "§6+%d Coins §7found", coins));
             player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0F, 1.4F);
         } else if (roll < GRENADE_CHANCE + COINS_CHANCE + AMMO_CHANCE + 3 * extra && gamePlayer.refillWeapons()) {
             AmmoHud.pause(player);
-            player.sendActionBar("§aGlück gehabt! §7Du hast §x§F§2§C§1§4§EMunition §7gefunden");
+            player.sendActionBar(Lang.t(player, "§aGlück gehabt! §7Du hast §x§F§2§C§1§4§EMunition §7gefunden", "§aLucky! §7You found §x§F§2§C§1§4§EAmmo"));
             player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 0.8F, 1.2F);
         } else {
-            player.sendActionBar("§7Die Kiste war leer");
+            player.sendActionBar(Lang.t(player, "§7Die Kiste war leer", "§7The crate was empty"));
         }
     }
 }

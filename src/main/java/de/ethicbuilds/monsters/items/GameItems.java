@@ -1,11 +1,13 @@
 package de.ethicbuilds.monsters.items;
 
+import de.ethicbuilds.monsters.lang.Lang;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -19,8 +21,8 @@ public final class GameItems {
 
     private GameItems() {}
 
-    public static ItemStack knife() {
-        ItemStack item = create(KNIFE, "§aMesser", "messer_v2");
+    public static ItemStack knife(Player player) {
+        ItemStack item = create(KNIFE, Lang.t(player, "§aMesser", "§aKnife"), "messer_v2");
         ItemMeta meta = item.getItemMeta();
         meta.setUnbreakable(true);
         // Same hit as the old wooden axe: 7 damage, 0.8 attacks per second
@@ -33,18 +35,18 @@ public final class GameItems {
         return item;
     }
 
-    public static ItemStack crowbar() {
-        return create(Material.BLAZE_ROD, "§aBrechstange", "brechstange");
+    public static ItemStack crowbar(Player player) {
+        return create(Material.BLAZE_ROD, Lang.t(player, "§aBrechstange", "§aCrowbar"), "brechstange");
     }
 
-    public static ItemStack grenade(int amount) {
-        ItemStack item = create(Material.FIREWORK_STAR, "§aGranate", "granate");
+    public static ItemStack grenade(Player player, int amount) {
+        ItemStack item = create(Material.FIREWORK_STAR, Lang.t(player, "§aGranate", "§aGrenade"), "granate");
         item.setAmount(amount);
         return item;
     }
 
-    public static ItemStack medkit() {
-        return create(Material.PAPER, "§aErste Hilfe", "erstehilfe_1");
+    public static ItemStack medkit(Player player) {
+        return create(Material.PAPER, Lang.t(player, "§aErste Hilfe", "§aMedkit"), "erstehilfe_1");
     }
 
     public static boolean isCrowbar(ItemStack item) {

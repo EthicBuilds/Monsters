@@ -5,6 +5,7 @@ import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.RoundLoader;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
@@ -32,7 +33,7 @@ public class PreGameListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         if (!roundLoader.isLoaded()) {
-            event.getPlayer().kickPlayer("§cDie Runde wird gerade vorbereitet, versuch es gleich nochmal!");
+            event.getPlayer().kickPlayer(Lang.t(event.getPlayer(), "§cDie Runde wird gerade vorbereitet, versuch es gleich nochmal!", "§cThe round is being prepared, try again in a moment!"));
             return;
         }
         reset(event.getPlayer());
@@ -41,12 +42,12 @@ public class PreGameListener implements Listener {
             return;
         }
         if (gameManager.getCurrentPhase() != GamePhase.PRE_GAME) {
-            event.getPlayer().kickPlayer("§cDie Runde ist gerade vorbei!");
+            event.getPlayer().kickPlayer(Lang.t(event.getPlayer(), "§cDie Runde ist gerade vorbei!", "§cThe round just ended!"));
             return;
         }
         event.getPlayer().teleport(mapManager.getMapConfiguration().getSpawn());
         if (userManager.isFull() || !userManager.canJoin) {
-            event.getPlayer().kickPlayer("§cDer Server ist Bereits voll!");
+            event.getPlayer().kickPlayer(Lang.t(event.getPlayer(), "§cDer Server ist Bereits voll!", "§cThe server is already full!"));
             return;
         }
         userManager.addPlayer(event.getPlayer());
@@ -58,16 +59,16 @@ public class PreGameListener implements Listener {
 
         Player player = event.getPlayer();
         sendPack(player);
-        player.setScoreboard(scoreboardManager.getScoreboard());
-        if (!userManager.isFull()) player.getInventory().setItem(JoinMeListener.SLOT, JoinMeListener.item());
+        player.setScoreboard(scoreboardManager.getScoreboard(player));
+        if (!userManager.isFull()) player.getInventory().setItem(JoinMeListener.SLOT, JoinMeListener.item(player));
 
         player.sendMessage(String.format("%sMap: §6%s", plugin.getMonstersPrefix(), gameManager.getGameConfig().getMapName()));
-        player.sendMessage(String.format("%s§aGebaut von §2%s", plugin.getMonstersPrefix(),  String.join("§7, §2", gameManager.getGameConfig().getMapBuilder())));
+        player.sendMessage(Lang.f(player, "%s§aGebaut von §2%s", "%s§aBuilt by §2%s", plugin.getMonstersPrefix(),  String.join("§7, §2", gameManager.getGameConfig().getMapBuilder())));
         de.ethicbuilds.monsters.reward.DailyChallenge.announce(player);
         player.setHealth(20);
         player.setFlying(false);
 
-        Bukkit.broadcastMessage(String.format("%s§a%s §7hat die Runde betreten!", plugin.getMonstersPrefix(), event.getPlayer().getDisplayName()));
+        Lang.broadcast("%s§a%s §7hat die Runde betreten!", "%s§a%s §7joined the round!", plugin.getMonstersPrefix(), event.getPlayer().getDisplayName());
 
         event.setJoinMessage("");
     }
@@ -103,13 +104,13 @@ public class PreGameListener implements Listener {
         Player player = event.getPlayer();
         event.setJoinMessage("");
         if (!userManager.canJoinRunning(player.getUniqueId())) {
-            player.kickPlayer("§cDer Server ist Bereits voll!");
+            player.kickPlayer(Lang.t(player, "§cDer Server ist Bereits voll!", "§cThe server is already full!"));
             return;
         }
         userManager.joinRunning(player);
         sendPack(player);
-        player.setScoreboard(scoreboardManager.getScoreboard());
-        Bukkit.broadcastMessage(String.format("%s§a%s §7ist wieder dabei und spielt ab der nächsten Welle mit!", plugin.getMonstersPrefix(), player.getName()));
+        player.setScoreboard(scoreboardManager.getScoreboard(player));
+        Lang.broadcast("%s§a%s §7ist wieder dabei und spielt ab der nächsten Welle mit!", "%s§a%s §7is back and plays from the next wave!", plugin.getMonstersPrefix(), player.getName());
     }
 
     // Own pack for Monsters models (workbench, HUD), the lobby pack stays active
@@ -130,7 +131,7 @@ public class PreGameListener implements Listener {
 
         userManager.canJoin = true;
         gameManager.interruptGameStart();
-        Bukkit.broadcastMessage(String.format("%s§a%s §7hat die Runde verlassen!", plugin.getMonstersPrefix(), event.getPlayer().getDisplayName()));
+        Lang.broadcast("%s§a%s §7hat die Runde verlassen!", "%s§a%s §7left the round!", plugin.getMonstersPrefix(), event.getPlayer().getDisplayName());
     }
 
     @EventHandler

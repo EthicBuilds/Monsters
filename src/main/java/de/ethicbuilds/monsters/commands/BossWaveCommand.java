@@ -2,9 +2,11 @@ package de.ethicbuilds.monsters.commands;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
+import de.ethicbuilds.monsters.lang.Lang;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 /***
@@ -18,7 +20,7 @@ public class BossWaveCommand implements CommandExecutor {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String @NotNull [] args) {
         if (!sender.hasPermission("*")) return true;
         waveManager.skipToBossWave();
-        sender.sendMessage("§aDie nächste Welle ist die Boss-Welle.");
+        sender.sendMessage(Lang.t(sender instanceof Player player ? player : null, "§aDie nächste Welle ist die Boss-Welle.", "§aThe next wave is the boss wave."));
         return true;
     }
 }

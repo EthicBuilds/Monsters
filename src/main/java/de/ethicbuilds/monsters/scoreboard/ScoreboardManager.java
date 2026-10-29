@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -13,6 +14,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.DisplaySlot;
@@ -47,18 +49,20 @@ public class ScoreboardManager {
     private Thread timeThread = null;
     private int time = 0;
 
+    // German board, the English one has the same content with English labels
     @Getter
     private Scoreboard scoreboard;
-    private Objective objective;
+    private Scoreboard scoreboardEn;
+    private Objective objective, objectiveEn;
     private final List<String> entries = new ArrayList<>();
 
     private record Line(Component left, Component right) {}
 
     public void init() {
         scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
-        objective = scoreboard.registerNewObjective("monsters", Criteria.DUMMY, MM.deserialize(TITLE));
-        objective.setDisplaySlot(DisplaySlot.SIDEBAR);
-        objective.numberFormat(NumberFormat.blank());
+        scoreboardEn = Bukkit.getScoreboardManager().getNewScoreboard();
+        objective = sidebar(scoreboard);
+        objectiveEn = sidebar(scoreboardEn);
 
         new BukkitRunnable() {
             @Override
@@ -66,6 +70,18 @@ public class ScoreboardManager {
                 update();
             }
         }.runTaskTimer(plugin, 0L, 20L);
+    }
+
+    private static Objective sidebar(Scoreboard board) {
+        Objective sidebar = board.registerNewObjective("monsters", Criteria.DUMMY, MM.deserialize(TITLE));
+        sidebar.setDisplaySlot(DisplaySlot.SIDEBAR);
+        sidebar.numberFormat(NumberFormat.blank());
+        return sidebar;
+    }
+
+    /** Scoreboard in the player's language */
+    public Scoreboard getScoreboard(Player player) {
+        return Lang.english(player) ? scoreboardEn : scoreboard;
     }
 
     /** Seconds since the round started */
@@ -88,14 +104,25 @@ public class ScoreboardManager {
     }
 
     private void update() {
+        render(lines(false), lines(true));
+        // Players with a Monsters board get the one of their language, also after changing it
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            Scoreboard current = player.getScoreboard();
+            if (current != scoreboard && current != scoreboardEn) continue;
+            Scoreboard own = getScoreboard(player);
+            if (current != own) player.setScoreboard(own);
+        }
+    }
+
+    private List<Line> lines(boolean english) {
         List<Line> lines = new ArrayList<>();
         String map = gameManager.getGameConfig() != null ? gameManager.getGameConfig().getMapName() : "";
 
         lines.add(empty());
         lines.add(line("", "Map", "<#F2F5F8>" + map));
-        lines.add(line("", "Runde", "<#F9A11E>" + waveManager.getCurrentWave()));
-        lines.add(line("", "Monster", "<#F2F5F8>" + monsterManager.remaining()));
-        lines.add(line("", "Zeit", "<#F2F5F8>" + String.format("%02d:%02d", time / 60, time % 60)));
+        lines.add(line("", english ? "Wave" : "Runde", "<#F9A11E>" + waveManager.getCurrentWave()));
+        lines.add(line("", english ? "Monsters" : "Monster", "<#F2F5F8>" + monsterManager.remaining()));
+        lines.add(line("", english ? "Time" : "Zeit", "<#F2F5F8>" + String.format("%02d:%02d", time / 60, time % 60)));
         lines.add(empty());
         for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
             boolean dead = userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId());
@@ -105,23 +132,31 @@ public class ScoreboardManager {
             if (gone) icon = icon.replace("<white>", GONE_COLOR).replace("</white>", "");
             Component left = MM.deserialize(icon + (gone ? GONE_COLOR + "<st>" : dead ? "<#9AA6B8>" : "<#F2F5F8>") + "<name>",
                     Placeholder.unparsed("name", gamePlayer.getPlayer().getName()));
-            Component right = MM.deserialize((gone ? GONE_COLOR : "<#F9A11E>") + String.format(Locale.GERMANY, "%,d", gamePlayer.getCoins())
+            Component right = MM.deserialize((gone ? GONE_COLOR : "<#F9A11E>") + String.format(english ? Locale.US : Locale.GERMANY, "%,d", gamePlayer.getCoins())
                     + " <white><font:monsters:hud>\uE017</font></white>" + MARGIN);
             lines.add(new Line(left, right));
         }
         // The sidebar shows 15 lines at most, with 8 players the gap above the website goes
         if (lines.size() < 14) lines.add(empty());
         lines.add(new Line(MM.deserialize(WEBSITE), Component.empty()));
-
-        render(lines);
+        return lines;
     }
 
-    private void render(List<Line> lines) {
-        while (entries.size() > lines.size()) scoreboard.resetScores(entries.removeLast());
-        while (entries.size() < lines.size()) entries.add("line" + entries.size());
+    // Both lists have the same lines
+    private void render(List<Line> german, List<Line> english) {
+        while (entries.size() > german.size()) {
+            String entry = entries.removeLast();
+            scoreboard.resetScores(entry);
+            scoreboardEn.resetScores(entry);
+        }
+        while (entries.size() < german.size()) entries.add("line" + entries.size());
+        fill(objective, german);
+        fill(objectiveEn, english);
+    }
 
+    private void fill(Objective sidebar, List<Line> lines) {
         for (int i = 0; i < lines.size(); i++) {
-            Score score = objective.getScore(entries.get(i));
+            Score score = sidebar.getScore(entries.get(i));
             score.setScore(lines.size() - i);
             score.customName(lines.get(i).left());
             score.numberFormat(NumberFormat.fixed(lines.get(i).right()));

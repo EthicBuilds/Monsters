@@ -7,6 +7,7 @@ import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.model.GameConfig;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -38,11 +39,13 @@ public class JoinMeListener implements Listener {
 
     private final Map<UUID, Long> lastClick = new HashMap<>();
 
-    public static ItemStack item() {
+    public static ItemStack item(Player player) {
         ItemStack item = new ItemStack(Material.BELL);
         item.editMeta(meta -> {
             meta.setDisplayName("§6JoinMe");
-            meta.setLore(List.of("§7Ruft Spieler aus Lobby und", "§7Bauservern in deine Runde"));
+            meta.setLore(Lang.english(player)
+                    ? List.of("§7Calls players from the lobby and", "§7build servers into your round")
+                    : List.of("§7Ruft Spieler aus Lobby und", "§7Bauservern in deine Runde"));
         });
         return item;
     }
@@ -59,7 +62,7 @@ public class JoinMeListener implements Listener {
     private void send(Player player) {
         if (gameManager.getCurrentPhase() != GamePhase.PRE_GAME) return;
         if (userManager.isFull()) {
-            player.sendMessage(plugin.getMonstersPrefix() + "§cDie Runde ist schon voll");
+            player.sendMessage(plugin.getMonstersPrefix() + Lang.t(player, "§cDie Runde ist schon voll", "§cThe round is already full"));
             return;
         }
         // Only against double clicks, the proxy has the real cooldown

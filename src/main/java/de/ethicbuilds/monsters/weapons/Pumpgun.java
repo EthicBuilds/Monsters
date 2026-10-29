@@ -14,6 +14,7 @@ public class Pumpgun extends Weapon {
     public Pumpgun() {
         this.item = new ItemStack(Material.FLINT);
         this.name = "§6Schrotflinte";
+        this.nameEn = "§6Shotgun";
         this.damage = 10.0;
         this.fireRate = 20;
         this.maxAmmu = 300;

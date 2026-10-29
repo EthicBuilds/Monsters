@@ -73,7 +73,7 @@ final class WorkbenchTitle {
     static int width(String line, String text) {
         int total = 0;
         for (char c : text.toCharArray()) {
-            total += line.equals("preis") ? (c == '.' || c == ' ' ? 3 : c == '' ? 11 : 7) : advance(c);
+            total += line.equals("preis") ? (c == '.' || c == ',' || c == ' ' ? 3 : c == '' ? 11 : 7) : advance(c);
         }
         return total;
     }

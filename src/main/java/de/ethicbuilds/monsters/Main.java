@@ -108,6 +108,7 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(new de.ethicbuilds.monsters.weapons.SniperScope(), this);
         getServer().getMessenger().registerOutgoingPluginChannel(this, JoinMeListener.CHANNEL);
         if (pm.isPluginEnabled("PlaceholderAPI")) injector.getInstance(de.ethicbuilds.monsters.scoreboard.TabPlaceholders.class).register();
+        injector.getInstance(de.ethicbuilds.monsters.scoreboard.TabNames.class).start();
     }
 
 }
