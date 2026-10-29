@@ -76,10 +76,11 @@ public class WaveListener implements Listener {
     // Coins already put into a door by players who did not have enough
     private final java.util.Map<Door, Integer> doorPayments = new java.util.IdentityHashMap<>();
 
-    // Insta-kill powerup: every hit by a player kills, only the boss keeps its health
+    // Insta-kill powerup: shots, grenades and the knife kill at once, not the bare hand. Only the boss keeps its health
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onInstakill(EntityDamageByEntityEvent event) {
-        if (!powerupManager.isInstakill() || !(event.getEntity() instanceof Monster monster) || !(event.getDamager() instanceof Player)) return;
+        if (!powerupManager.isInstakill() || !(event.getEntity() instanceof Monster monster) || !(event.getDamager() instanceof Player player)) return;
+        if (!ShotDamage.isActive() && player.getInventory().getItemInMainHand().getType() != GameItems.KNIFE) return;
         if (monsterManager.getEnemyMonster(monster) instanceof de.ethicbuilds.monsters.monster.MonsterSpiderBoss) return;
         event.setDamage(monster.getHealth() + 100);
     }
