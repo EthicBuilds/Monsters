@@ -25,7 +25,10 @@ public class TabNames {
     @Inject private UserManager userManager;
     @Inject private TabPlaceholders tab;
 
+    private static final int RESEND_EVERY = 5;
+
     private final Map<UUID, String> shown = new HashMap<>();
+    private int ticks;
 
     public void start() {
         if (!plugin.getConfig().getBoolean("tab-player-lines", true)) return;
@@ -34,12 +37,13 @@ public class TabNames {
 
     private void update() {
         boolean round = gameManager.getCurrentPhase() != GamePhase.PRE_GAME;
+        // Every 5 seconds sent anyway, in case TAB cleared the names after a join or server change
+        boolean resend = ++ticks % RESEND_EVERY == 0;
         for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
             Player player = gamePlayer.getPlayer();
             if (!player.isOnline()) continue;
             String row = round ? tab.row(gamePlayer) : "";
-            // Only sent again when something changed
-            if (row.equals(shown.put(player.getUniqueId(), row))) continue;
+            if (row.equals(shown.put(player.getUniqueId(), row)) && !resend) continue;
             player.playerListName(round ? MM.deserialize(row) : null);
         }
     }
