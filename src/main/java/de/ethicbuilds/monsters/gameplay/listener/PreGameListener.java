@@ -27,6 +27,7 @@ public class PreGameListener implements Listener {
     @Inject private MapManager mapManager;
     @Inject private Main plugin;
     @Inject private RoundLoader roundLoader;
+    @Inject private de.ethicbuilds.monsters.player.manager.WatcherManager watcherManager;
 
     private static final java.util.UUID PACK_ID = java.util.UUID.nameUUIDFromBytes("monsters-pack".getBytes());
 
@@ -79,6 +80,8 @@ public class PreGameListener implements Listener {
         setBase(player, Attribute.SCALE, 1.0);
         setBase(player, Attribute.MOVEMENT_SPEED, 0.1);
         setBase(player, Attribute.JUMP_STRENGTH, 0.42);
+        setBase(player, Attribute.GRAVITY, 0.08);
+        player.setCollidable(true);
         // Far enough for the team ping with the mouse wheel, doors and stations check their own distance
         setBase(player, Attribute.BLOCK_INTERACTION_RANGE, de.ethicbuilds.monsters.player.manager.PingManager.RANGE);
         player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
@@ -103,8 +106,12 @@ public class PreGameListener implements Listener {
     private void joinRunning(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         event.setJoinMessage("");
-        if (!userManager.canJoinRunning(player.getUniqueId())) {
-            player.kickPlayer(Lang.t(player, "§cDer Server ist Bereits voll!", "§cThe server is already full!"));
+        // New here: only watches, players of this round come back in
+        if (!userManager.isGamePlayer(player.getUniqueId())) {
+            watcherManager.join(player);
+            sendPack(player);
+            player.setScoreboard(scoreboardManager.getScoreboard(player));
+            Lang.broadcast("%s§7%s schaut jetzt zu", "%s§7%s is now spectating", plugin.getMonstersPrefix(), player.getName());
             return;
         }
         userManager.joinRunning(player);

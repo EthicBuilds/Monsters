@@ -107,6 +107,8 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(new de.ethicbuilds.monsters.gameplay.listener.CommandBlocker(), this);
         pm.registerEvents(new de.ethicbuilds.monsters.weapons.SniperScope(), this);
         getServer().getMessenger().registerOutgoingPluginChannel(this, JoinMeListener.CHANNEL);
+        getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
+        pm.registerEvents(injector.getInstance(de.ethicbuilds.monsters.player.manager.WatcherManager.class), this);
         if (pm.isPluginEnabled("PlaceholderAPI")) injector.getInstance(de.ethicbuilds.monsters.scoreboard.TabPlaceholders.class).register();
         injector.getInstance(de.ethicbuilds.monsters.scoreboard.TabNames.class).start();
     }
