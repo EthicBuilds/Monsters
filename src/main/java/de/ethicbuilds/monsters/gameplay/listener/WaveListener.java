@@ -94,7 +94,8 @@ public class WaveListener implements Listener {
         GamePlayer gamePlayer = userManager.getGamePlayer(player.getUniqueId());
         if (gamePlayer == null) return;
 
-        if (userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) {
+        // A grenade thrown before going down still counts
+        if (userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId()) && !ShotDamage.isActive()) {
             event.setCancelled(true);
             return;
         }
@@ -102,9 +103,8 @@ public class WaveListener implements Listener {
         EnemyMonster enemyMonster = monsterManager.getEnemyMonster(monster);
         if (enemyMonster == null) return;
 
-        if (player.getInventory().getItemInMainHand().getType() == Material.AIR) return;
-
-        // Coins only for shots, grenades and the knife, not for hitting with a gun or other items
+        // Coins only for shots, grenades and the knife, not for hitting with a gun or other items.
+        // The hand does not matter for grenades, after the last one it is empty
         boolean knife = player.getInventory().getItemInMainHand().getType() == GameItems.KNIFE;
         if (!ShotDamage.isActive() && !knife) return;
 
