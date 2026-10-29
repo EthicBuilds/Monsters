@@ -1,13 +1,15 @@
 package de.ethicbuilds.monsters.scoreboard;
 
 /***
- * One line of the tab list as MiniMessage, drawn with a pen at pixel positions (design session):
- * backgrounds first, then back with space glyphs and the content on top
+ * One line of the tab list as MiniMessage, drawn with a pen at pixel positions (design session).
+ * Everything is in the font monsters:tab: it holds the symbols, the spaces, the small capitals from U+E100
+ * and refers to the normal Minecraft font for the rest.
  */
 final class TabLine {
-    private static final String TAB = "monsters:tab", SMALL = "monsters:tab_klein";
+    private static final String SMALL = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789.:-/#·";
+    private static final char SMALL_SPACE = '';
 
-    private final StringBuilder out = new StringBuilder();
+    private final StringBuilder out = new StringBuilder("<font:monsters:tab>");
     private int x;
 
     TabLine(int start) {
@@ -20,34 +22,31 @@ final class TabLine {
 
     TabLine moveTo(int px) {
         int distance = px - x;
-        if (distance == 0) return this;
-        StringBuilder spaces = new StringBuilder();
         for (int i = 7; i >= 0; i--) {
             int step = 1 << i;
             while (Math.abs(distance) >= step) {
-                spaces.append((char) ((distance > 0 ? 0xF011 : 0xF021) + i));
+                out.append((char) ((distance > 0 ? 0xF011 : 0xF021) + i));
                 distance += distance > 0 ? -step : step;
             }
         }
-        out.append("<font:").append(TAB).append(">").append(spaces).append("</font>");
         x = px;
         return this;
     }
 
-    /** Glyph of monsters:tab, advance = width + 1 */
+    TabLine gap(int px) {
+        return moveTo(x + px);
+    }
+
+    /** Symbol of monsters:tab, advance = width + 1 */
     TabLine glyph(int px, char glyph, int advance, String color) {
         moveTo(px);
-        out.append("<color:").append(color).append("><font:").append(TAB).append(">").append(glyph).append("</font></color>");
+        out.append("<color:").append(color).append(">").append(glyph).append("</color>");
         x += advance;
         return this;
     }
 
-    /** Glyph of monsters:hud (the coin etc.), drawn in white */
-    TabLine hud(int px, char glyph, int advance) {
-        moveTo(px);
-        out.append("<white><font:monsters:hud>").append(glyph).append("</font></white>");
-        x += advance;
-        return this;
+    TabLine glyph(char glyph, int advance, String color) {
+        return glyph(x, glyph, advance, color);
     }
 
     TabLine text(int px, String text, String color) {
@@ -57,17 +56,24 @@ final class TabLine {
         return this;
     }
 
-    TabLine bold(int px, String text, String color) {
-        moveTo(px);
+    TabLine text(String text, String color) {
+        return text(x, text, color);
+    }
+
+    TabLine bold(String text, String color) {
         out.append("<color:").append(color).append("><bold>").append(escape(text)).append("</bold></color>");
         x += width(text) + text.length();
         return this;
     }
 
-    /** Small capitals of monsters:tab_klein */
-    TabLine small(int px, String text, String color) {
-        moveTo(px);
-        out.append("<color:").append(color).append("><font:").append(SMALL).append(">").append(escape(text)).append("</font></color>");
+    /** Small capitals */
+    TabLine small(String text, String color) {
+        StringBuilder chars = new StringBuilder();
+        for (char c : text.toCharArray()) {
+            int index = SMALL.indexOf(Character.toUpperCase(c));
+            chars.append(c == ' ' ? SMALL_SPACE : index >= 0 ? (char) (0xE100 + index) : c);
+        }
+        out.append("<color:").append(color).append(">").append(chars).append("</color>");
         x += smallWidth(text);
         return this;
     }
@@ -77,13 +83,13 @@ final class TabLine {
         return text(px - width(text) + 2, text, color);
     }
 
-    TabLine smallCentered(int middle, String text, String color) {
-        return small(middle - (smallWidth(text) - 1) / 2, text, color);
+    String end() {
+        return out.append("</font>").toString();
     }
 
     String end(int px) {
         moveTo(px);
-        return out.toString();
+        return end();
     }
 
     static int width(String text) {
@@ -105,7 +111,7 @@ final class TabLine {
     static int smallWidth(String text) {
         int total = 0;
         for (char c : text.toCharArray()) {
-            total += switch (c) {
+            total += switch (Character.toUpperCase(c)) {
                 case ' ' -> 3;
                 case 'M', 'W', '#' -> 6;
                 case 'N' -> 5;

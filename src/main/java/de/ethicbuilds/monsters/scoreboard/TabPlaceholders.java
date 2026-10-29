@@ -18,12 +18,12 @@ import java.util.List;
 import java.util.Locale;
 
 /***
- * Round statistics for the tab list like in CoD, layout from the design session (always 320 px wide).
- * TAB on the proxy shows them: %monsters_tab_kopf_1..7%, %monsters_tab_fuss_1..7%; the rows are set by TabNames
+ * Round statistics for the tab list like in CoD, layout from the design session (v3).
+ * TAB on the proxy shows them: %monsters_tab_kopf_1..5%, %monsters_tab_fuss_1..8%, %monsters_tab_zeile% as tab name
  * and %monsters_sortierung% to sort by points.
  */
 public class TabPlaceholders extends PlaceholderExpansion {
-    private static final int WIDTH = 320, ROW_END = 307;
+    private static final int ROW_END = 247;
     private static final String TEXT = "#F2F5F8", LABEL = "#8A93A3", POINTS = "#F9A11E", HEADSHOTS = "#FF6B6B",
             REVIVES = "#3CDC6E", GOLD = "#FFCC2E", SILVER = "#C8D2DC", BRONZE = "#D08A4E", TEAM = "#49A2E8",
             DOWNED = "#FFB020", GONE = "#E05555", GONE_VALUE = "#5A616E", WEBSITE = "#3BDB9A";
@@ -88,25 +88,22 @@ public class TabPlaceholders extends PlaceholderExpansion {
         }
     }
 
+    // Every header and footer line is centered on its own and at most 150 px wide (other clients cut wider ones)
     private String head(int line, boolean english) {
         return switch (line) {
-            case 1 -> new TabLine(0).glyph(0, '', 161, "white").glyph(160, '', 161, "white")
-                    .glyph(108, '', 105, "white").end(WIDTH);
-            case 4 -> new TabLine(0)
-                    .glyph(11, '', 17, "white").small(30, english ? "MAP" : "KARTE", LABEL)
-                    .glyph(135, '', 17, "white").small(154, english ? "WAVE" : "WELLE", LABEL)
-                    .glyph(197, '', 17, "white").small(216, english ? "MONSTERS" : "MONSTER", LABEL)
-                    .glyph(259, '', 17, "white").small(278, english ? "TIME" : "ZEIT", LABEL).end(WIDTH);
-            case 5 -> {
+            case 1 -> new TabLine(0).glyph('', 151, "white").gap(-129).glyph('', 105, "white").gap(23).end();
+            case 4 -> {
                 String map = gameManager.getGameConfig() != null ? gameManager.getGameConfig().getMapName() : "";
-                int time = scoreboardManager.getTime();
-                yield new TabLine(0).text(30, map, TEXT).text(154, String.valueOf(waveManager.getCurrentWave()), TEXT)
-                        .text(216, monsterManager.remaining() + (english ? " left" : " übrig"), TEXT)
-                        .text(278, String.format("%02d:%02d", time / 60, time % 60), TEXT).end(WIDTH);
+                yield new TabLine(0).glyph('', 9, "white").gap(2).small(english ? "MAP" : "KARTE", LABEL).gap(4).text(map, TEXT).end();
             }
-            case 7 -> new TabLine(0).small(13, "#", LABEL).small(26, english ? "PLAYER" : "SPIELER", LABEL)
-                    .smallCentered(148, english ? "POINTS" : "PUNKTE", LABEL).smallCentered(189, "KILLS", LABEL)
-                    .smallCentered(226, "HEADSHOTS", LABEL).smallCentered(266, english ? "REVIVES" : "RETTUNGEN", LABEL).end(WIDTH);
+            case 5 -> {
+                int time = scoreboardManager.getTime();
+                yield new TabLine(0).glyph('', 9, "white").gap(2).small(english ? "WAVE" : "WELLE", LABEL).gap(3)
+                        .text(String.valueOf(waveManager.getCurrentWave()), TEXT).gap(5)
+                        .glyph('', 9, "white").gap(2).text(String.valueOf(monsterManager.remaining()), TEXT).gap(3)
+                        .small(english ? "LEFT" : "ÜBRIG", LABEL).gap(5)
+                        .glyph('', 9, "white").gap(2).text(String.format("%02d:%02d", time / 60, time % 60), TEXT).end();
+            }
             default -> "";
         };
     }
@@ -114,74 +111,64 @@ public class TabPlaceholders extends PlaceholderExpansion {
     private String foot(int line, boolean english) {
         List<GamePlayer> ranked = ranked();
         return switch (line) {
-            case 1 -> new TabLine(0).glyph(0, '', 161, "white").glyph(160, '', 161, "white").end(WIDTH);
-            case 2 -> {
-                long playing = ranked.stream().filter(p -> !gone(p)).count();
-                TabLine tab = new TabLine(0).glyph(11, '', 17, TEAM).bold(30, "TEAM", TEAM);
-                tab.small(tab.x() + 5, playing + (!english ? " SPIELER" : playing == 1 ? " PLAYER" : " PLAYERS"), LABEL);
-                if (!ranked.isEmpty()) {
-                    tab.glyph(171, '', 17, GOLD).bold(190, "MVP", GOLD);
-                    tab.text(tab.x() + 4, ranked.getFirst().getPlayer().getName(), TEXT);
-                }
-                yield tab.end(WIDTH);
-            }
-            case 3 -> {
+            case 1 -> {
                 int kills = ranked.stream().mapToInt(GamePlayer::getKilledZombies).sum();
                 int headshots = ranked.stream().mapToInt(GamePlayer::getHeadshots).sum();
                 int revives = ranked.stream().mapToInt(GamePlayer::getRevives).sum();
-                TabLine tab = new TabLine(0);
-                tab.glyph(30, '', 8, TEXT).text(tab.x() + 2, String.valueOf(kills), TEXT);
-                tab.glyph(74, '', 9, HEADSHOTS).text(tab.x() + 2, String.valueOf(headshots), HEADSHOTS);
-                tab.glyph(118, '', 8, REVIVES).text(tab.x() + 2, String.valueOf(revives), REVIVES);
-                if (!ranked.isEmpty()) {
-                    tab.glyph(190, '', 9, "white").text(200, coins(ranked.getFirst().getEarnedCoins()), POINTS);
-                    tab.small(tab.x() + 5, english ? "MOST POINTS" : "MEISTE PUNKTE", LABEL);
-                }
-                yield tab.end(WIDTH);
+                // Measured once at 0, then drawn centered over the footer board
+                TabLine team = team(new TabLine(0), kills, headshots, revives);
+                TabLine tab = new TabLine(0).glyph('', 151, "white").moveTo((150 - team.x()) / 2);
+                yield team(tab, kills, headshots, revives).end(150);
             }
-            case 5 -> {
-                String[] words = english ? new String[]{"KILLS", "HEADSHOTS", "REVIVES", "DOWNED", "LEFT"}
-                        : new String[]{"KILLS", "HEADSHOTS", "RETTUNGEN", "AM BODEN", "VERLASSEN"};
-                char[] glyphs = {'', '', '', '', ''};
-                int[] advances = {8, 9, 8, 8, 9};
-                String[] colors = {TEXT, HEADSHOTS, REVIVES, DOWNED, GONE};
-                // Centered: total width first, 8 px between the entries
-                int width = 8 * (words.length - 1);
-                for (int i = 0; i < words.length; i++) width += advances[i] + 2 + TabLine.smallWidth(words[i]);
-                TabLine tab = new TabLine(0).moveTo((WIDTH - width) / 2);
-                for (int i = 0; i < words.length; i++) {
-                    if (i > 0) tab.moveTo(tab.x() + 8);
-                    tab.glyph(tab.x(), glyphs[i], advances[i], colors[i]).small(tab.x() + 2, words[i], LABEL);
-                }
-                yield tab.end(WIDTH);
-            }
-            case 6 -> new TabLine(0).text((WIDTH - TabLine.width("EthicBuilds.de")) / 2, "EthicBuilds.de", WEBSITE).end(WIDTH);
+            case 2 -> ranked.isEmpty() ? "" : new TabLine(0).glyph('', 9, GOLD).gap(2).bold("MVP", GOLD).gap(4)
+                    .text(ranked.getFirst().getPlayer().getName(), TEXT).end();
+            case 3 -> ranked.isEmpty() ? "" : new TabLine(0).glyph('', 9, "white").gap(1).text(points(ranked.getFirst().getEarnedCoins()), POINTS)
+                    .gap(4).small(english ? "MOST POINTS" : "MEISTE PUNKTE", LABEL).end();
+            case 4 -> legend(new TabLine(0), '', 9, "white", english ? "POINTS" : "PUNKTE").gap(6)
+                    .glyph('', 8, TEXT).gap(2).small("KILLS", LABEL).end();
+            case 5 -> legend(new TabLine(0), '', 9, HEADSHOTS, "HEADSHOTS").gap(6)
+                    .glyph('', 8, REVIVES).gap(2).small(english ? "REVIVES" : "RETTUNGEN", LABEL).end();
+            case 6 -> legend(new TabLine(0), '', 8, DOWNED, english ? "DOWNED" : "AM BODEN").gap(6)
+                    .glyph('', 9, GONE).gap(2).small(english ? "LEFT GAME" : "VERLASSEN", LABEL).end();
+            case 7 -> new TabLine(0).text("EthicBuilds.de", WEBSITE).end();
             default -> "";
         };
     }
 
-    // The player's own line: name starts at x 9 after the head, the line ends at x 307
+    private static TabLine team(TabLine tab, int kills, int headshots, int revives) {
+        return tab.glyph('', 9, TEAM).gap(2).bold("TEAM", TEAM).gap(5)
+                .glyph('', 8, TEXT).gap(1).text(count(kills), TEXT).gap(4)
+                .glyph('', 9, HEADSHOTS).gap(1).text(count(headshots), HEADSHOTS).gap(4)
+                .glyph('', 8, REVIVES).gap(1).text(String.valueOf(Math.min(99, revives)), REVIVES);
+    }
+
+    private static TabLine legend(TabLine tab, char glyph, int advance, String color, String word) {
+        return tab.glyph(glyph, advance, color).gap(2).small(word, LABEL);
+    }
+
+    // The player's own line, 238 px from the head (x 9) to x 247, the ping follows
     String row(GamePlayer gamePlayer) {
         List<GamePlayer> ranked = ranked();
         int place = ranked.indexOf(gamePlayer) + 1;
         boolean gone = gone(gamePlayer);
         boolean downed = !gone && userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId());
+        boolean medal = place >= 1 && place <= 3 && !gone;
 
         TabLine tab = new TabLine(9);
-        tab.glyph(0, (char) (place >= 1 && place <= 3 && !gone ? 0xE040 + place : 0xE040), 23, "white");
-        char rest = gone ? '' : downed ? '' : '';
-        tab.glyph(23, rest, 138, "white").glyph(160, (char) (rest + 1), 161, "white");
+        tab.glyph(0, (char) (medal ? 0xE040 + place : 0xE040), 21, "white");
+        tab.glyph(21, gone ? '' : downed ? '' : '', 240, "white");
 
-        if (place >= 1 && place <= 3 && !gone) tab.glyph(12, (char) (0xE002 + place), 8, MEDAL_COLORS[place - 1]);
+        // The place field shows the status, otherwise the medal or the place
+        if (gone) tab.glyph(10, '', 9, GONE);
+        else if (downed) tab.glyph(10, '', 8, DOWNED);
+        else if (medal) tab.glyph(10, (char) (0xE002 + place), 8, MEDAL_COLORS[place - 1]);
         else tab.text(15 - (TabLine.width(String.valueOf(place)) - 1) / 2, String.valueOf(place), LABEL);
 
-        tab.text(26, gamePlayer.getPlayer().getName(), gone ? GONE : downed ? LABEL : TEXT);
-        tab.glyph(126, '', 9, "white").textRight(169, coins(gamePlayer.getEarnedCoins()), gone ? GONE_VALUE : POINTS);
-        tab.glyph(175, '', 8, gone ? GONE_VALUE : TEXT).textRight(202, String.valueOf(gamePlayer.getKilledZombies()), gone ? GONE_VALUE : TEXT);
-        tab.glyph(208, '', 9, gone ? GONE_VALUE : HEADSHOTS).textRight(243, String.valueOf(gamePlayer.getHeadshots()), gone ? GONE_VALUE : HEADSHOTS);
-        tab.glyph(249, '', 8, gone ? GONE_VALUE : REVIVES).textRight(282, String.valueOf(gamePlayer.getRevives()), gone ? GONE_VALUE : REVIVES);
-        if (gone) tab.glyph(291, '', 9, GONE);
-        else if (downed) tab.glyph(291, '', 8, DOWNED);
+        tab.text(23, gamePlayer.getPlayer().getName(), gone ? GONE : downed ? LABEL : TEXT);
+        tab.glyph(115, '', 9, "white").textRight(157, points(gamePlayer.getEarnedCoins()), gone ? GONE_VALUE : POINTS);
+        tab.glyph(161, '', 8, gone ? GONE_VALUE : TEXT).textRight(189, count(gamePlayer.getKilledZombies()), gone ? GONE_VALUE : TEXT);
+        tab.glyph(193, '', 9, gone ? GONE_VALUE : HEADSHOTS).textRight(221, count(gamePlayer.getHeadshots()), gone ? GONE_VALUE : HEADSHOTS);
+        tab.glyph(225, '', 8, gone ? GONE_VALUE : REVIVES).textRight(245, String.valueOf(Math.min(99, gamePlayer.getRevives())), gone ? GONE_VALUE : REVIVES);
         return tab.end(ROW_END);
     }
 
@@ -198,5 +185,17 @@ public class TabPlaceholders extends PlaceholderExpansion {
 
     private static String coins(int coins) {
         return String.format(Locale.GERMANY, "%,d", coins);
+    }
+
+    // Short forms so the fields fit: up to 99.999 points, then 317k
+    private static String points(int points) {
+        return points < 100_000 ? coins(points) : points / 1000 + "k";
+    }
+
+    // Up to 999, then 1,8k, from 10.000 on 12k
+    private static String count(int count) {
+        if (count < 1000) return String.valueOf(count);
+        if (count < 10_000) return String.format(Locale.GERMANY, "%.1fk", count / 100 / 10.0);
+        return count / 1000 + "k";
     }
 }
