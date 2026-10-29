@@ -68,6 +68,11 @@ public class ScoreboardManager {
         }.runTaskTimer(plugin, 0L, 20L);
     }
 
+    /** Seconds since the round started */
+    public int getTime() {
+        return time;
+    }
+
     public void startTime() {
         this.timeThread = new Thread(() -> {
             try {

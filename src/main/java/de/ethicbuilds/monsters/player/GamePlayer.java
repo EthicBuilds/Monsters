@@ -44,17 +44,9 @@ public class GamePlayer extends GameUser {
 
         ItemStack melee = GameItems.knife();
 
-        ItemStack weaponSlot1 = new ItemStack(Material.LIGHT_GRAY_DYE);
-        ItemStack weaponSlot2 = new ItemStack(Material.LIGHT_GRAY_DYE);
+        ItemStack weaponSlot1 = emptySlot(2);
+        ItemStack weaponSlot2 = emptySlot(3);
         ItemStack monsterTracker = new ItemStack(Material.COMPASS);
-
-        ItemMeta weaponSlot1Meta = weaponSlot1.getItemMeta();
-        weaponSlot1Meta.setDisplayName("§aWaffen Slot 1");
-        weaponSlot1.setItemMeta(weaponSlot1Meta);
-
-        ItemMeta weaponSlot2Meta = weaponSlot2.getItemMeta();
-        weaponSlot2Meta.setDisplayName("§aWaffen Slot 2");
-        weaponSlot2.setItemMeta(weaponSlot2Meta);
 
         ItemMeta monsterTrackerMeta = monsterTracker.getItemMeta();
         monsterTrackerMeta.setDisplayName("§cMonster Tracker");
@@ -70,6 +62,15 @@ public class GamePlayer extends GameUser {
         addWeapon(pistol);
 
         player.getInventory().setItem(1, pistol.getItem());
+    }
+
+    /** Grey dye marking a free weapon slot (hotbar 2 and 3) */
+    public static ItemStack emptySlot(int slot) {
+        ItemStack item = new ItemStack(Material.LIGHT_GRAY_DYE);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(slot >= 2 ? "§aWaffen Slot " + (slot - 1) : "§aWaffen Slot");
+        item.setItemMeta(meta);
+        return item;
     }
 
     public Weapon getWeapon(ItemStack item) {

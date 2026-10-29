@@ -11,6 +11,7 @@ import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.weapons.AmmoHud;
+import de.ethicbuilds.monsters.weapons.Pistol;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
@@ -55,6 +56,11 @@ public class WorkbenchManager implements Listener {
     private static final int CROWBAR_SLOT = 36, CROWBAR_INDEX = 4;
     private static final int[] BUTTON_SLOTS = {32, 33, 34, 35, 41, 42, 43, 44};
     private static final int BIG_SLOT = 11, LEVEL_SLOT = 5, DAMAGE_SLOT = 14, MAGAZINE_SLOT = 23, CLOSE_SLOT = 45;
+    // Scrapping: second click within 3 seconds confirms
+    private static final int[] SCRAP_SLOTS = {46, 47, 48, 49, 50, 51, 52, 53};
+    private static final TextColor SCRAP_GOLD = TextColor.color(0xFFCC2E), SCRAP_GREY = TextColor.color(0x8A93A3);
+    private static final double SCRAP_REFUND = 0.75;
+    private static final long SCRAP_CONFIRM_MILLIS = 3000;
 
     private static final Key HUD_FONT = Key.key("monsters", "hud");
     private static final String COIN = "\uE017", ARROW = " \u2192 ";
@@ -84,10 +90,22 @@ public class WorkbenchManager implements Listener {
     private boolean unlocked;
     private int unlockPaid;
     private final Map<UUID, Integer> selected = new HashMap<>();
+    private final Map<UUID, Long> scrapAsked = new HashMap<>();
 
     // Each level 1.5 times the last one, rounded to 500
     public static int upgradePrice(Weapon weapon) {
-        return (int) Math.round(weapon.getUpgradePrice() * Math.pow(1.5, weapon.getLevel()) / 500) * 500;
+        return upgradePrice(weapon, weapon.getLevel());
+    }
+
+    private static int upgradePrice(Weapon weapon, int level) {
+        return (int) Math.round(weapon.getUpgradePrice() * Math.pow(1.5, level) / 500) * 500;
+    }
+
+    /** 3/4 of what went into the weapon: price and all upgrades, 0 for the start pistol without upgrades */
+    public static int scrapValue(Weapon weapon) {
+        int invested = weapon.getPrice();
+        for (int level = 0; level < weapon.getLevel(); level++) invested += upgradePrice(weapon, level);
+        return (int) Math.round(invested * SCRAP_REFUND);
     }
 
     public void use(GamePlayer gamePlayer) {
@@ -106,7 +124,7 @@ public class WorkbenchManager implements Listener {
         Card card = armor ? armorCard(gamePlayer) : crowbar ? crowbarCard(gamePlayer) : weapon != null ? card(weapon) : null;
 
         Menu menu = new Menu(weapons);
-        Inventory inventory = Bukkit.createInventory(menu, 54, title(gamePlayer, card, index));
+        Inventory inventory = Bukkit.createInventory(menu, 54, title(gamePlayer, card, index, weapon));
         menu.inventory = inventory;
 
         for (int i = 0; i < WEAPON_SLOTS.length && i < weapons.size(); i++) {
@@ -174,6 +192,10 @@ public class WorkbenchManager implements Listener {
             ItemStack button = button(gamePlayer, weapon.getLevel(), upgradePrice(weapon));
             for (int slot : BUTTON_SLOTS) inventory.setItem(slot, button);
         }
+        if (card != null) {
+            ItemStack scrap = scrapButton(player, weapon);
+            for (int slot : SCRAP_SLOTS) inventory.setItem(slot, scrap);
+        }
 
         ItemStack close = new ItemStack(Material.BARRIER);
         close.editMeta(meta -> {
@@ -202,6 +224,62 @@ public class WorkbenchManager implements Listener {
         return icon(Material.PAPER, "leer", text("Verbessern", GREEN).decoration(TextDecoration.BOLD, true), price(price, affordable));
     }
 
+    private ItemStack scrapButton(Player player, Weapon weapon) {
+        int value = weapon == null ? 0 : scrapValue(weapon);
+        if (value <= 0) return icon(Material.PAPER, "leer", text("Nicht möglich", BUTTON_GREY),
+                text(weapon == null ? "Nur Waffen lassen sich verschrotten" : "Die Startpistole ohne Upgrades nicht", GREY));
+        return icon(Material.PAPER, "leer", text(isScrapAsked(player) ? "Sicher?" : "Verschrotten", RED).decoration(TextDecoration.BOLD, true),
+                price(value, true), text("3/4 von Kaufpreis und Upgrades zurück", GREY));
+    }
+
+    private boolean isScrapAsked(Player player) {
+        Long asked = scrapAsked.get(player.getUniqueId());
+        return asked != null && System.currentTimeMillis() - asked < SCRAP_CONFIRM_MILLIS;
+    }
+
+    // Weapon gone, coins back. The start pistol only loses its upgrades
+    private void scrap(GamePlayer gamePlayer, Menu menu) {
+        Player player = gamePlayer.getPlayer();
+        int index = selected.getOrDefault(player.getUniqueId(), 0);
+        Weapon weapon = index < menu.weapons.size() ? menu.weapons.get(index) : null;
+        int value = weapon == null ? 0 : scrapValue(weapon);
+        if (value <= 0) {
+            Sounds.deny(player);
+            return;
+        }
+        if (!isScrapAsked(player)) {
+            scrapAsked.put(player.getUniqueId(), System.currentTimeMillis());
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.8F, 0.8F);
+            open(gamePlayer);
+            return;
+        }
+        scrapAsked.remove(player.getUniqueId());
+
+        int slot = -1;
+        for (int i : gamePlayer.getWeaponSlots()) {
+            ItemStack item = player.getInventory().getItem(i);
+            if (item != null && item.getType() == weapon.getItem().getType()) slot = i;
+        }
+        gamePlayer.removeWeapon(weapon);
+        // Hotbar 1 belongs to the pistol, it comes back there
+        boolean pistol = weapon instanceof Pistol || slot == 1 && gamePlayer.getWeapons().values().stream().noneMatch(w -> w instanceof Pistol);
+        ItemStack replacement;
+        if (pistol) {
+            Pistol fresh = new Pistol();
+            gamePlayer.addWeapon(fresh);
+            replacement = fresh.getItem();
+        } else {
+            replacement = GamePlayer.emptySlot(slot);
+        }
+        if (slot >= 0) player.getInventory().setItem(slot, replacement);
+        gamePlayer.setCoins(gamePlayer.getCoins() + value);
+        player.playSound(player.getLocation(), Sound.BLOCK_GRINDSTONE_USE, 1.0F, 0.9F);
+        player.playSound(player.getLocation(), Sound.ENTITY_ITEM_BREAK, 0.5F, 0.8F);
+        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6F, 1.2F);
+        player.sendMessage(String.format("%s§a%s §7verschrottet! §6+%d Coins", plugin.getMonstersPrefix(), weapon.getName(), value));
+        open(gamePlayer);
+    }
+
     // Back in the round: the sign without the unlock price again
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
@@ -220,6 +298,12 @@ public class WorkbenchManager implements Listener {
         GamePlayer gamePlayer = userManager.getGamePlayer(player.getUniqueId());
         if (gamePlayer == null) return;
         int slot = event.getSlot();
+        if (java.util.Arrays.stream(SCRAP_SLOTS).anyMatch(s -> s == slot)) {
+            scrap(gamePlayer, menu);
+            return;
+        }
+        // Another entry: the scrap question starts again
+        scrapAsked.remove(player.getUniqueId());
 
         for (int i = 0; i < WEAPON_SLOTS.length; i++) {
             if (WEAPON_SLOTS[i] == slot && i < menu.weapons.size()) {
@@ -389,7 +473,7 @@ public class WorkbenchManager implements Listener {
         return String.valueOf((int) Math.round((0.5 + 2 * CrowbarLevel.extraLoot(Math.min(level, CrowbarLevel.MAX_LEVEL))) * 100));
     }
 
-    private Component title(GamePlayer gamePlayer, Card card, int row) {
+    private Component title(GamePlayer gamePlayer, Card card, int row, Weapon weapon) {
         WorkbenchTitle title = new WorkbenchTitle().name("Werkbank");
         int coins = gamePlayer.getCoins();
         title.centered("guthaben_name", 52, new WorkbenchTitle.Part("Guthaben", GREY))
@@ -437,6 +521,17 @@ public class WorkbenchManager implements Listener {
                     .centered("knopf", 132, new WorkbenchTitle.Part("Verbessern", affordable ? WHITE : BUTTON_GREY))
                     .centered("preis", 132, new WorkbenchTitle.Part(COIN, affordable ? TextColor.color(0xFFD36B) : TOO_EXPENSIVE),
                             new WorkbenchTitle.Part(" " + coins(price), affordable ? WHITE : TOO_EXPENSIVE));
+        }
+
+        // Scrap button over the whole bottom row, one line of text
+        int scrap = weapon == null ? 0 : scrapValue(weapon);
+        if (scrap <= 0) {
+            title.glyph('', 26, 143).centered("schrott", 97, new WorkbenchTitle.Part("Nicht möglich", SCRAP_GREY));
+        } else {
+            boolean asked = isScrapAsked(gamePlayer.getPlayer());
+            title.glyph(asked ? '' : '', asked ? 24 : 26, asked ? 147 : 143)
+                    .centered("schrott", 97, new WorkbenchTitle.Part(asked ? "Sicher? " : "Verschrotten ", WHITE),
+                            new WorkbenchTitle.Part(COIN + " " + coins(scrap), SCRAP_GOLD));
         }
         return title.build();
     }
