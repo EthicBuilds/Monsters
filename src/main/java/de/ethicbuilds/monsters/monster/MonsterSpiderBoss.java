@@ -106,7 +106,7 @@ public class MonsterSpiderBoss extends MonsterSpider {
                 Bukkit.getOnlinePlayers().forEach(bar::addPlayer);
                 bar.setProgress(Math.max(0, Math.min(1, monster.getHealth() / health)));
 
-                if (--nextAttack <= 0) attack();
+                if (!de.ethicbuilds.monsters.gameplay.manager.PauseManager.isPaused() && --nextAttack <= 0) attack();
             }
         }.runTaskTimer(Main.getINSTANCE(), 0L, 10L);
     }

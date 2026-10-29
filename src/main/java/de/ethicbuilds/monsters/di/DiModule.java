@@ -41,6 +41,7 @@ public class DiModule extends AbstractModule {
         bind(GameManager.class).asEagerSingleton();
         bind(RoundLoader.class).asEagerSingleton();
         bind(WaveManager.class).asEagerSingleton();
+        bind(de.ethicbuilds.monsters.gameplay.manager.PauseManager.class).asEagerSingleton();
         bind(MapManager.class).asEagerSingleton();
         bind(MonsterManager.class).asEagerSingleton();
         bind(ScoreboardManager.class).asEagerSingleton();

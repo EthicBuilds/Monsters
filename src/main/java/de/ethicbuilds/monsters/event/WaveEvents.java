@@ -93,6 +93,7 @@ public class WaveEvents {
                     cancel();
                     return;
                 }
+                if (de.ethicbuilds.monsters.gameplay.manager.PauseManager.isPaused()) return;
                 checkCamping();
                 if (bloodMoon) {
                     // Red dust drifting far around the players

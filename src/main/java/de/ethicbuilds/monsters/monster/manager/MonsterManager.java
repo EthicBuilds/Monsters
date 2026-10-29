@@ -215,6 +215,8 @@ public class MonsterManager {
             }
         }, 0L, 10L);
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            // Frozen monsters during a pause are not stuck
+            if (de.ethicbuilds.monsters.gameplay.manager.PauseManager.isPaused()) return;
             long now = System.currentTimeMillis();
             HealthBars.removeOrphans(plugin.getWorld());
             HealthBars.hideIdle(plugin.getWorld());

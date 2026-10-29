@@ -101,6 +101,7 @@ public abstract class EnemyMonster {
                     this.cancel();
                     return;
                 }
+                if (de.ethicbuilds.monsters.gameplay.manager.PauseManager.isPaused()) return;
                 if (flee(pathfinder)) return;
 
                 // Every monster keeps its own player, a dead one hands it to the least chased living player

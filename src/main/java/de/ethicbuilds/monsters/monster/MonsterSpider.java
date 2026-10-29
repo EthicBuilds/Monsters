@@ -61,7 +61,7 @@ public class MonsterSpider extends EnemyMonster {
                     cancel();
                     return;
                 }
-                if (--nextAttack > 0) return;
+                if (de.ethicbuilds.monsters.gameplay.manager.PauseManager.isPaused() || --nextAttack > 0) return;
                 if (!(monster.getTarget() instanceof Player player) || !player.isValid() || !player.getWorld().equals(monster.getWorld())) return;
                 if (!monster.getBoundingBox().expand(0.6).overlaps(player.getBoundingBox())) return;
                 nextAttack = attackCooldown / 5;

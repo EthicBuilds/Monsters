@@ -38,6 +38,8 @@ public class WaveManager {
     private CrateManager crateManager;
     @Inject
     private Main plugin;
+    @Inject
+    private PauseManager pauseManager;
     private Thread waveThread = null;
     @Getter
     private int currentWave = 0;
@@ -51,7 +53,10 @@ public class WaveManager {
         this.waveThread = new Thread(() -> {
             try {
                 while (Thread.currentThread().isAlive()) {
+                    while (PauseManager.isPaused()) Thread.sleep(200);
                     startWave();
+                    // After every boss wave the creator of the round may call a pause
+                    if (currentWave % MonsterManager.BOSS_WAVE == 0) startOnMinecraftThread(pauseManager::giveItem);
                     Thread.sleep(100);
                 }
             } catch (Exception e) {
@@ -87,6 +92,10 @@ public class WaveManager {
                 && java.util.concurrent.ThreadLocalRandom.current().nextDouble() < BOUNTY_CHANCE;
         int cap = currentWave % de.ethicbuilds.monsters.monster.manager.MonsterManager.SPIDER_WAVE == 0 ? MAX_SPIDERS_ALIVE : MAX_ALIVE;
         while (monsterManager.hasPendingSpawns() || !monsterManager.getMonsters().isEmpty()) {
+            if (PauseManager.isPaused()) {
+                Thread.sleep(200);
+                continue;
+            }
             if (bounty && monsterManager.remaining() <= total * BOUNTY_AT) {
                 bounty = false;
                 startOnMinecraftThread(() -> monsterManager.addBounty(currentWave));
