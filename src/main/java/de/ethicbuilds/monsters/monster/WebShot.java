@@ -23,15 +23,15 @@ import org.joml.Vector3f;
  * there is spun in and very slow for a moment
  */
 public final class WebShot {
-    private static final int FLIGHT = 16;
-    private static final double RADIUS = 2.5, ARC = 3;
+    public static final int FLIGHT = 16;
+    public static final double RADIUS = 2.5;
+    private static final double ARC = 3;
     private static final int SLOW_TICKS = 60;
 
     private WebShot() {}
 
-    public static void fire(LivingEntity boss, Player target) {
+    public static void fire(LivingEntity boss, Location to) {
         Location from = boss.getLocation().add(0, 1.5, 0);
-        Location to = target.getLocation();
         boss.getWorld().playSound(from, Sound.ENTITY_SPIDER_AMBIENT, 1.0F, 0.5F);
         ItemDisplay web = boss.getWorld().spawn(from, ItemDisplay.class, display -> {
             display.setItemStack(new ItemStack(Material.COBWEB));

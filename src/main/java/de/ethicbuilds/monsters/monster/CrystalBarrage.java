@@ -1,18 +1,18 @@
 package de.ethicbuilds.monsters.monster;
 
 import de.ethicbuilds.monsters.Main;
+import static de.ethicbuilds.monsters.monster.GroundMark.decal;
+import static de.ethicbuilds.monsters.monster.GroundMark.flat;
+import static de.ethicbuilds.monsters.monster.GroundMark.ground;
+import static de.ethicbuilds.monsters.monster.GroundMark.mark;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
-import net.kyori.adventure.key.Key;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.TextDisplay;
@@ -46,7 +46,6 @@ public final class CrystalBarrage {
     private static final Color AMETHYST = Color.fromRGB(0xA970FF);
     // Bright edge of the marker image at 28.75 px, 0.025 blocks per px
     private static final float MARK_SCALE = (float) (RADIUS / 0.71875);
-    private static final Key MARK_FONT = Key.key("monsters", "ziel");
 
     private static final double RANGE = 64;
 
@@ -183,33 +182,6 @@ public final class CrystalBarrage {
         }.runTaskTimer(Main.getINSTANCE(), 0L, 2L);
     }
 
-    private static TextDisplay decal(Location at, char glyph, float scale, double lift) {
-        Location spot = at.clone().add(0, lift, 0);
-        spot.setYaw(0);
-        spot.setPitch(0);
-        return at.getWorld().spawn(spot, TextDisplay.class, display -> {
-            display.text(mark(glyph));
-            display.setBillboard(Display.Billboard.FIXED);
-            display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
-            display.setDefaultBackground(false);
-            display.setShadowed(false);
-            display.setSeeThrough(false);
-            display.setBrightness(new Display.Brightness(15, 15));
-            display.setTransformation(flat(scale));
-            display.setPersistent(false);
-        });
-    }
-
-    private static Component mark(char glyph) {
-        return Component.text(glyph, NamedTextColor.WHITE).font(MARK_FONT);
-    }
-
-    // Lies flat facing up; the baseline sits 1.5 text pixels above the origin, moved back so the centre is on the spot
-    private static Transformation flat(float scale) {
-        return new Transformation(new Vector3f(0, 0, 1.5F * 0.025F * scale), new AxisAngle4f((float) -Math.PI / 2, 1, 0, 0),
-                new Vector3f(scale), new AxisAngle4f());
-    }
-
     private static void ring(World world, Location center, double radius, Color color, int points) {
         if (radius < 0.15) return;
         Particle.DustOptions dust = new Particle.DustOptions(color, 1.1F);
@@ -217,13 +189,5 @@ public final class CrystalBarrage {
             double angle = Math.PI * 2 * i / points;
             world.spawnParticle(Particle.DUST, center.clone().add(Math.cos(angle) * radius, 0.1, Math.sin(angle) * radius), 1, 0, 0, 0, 0, dust);
         }
-    }
-
-    // Top of the ground below the spot, so the circle lies on the floor
-    private static Location ground(Location spot) {
-        Block block = spot.getBlock();
-        for (int i = 0; i < 6 && !block.getRelative(0, -1, 0).isSolid(); i++) block = block.getRelative(0, -1, 0);
-        if (!block.getRelative(0, -1, 0).isSolid()) return null;
-        return block.getLocation().add(0.5, 0.02, 0.5);
     }
 }

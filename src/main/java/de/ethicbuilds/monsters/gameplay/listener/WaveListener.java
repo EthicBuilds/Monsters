@@ -161,6 +161,15 @@ public class WaveListener implements Listener {
         }
     }
 
+    // The fireworks of the boss victory are only for the eyes
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onShowFirework(EntityDamageByEntityEvent event) {
+        if (event.getDamager() instanceof Firework firework
+                && firework.getPersistentDataContainer().has(de.ethicbuilds.monsters.monster.MonsterSpiderBoss.SHOW_FIREWORK)) {
+            event.setCancelled(true);
+        }
+    }
+
     @EventHandler(ignoreCancelled = true)
     public void onMonsterAttack(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Monster monster) || !(event.getEntity() instanceof Player)) return;
