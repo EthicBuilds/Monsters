@@ -42,11 +42,11 @@ import java.util.UUID;
 /***
  * Pause wave: after every boss wave the creator of the round gets an item. Click, click again to confirm,
  * then everything stops for 5 minutes right away: the monsters freeze, no new ones come, time to upgrade.
- * After 3 minutes the creator may go on early with a second item. At most one pause item at a time,
+ * After 1 minute the creator may go on early with a second item. At most one pause item at a time,
  * between two pauses at least 30 minutes. Design from the design session.
  */
 public class PauseManager implements Listener {
-    private static final long PAUSE_MILLIS = 5 * 60_000, MIN_PAUSE_MILLIS = 3 * 60_000, COOLDOWN_MILLIS = 30 * 60_000, CONFIRM_MILLIS = 3000;
+    private static final long PAUSE_MILLIS = 5 * 60_000, MIN_PAUSE_MILLIS = 60_000, COOLDOWN_MILLIS = 30 * 60_000, CONFIRM_MILLIS = 3000;
     private static final byte PAUSE = 1, RESUME = 2;
     private static final int ITEM_SLOT = 8;
     private static final NamespacedKey ITEM_KEY = new NamespacedKey("monsters", "pause");
@@ -128,7 +128,7 @@ public class PauseManager implements Listener {
         return item;
     }
 
-    // Before 3 minutes of break the cooldown bar over the item counts down to when it works
+    // Before 1 minute of break the cooldown bar over the item counts down to when it works
     private ItemStack resumeItem(Player player, boolean asking) {
         long wait = lastPause + MIN_PAUSE_MILLIS - System.currentTimeMillis();
         String name = asking
@@ -201,7 +201,7 @@ public class PauseManager implements Listener {
         start(player);
     }
 
-    // The creator ends the break early, at the earliest after 3 minutes
+    // The creator ends the break early, at the earliest after 1 minute
     private void resume(Player player, long now) {
         if (!paused) {
             removeItems(player);

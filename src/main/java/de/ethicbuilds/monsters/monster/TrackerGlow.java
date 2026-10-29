@@ -31,11 +31,13 @@ import java.util.Set;
 import java.util.UUID;
 
 /***
- * While a player holds the monster tracker, every monster glows for this player only (metadata packets via ProtocolLib)
+ * While a player holds the monster tracker, every monster and every living teammate glows for this player only
+ * (metadata packets via ProtocolLib)
  */
 @Singleton
 public class TrackerGlow {
-    private static final byte ON_FIRE = 0x01, INVISIBLE = 0x20, GLOWING = 0x40;
+    private static final byte ON_FIRE = 0x01, SNEAKING = 0x02, SPRINTING = 0x08, SWIMMING = 0x10, INVISIBLE = 0x20, GLOWING = 0x40;
+    private static final byte GLIDING = (byte) 0x80;
 
     @Inject private Main plugin;
     @Inject private GameManager gameManager;
@@ -69,6 +71,12 @@ public class TrackerGlow {
                 if (enemyMonster.getMonster() == null || !enemyMonster.getMonster().isValid()) continue;
                 now.addAll(glowParts(enemyMonster));
             }
+            // Teammates glow as well, so the tracker also shows where the others are
+            for (GamePlayer mate : userManager.getGamePlayers()) {
+                Player other = mate.getPlayer();
+                if (!other.equals(player) && other.isOnline() && other.getWorld().equals(player.getWorld())
+                        && !userManager.isPlayerDead(other.getUniqueId())) now.add(other);
+            }
             // Sent again every time, the server overwrites the flags when something changes
             for (Entity entity : now) send(player, entity, true);
         }
@@ -95,6 +103,13 @@ public class TrackerGlow {
         byte flags = 0;
         if (entity.getFireTicks() > 0) flags |= ON_FIRE;
         if (entity instanceof LivingEntity living && living.isInvisible()) flags |= INVISIBLE;
+        // Players keep their pose flags, otherwise they would stand up while sneaking
+        if (entity instanceof Player other) {
+            if (other.isSneaking()) flags |= SNEAKING;
+            if (other.isSprinting()) flags |= SPRINTING;
+            if (other.isSwimming()) flags |= SWIMMING;
+            if (other.isGliding()) flags |= GLIDING;
+        }
         boolean realGlow = entity.isGlowing() || entity instanceof LivingEntity living && living.hasPotionEffect(PotionEffectType.GLOWING);
         if (glow || realGlow) flags |= GLOWING;
 
