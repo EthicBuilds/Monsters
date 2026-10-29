@@ -50,7 +50,7 @@ public class PauseManager implements Listener {
     private static final byte PAUSE = 1, RESUME = 2;
     private static final int ITEM_SLOT = 8;
     private static final NamespacedKey ITEM_KEY = new NamespacedKey("monsters", "pause");
-    private static final Key COOLDOWN_GROUP = Key.key("monsters", "pause");
+    private static final Key COOLDOWN_GROUP = Key.key("monsters", "pause"), RESUME_GROUP = Key.key("monsters", "weiter");
     private static final MiniMessage MM = MiniMessage.miniMessage();
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
@@ -123,20 +123,28 @@ public class PauseManager implements Listener {
         String lore = wait > 0
                 ? Lang.t(player, "<#8A93A3>Wieder bereit in</#8A93A3> <white>", "<#8A93A3>Ready again in</#8A93A3> <white>") + clock(wait) + "</white>"
                 : Lang.t(player, "<#8A93A3>Klick, dann bestätigen</#8A93A3>", "<#8A93A3>Click, then confirm</#8A93A3>");
-        ItemStack item = item(PAUSE, "pause", MM.deserialize(name), MM.deserialize(lore));
+        ItemStack item = item(PAUSE, "pause", COOLDOWN_GROUP, MM.deserialize(name), MM.deserialize(lore));
         if (asking) item.setData(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
         return item;
     }
 
-    private static ItemStack resumeItem(Player player) {
-        return item(RESUME, "weiter",
-                Lang.mm(player, "<bold><#3CDC6E>Weiter</#3CDC6E></bold> <#8A93A3>· Pause beenden</#8A93A3>", "<bold><#3CDC6E>Go on</#3CDC6E></bold> <#8A93A3>· end the break</#8A93A3>"),
-                Lang.mm(player, "<#8A93A3>Ab 3 Minuten Pause, Klick, dann bestätigen</#8A93A3>", "<#8A93A3>After 3 minutes of break, click, then confirm</#8A93A3>"));
+    // Before 3 minutes of break the cooldown bar over the item counts down to when it works
+    private ItemStack resumeItem(Player player, boolean asking) {
+        long wait = lastPause + MIN_PAUSE_MILLIS - System.currentTimeMillis();
+        String name = asking
+                ? Lang.t(player, "<bold><#FF4838>Sicher?</#FF4838></bold> <#8A93A3>· nochmal klicken</#8A93A3>", "<bold><#FF4838>Sure?</#FF4838></bold> <#8A93A3>· click again</#8A93A3>")
+                : Lang.t(player, "<bold><#3CDC6E>Weiter</#3CDC6E></bold> <#8A93A3>· Pause beenden</#8A93A3>", "<bold><#3CDC6E>Go on</#3CDC6E></bold> <#8A93A3>· end the break</#8A93A3>");
+        String lore = wait > 0
+                ? Lang.t(player, "<#8A93A3>Möglich in</#8A93A3> <white>", "<#8A93A3>Possible in</#8A93A3> <white>") + clock(wait) + "</white>"
+                : Lang.t(player, "<#8A93A3>Klick, dann bestätigen</#8A93A3>", "<#8A93A3>Click, then confirm</#8A93A3>");
+        ItemStack item = item(RESUME, "weiter", RESUME_GROUP, MM.deserialize(name), MM.deserialize(lore));
+        if (asking) item.setData(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
+        return item;
     }
 
-    private static ItemStack item(byte kind, String model, Component name, Component lore) {
+    private static ItemStack item(byte kind, String model, Key group, Component name, Component lore) {
         ItemStack item = new ItemStack(Material.PAPER);
-        item.setData(DataComponentTypes.USE_COOLDOWN, UseCooldown.useCooldown(1).cooldownGroup(COOLDOWN_GROUP).build());
+        item.setData(DataComponentTypes.USE_COOLDOWN, UseCooldown.useCooldown(1).cooldownGroup(group).build());
         item.editMeta(meta -> {
             meta.setItemModel(new NamespacedKey("monsters", model));
             meta.displayName(name.decoration(TextDecoration.ITALIC, false));
@@ -201,14 +209,18 @@ public class PauseManager implements Listener {
         }
         long wait = lastPause + MIN_PAUSE_MILLIS - now;
         if (wait > 0) {
+            replaceItem(player, resumeItem(player, false));
+            player.setCooldown(RESUME_GROUP, (int) (wait / 50));
             player.sendActionBar(Lang.t(player, "§7Fortsetzen ab §f", "§7Go on from §f") + clock(wait));
             return;
         }
         if (now - askedAt > CONFIRM_MILLIS) {
             askedAt = now;
-            player.sendActionBar(Lang.mm(player, "<bold><#FF4838>Sicher?</#FF4838></bold> <#8A93A3>· nochmal klicken: Pause beenden</#8A93A3>",
-                    "<bold><#FF4838>Sure?</#FF4838></bold> <#8A93A3>· click again: end the break</#8A93A3>"));
+            replaceItem(player, resumeItem(player, true));
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.8F, 0.8F);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (askedAt == now && paused) replaceItem(player, resumeItem(player, false));
+            }, CONFIRM_MILLIS / 50);
             return;
         }
         askedAt = 0;
@@ -228,7 +240,8 @@ public class PauseManager implements Listener {
                     Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofMillis(500))));
             player.playSound(player.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.8F, 1.2F);
         }
-        by.getInventory().setItem(ITEM_SLOT, resumeItem(by));
+        by.getInventory().setItem(ITEM_SLOT, resumeItem(by, false));
+        by.setCooldown(RESUME_GROUP, (int) (MIN_PAUSE_MILLIS / 50));
         DualBar bar = new DualBar("", "", BarColor.YELLOW, BarStyle.SOLID);
         pauseEnd = lastPause + PAUSE_MILLIS;
         new BukkitRunnable() {
