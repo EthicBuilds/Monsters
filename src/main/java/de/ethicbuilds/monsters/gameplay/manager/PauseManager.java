@@ -2,14 +2,24 @@ package de.ethicbuilds.monsters.gameplay.manager;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.lang.DualBar;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.UseCooldown;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -25,6 +35,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,13 +43,16 @@ import java.util.UUID;
  * Pause wave: after every boss wave the creator of the round gets an item. Click, click again to confirm,
  * then everything stops for 5 minutes right away: the monsters freeze, no new ones come, time to upgrade.
  * After 3 minutes the creator may go on early with a second item. At most one pause item at a time,
- * between two pauses at least 30 minutes.
+ * between two pauses at least 30 minutes. Design from the design session.
  */
 public class PauseManager implements Listener {
     private static final long PAUSE_MILLIS = 5 * 60_000, MIN_PAUSE_MILLIS = 3 * 60_000, COOLDOWN_MILLIS = 30 * 60_000, CONFIRM_MILLIS = 3000;
     private static final byte PAUSE = 1, RESUME = 2;
     private static final int ITEM_SLOT = 8;
     private static final NamespacedKey ITEM_KEY = new NamespacedKey("monsters", "pause");
+    private static final Key COOLDOWN_GROUP = Key.key("monsters", "pause");
+    private static final MiniMessage MM = MiniMessage.miniMessage();
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     private static volatile boolean paused;
 
@@ -59,7 +73,8 @@ public class PauseManager implements Listener {
     public void giveItem() {
         Player creator = creator();
         if (creator == null || kind(creator) != 0) return;
-        creator.getInventory().setItem(ITEM_SLOT, pauseItem(creator));
+        creator.getInventory().setItem(ITEM_SLOT, pauseItem(creator, false));
+        showCooldown(creator);
         creator.sendMessage(Lang.t(creator, plugin.getMonstersPrefix() + "§eDu kannst jetzt eine §65-Minuten-Pause §eeinlösen (Slot 9).",
                 plugin.getMonstersPrefix() + "§eYou can now use a §65 minute break §e(slot 9)."));
         creator.playSound(creator.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.8F, 1.4F);
@@ -93,26 +108,56 @@ public class PauseManager implements Listener {
         }
     }
 
-    private static ItemStack pauseItem(Player player) {
-        return item(PAUSE, Lang.t(player, "§e§lPause §8· §75 Minuten", "§e§lBreak §8· §75 minutes"),
-                Lang.t(player, "§7Klicken, dann nochmal zum Bestätigen", "§7Click, then again to confirm"),
-                Lang.t(player, "§7Die Monster frieren sofort ein", "§7The monsters freeze right away"));
+    private static void replaceItem(Player player, ItemStack item) {
+        for (int slot = 0; slot < player.getInventory().getSize(); slot++) {
+            if (kind(player.getInventory().getItem(slot)) == kind(item)) player.getInventory().setItem(slot, item);
+        }
+    }
+
+    // While the 30 minutes run, the vanilla cooldown bar over the item and the time in the lore show it
+    private ItemStack pauseItem(Player player, boolean asking) {
+        long wait = cooldownLeft();
+        String name = asking
+                ? Lang.t(player, "<bold><#FF4838>Sicher?</#FF4838></bold> <#8A93A3>· nochmal klicken</#8A93A3>", "<bold><#FF4838>Sure?</#FF4838></bold> <#8A93A3>· click again</#8A93A3>")
+                : Lang.t(player, "<bold><#FFCC2E>Pause</#FFCC2E></bold> <#8A93A3>· 5 Minuten</#8A93A3>", "<bold><#FFCC2E>Break</#FFCC2E></bold> <#8A93A3>· 5 minutes</#8A93A3>");
+        String lore = wait > 0
+                ? Lang.t(player, "<#8A93A3>Wieder bereit in</#8A93A3> <white>", "<#8A93A3>Ready again in</#8A93A3> <white>") + clock(wait) + "</white>"
+                : Lang.t(player, "<#8A93A3>Klick, dann bestätigen</#8A93A3>", "<#8A93A3>Click, then confirm</#8A93A3>");
+        ItemStack item = item(PAUSE, "pause", MM.deserialize(name), MM.deserialize(lore));
+        if (asking) item.setData(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
+        return item;
     }
 
     private static ItemStack resumeItem(Player player) {
-        return item(RESUME, Lang.t(player, "§a§lWeiter §8· §7Pause beenden", "§a§lGo on §8· §7end the break"),
-                Lang.t(player, "§7Ab 3 Minuten Pause möglich", "§7Possible after 3 minutes of break"),
-                Lang.t(player, "§7Klicken, dann nochmal zum Bestätigen", "§7Click, then again to confirm"));
+        return item(RESUME, "weiter",
+                Lang.mm(player, "<bold><#3CDC6E>Weiter</#3CDC6E></bold> <#8A93A3>· Pause beenden</#8A93A3>", "<bold><#3CDC6E>Go on</#3CDC6E></bold> <#8A93A3>· end the break</#8A93A3>"),
+                Lang.mm(player, "<#8A93A3>Ab 3 Minuten Pause, Klick, dann bestätigen</#8A93A3>", "<#8A93A3>After 3 minutes of break, click, then confirm</#8A93A3>"));
     }
 
-    private static ItemStack item(byte kind, String name, String... lore) {
-        ItemStack item = new ItemStack(kind == PAUSE ? Material.CLOCK : Material.LIME_DYE);
+    private static ItemStack item(byte kind, String model, Component name, Component lore) {
+        ItemStack item = new ItemStack(Material.PAPER);
+        item.setData(DataComponentTypes.USE_COOLDOWN, UseCooldown.useCooldown(1).cooldownGroup(COOLDOWN_GROUP).build());
         item.editMeta(meta -> {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(lore));
+            meta.setItemModel(new NamespacedKey("monsters", model));
+            meta.displayName(name.decoration(TextDecoration.ITALIC, false));
+            meta.lore(List.of(lore.decoration(TextDecoration.ITALIC, false)));
             meta.getPersistentDataContainer().set(ITEM_KEY, PersistentDataType.BYTE, kind);
         });
         return item;
+    }
+
+    private long cooldownLeft() {
+        return lastPause == 0 ? 0 : lastPause + COOLDOWN_MILLIS - System.currentTimeMillis();
+    }
+
+    private void showCooldown(Player player) {
+        long wait = cooldownLeft();
+        if (wait > 0) player.setCooldown(COOLDOWN_GROUP, (int) (wait / 50));
+    }
+
+    private static String clock(long millis) {
+        long seconds = (millis + 999) / 1000;
+        return String.format("%d:%02d", seconds / 60, seconds % 60);
     }
 
     @EventHandler(priority = EventPriority.LOW)
@@ -127,15 +172,20 @@ public class PauseManager implements Listener {
             return;
         }
         if (paused) return;
-        long wait = lastPause + COOLDOWN_MILLIS - now;
-        if (lastPause > 0 && wait > 0) {
-            player.sendActionBar(Lang.f(player, "§7Nächste Pause in §f%d Min.", "§7Next break in §f%d min", (wait + 59_999) / 60_000));
+        if (cooldownLeft() > 0) {
+            replaceItem(player, pauseItem(player, false));
+            showCooldown(player);
+            player.sendActionBar(Lang.t(player, "§7Nächste Pause in §f", "§7Next break in §f") + clock(cooldownLeft()));
             return;
         }
         if (now - askedAt > CONFIRM_MILLIS) {
             askedAt = now;
-            player.sendActionBar(Lang.t(player, "§eNochmal klicken: §f5 Minuten Pause", "§eClick again: §f5 minute break"));
+            replaceItem(player, pauseItem(player, true));
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.8F, 0.8F);
+            // Back to normal when not confirmed in time
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (askedAt == now && !paused) replaceItem(player, pauseItem(player, false));
+            }, CONFIRM_MILLIS / 50);
             return;
         }
         askedAt = 0;
@@ -151,13 +201,13 @@ public class PauseManager implements Listener {
         }
         long wait = lastPause + MIN_PAUSE_MILLIS - now;
         if (wait > 0) {
-            long seconds = (wait + 999) / 1000;
-            player.sendActionBar(Lang.f(player, "§7Fortsetzen ab §f%d:%02d", "§7Go on from §f%d:%02d", seconds / 60, seconds % 60));
+            player.sendActionBar(Lang.t(player, "§7Fortsetzen ab §f", "§7Go on from §f") + clock(wait));
             return;
         }
         if (now - askedAt > CONFIRM_MILLIS) {
             askedAt = now;
-            player.sendActionBar(Lang.t(player, "§aNochmal klicken: §fPause beenden", "§aClick again: §fend the break"));
+            player.sendActionBar(Lang.mm(player, "<bold><#FF4838>Sicher?</#FF4838></bold> <#8A93A3>· nochmal klicken: Pause beenden</#8A93A3>",
+                    "<bold><#FF4838>Sure?</#FF4838></bold> <#8A93A3>· click again: end the break</#8A93A3>"));
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.8F, 0.8F);
             return;
         }
@@ -172,8 +222,10 @@ public class PauseManager implements Listener {
         // Monsters of a spawn batch that was already on its way
         Bukkit.getScheduler().runTaskLater(plugin, () -> { if (paused) freeze(true); }, 5L);
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.sendTitle(Lang.t(player, "§e§lPAUSE", "§e§lBREAK"),
-                    Lang.f(player, "§7%s gönnt euch 5 Minuten §8· §7Monster eingefroren", "§7%s gives you 5 minutes §8· §7monsters frozen", by.getName()), 10, 60, 10);
+            player.showTitle(Title.title(Lang.mm(player, "<bold><gradient:#FFCC2E:#F9A11E>PAUSE</gradient></bold>", "<bold><gradient:#FFCC2E:#F9A11E>BREAK</gradient></bold>"),
+                    Lang.mm(player, "<white>" + by.getName() + "</white> <#8A93A3>gönnt euch 5 Minuten · Monster eingefroren</#8A93A3>",
+                            "<white>" + by.getName() + "</white> <#8A93A3>gives you 5 minutes · monsters frozen</#8A93A3>"),
+                    Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofMillis(500))));
             player.playSound(player.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.8F, 1.2F);
         }
         by.getInventory().setItem(ITEM_SLOT, resumeItem(by));
@@ -183,18 +235,26 @@ public class PauseManager implements Listener {
             @Override
             public void run() {
                 long left = pauseEnd - System.currentTimeMillis();
-                if (left <= 0 || gameManager.getCurrentPhase() != de.ethicbuilds.monsters.gameplay.model.GamePhase.WAVE) {
+                if (left <= 0 || gameManager.getCurrentPhase() != GamePhase.WAVE) {
                     bar.removeAll();
                     finish();
                     cancel();
                     return;
                 }
-                long seconds = (left + 999) / 1000;
-                String time = String.format("%d:%02d", seconds / 60, seconds % 60);
-                bar.setTitle("§e§lPAUSE §8· §f" + time, "§e§lBREAK §8· §f" + time);
+                boolean last = left <= 10_000;
+                String time = (last ? "<#FF4838>" : "<white>") + clock(left);
+                bar.setTitle(LEGACY.serialize(MM.deserialize("<bold><#FFCC2E>PAUSE</#FFCC2E></bold> <#8A93A3>·</#8A93A3> " + time)),
+                        LEGACY.serialize(MM.deserialize("<bold><#FFCC2E>BREAK</#FFCC2E></bold> <#8A93A3>·</#8A93A3> " + time)));
                 bar.setProgress(Math.max(0, Math.min(1, left / (double) PAUSE_MILLIS)));
                 Bukkit.getOnlinePlayers().forEach(bar::addPlayer);
-                if (seconds <= 10) Bukkit.getOnlinePlayers().forEach(p -> p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 0.5F, 1.2F));
+                if (last) Bukkit.getOnlinePlayers().forEach(p -> p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 0.5F, 1.2F));
+                // Snowflakes show the frozen monsters
+                for (EnemyMonster enemyMonster : List.copyOf(monsterManager.getMonsters().values())) {
+                    var monster = enemyMonster.getMonster();
+                    if (monster != null && monster.isValid()) {
+                        monster.getWorld().spawnParticle(Particle.SNOWFLAKE, monster.getLocation().add(0, monster.getHeight() * 0.6, 0), 4, 0.3, 0.4, 0.3, 0);
+                    }
+                }
             }
         }.runTaskTimer(plugin, 0L, 20L);
     }
@@ -204,9 +264,8 @@ public class PauseManager implements Listener {
         paused = false;
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (kind(player) == RESUME) removeItems(player);
-        }
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            player.sendTitle(Lang.t(player, "§c§lWEITER GEHT'S!", "§c§lBACK TO IT!"), "", 5, 40, 10);
+            player.showTitle(Title.title(Lang.mm(player, "<bold><#FF4838>WEITER GEHT'S!</#FF4838></bold>", "<bold><#FF4838>BACK TO IT!</#FF4838></bold>"),
+                    Component.empty(), Title.Times.times(Duration.ofMillis(250), Duration.ofSeconds(2), Duration.ofMillis(500))));
             player.playSound(player.getLocation(), Sound.EVENT_RAID_HORN, 0.5F, 1.2F);
         }
     }
