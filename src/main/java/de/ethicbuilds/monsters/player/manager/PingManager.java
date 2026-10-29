@@ -33,12 +33,13 @@ import java.util.UUID;
 
 /***
  * Team ping: mouse wheel click (or F) marks the spot the player looks at up to 50 blocks away, the team sees it
- * through walls for 5 seconds
+ * through walls for 5 seconds. Downed players can ping as well, only more rarely.
  */
 public class PingManager implements Listener {
     public static final int RANGE = 50;
     private static final long LIFETIME = 5 * 20;
-    private static final long COOLDOWN = 1000;
+    // Founder and up (they have the coin boost, the team has *) every second, others every 5 seconds, downed every 20
+    private static final long COOLDOWN = 5000, FOUNDER_COOLDOWN = 1000, DOWNED_COOLDOWN = 20000;
     private static final int FADE = 20;
     private static final TextColor NAME_COLOR = TextColor.color(0xA0F2FA);
     private static final Key PING_FONT = Key.key("monsters", "ping");
@@ -77,13 +78,21 @@ public class PingManager implements Listener {
     }
 
     private void ping(Player player) {
-        if (gameManager.getCurrentPhase() != GamePhase.WAVE || userManager.isPlayerDead(player.getUniqueId())) return;
+        if (gameManager.getCurrentPhase() != GamePhase.WAVE || !userManager.isGamePlayer(player.getUniqueId())) return;
+        boolean downed = userManager.isPlayerDead(player.getUniqueId());
+        long cooldown = downed ? DOWNED_COOLDOWN : player.hasPermission("ethiccoins.boost.50") ? FOUNDER_COOLDOWN : COOLDOWN;
         long now = System.currentTimeMillis();
-        if (now - lastPing.getOrDefault(player.getUniqueId(), 0L) < COOLDOWN) return;
+        long wait = lastPing.getOrDefault(player.getUniqueId(), 0L) + cooldown - now;
+        if (wait > 0) {
+            de.ethicbuilds.monsters.weapons.AmmoHud.pause(player);
+            player.sendActionBar(String.format("§7Ping wieder in §f%d s", (wait + 999) / 1000));
+            return;
+        }
 
         Location eye = player.getEyeLocation();
         RayTraceResult hit = player.getWorld().rayTrace(eye, eye.getDirection(), RANGE, FluidCollisionMode.NEVER, true, 0.3,
-                entity -> !entity.equals(player) && !(entity instanceof Display) && !(entity instanceof org.bukkit.entity.Interaction));
+                entity -> !entity.equals(player) && !(entity instanceof Display) && !(entity instanceof org.bukkit.entity.Interaction)
+                        && !(entity instanceof org.bukkit.entity.Mannequin));
         if (hit == null) return;
         lastPing.put(player.getUniqueId(), now);
 

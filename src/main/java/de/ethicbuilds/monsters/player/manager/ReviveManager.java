@@ -119,13 +119,16 @@ public class ReviveManager implements Listener {
         player.getInventory().setHeldItemSlot(EMPTY_SLOT);
         player.getInventory().setArmorContents(new org.bukkit.inventory.ItemStack[4]);
         Map<Attribute, Double> saved = new HashMap<>();
-        for (Attribute attribute : List.of(Attribute.SCALE, Attribute.MOVEMENT_SPEED, Attribute.JUMP_STRENGTH)) {
+        for (Attribute attribute : List.of(Attribute.SCALE, Attribute.MOVEMENT_SPEED, Attribute.JUMP_STRENGTH, Attribute.GRAVITY)) {
             AttributeInstance instance = player.getAttribute(attribute);
             if (instance != null) saved.put(attribute, instance.getBaseValue());
         }
         savedBases.putIfAbsent(player.getUniqueId(), saved);
         setBase(player, Attribute.MOVEMENT_SPEED, 0);
         setBase(player, Attribute.JUMP_STRENGTH, 0);
+        // Without gravity the view does not fall and jump back, the camera stays still
+        setBase(player, Attribute.GRAVITY, 0);
+        player.setVelocity(new org.bukkit.util.Vector());
 
         // Monsters chasing the downed player look for someone alive
         for (org.bukkit.entity.Monster monster : spot.getWorld().getEntitiesByClass(org.bukkit.entity.Monster.class)) {
@@ -342,6 +345,7 @@ public class ReviveManager implements Listener {
         setBase(player, Attribute.SCALE, saved != null ? saved.getOrDefault(Attribute.SCALE, 1.0) : 1.0);
         setBase(player, Attribute.MOVEMENT_SPEED, saved != null ? saved.getOrDefault(Attribute.MOVEMENT_SPEED, 0.1) : 0.1);
         setBase(player, Attribute.JUMP_STRENGTH, saved != null ? saved.getOrDefault(Attribute.JUMP_STRENGTH, 0.42) : 0.42);
+        setBase(player, Attribute.GRAVITY, saved != null ? saved.getOrDefault(Attribute.GRAVITY, 0.08) : 0.08);
 
         for (Player other : Bukkit.getOnlinePlayers()) {
             other.showPlayer(plugin, player);

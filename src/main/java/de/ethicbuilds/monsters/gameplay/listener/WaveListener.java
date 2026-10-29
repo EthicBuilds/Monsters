@@ -151,7 +151,12 @@ public class WaveListener implements Listener {
         powerupManager.dropFrom(monster.getLocation());
         if (monsterManager.remaining() <= 3) {
             for (EnemyMonster m : monsterManager.getMonsters().values()) {
-                m.getMonster().addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Integer.MAX_VALUE, 1));
+                // Invisible carriers (scarabs, spiders) would show through, their model glows instead
+                if (m.getMonster().isInvisible()) {
+                    m.getMonster().getPassengers().forEach(part -> { if (part instanceof ItemDisplay) part.setGlowing(true); });
+                } else {
+                    m.getMonster().addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Integer.MAX_VALUE, 1));
+                }
             }
         }
     }
