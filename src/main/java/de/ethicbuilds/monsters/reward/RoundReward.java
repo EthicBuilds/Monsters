@@ -80,7 +80,10 @@ public final class RoundReward {
             long coins = EthicCoins.withRankBonus(player, base);
             if (!EthicCoins.deposit(player.getUniqueId(), coins, "Monsters Runde")) continue;
             player.sendMessage(String.format("%s§7Du bekommst §6%d EthicCoins §7für diese Runde%s", prefix, coins, i == 0 ? " §8(§6Rundenbester§8)" : ""));
-            if (i == 0) Bukkit.broadcastMessage(String.format("%s§6%s §7war der beste Spieler der Runde!", prefix, player.getName()));
+            if (i == 0) {
+                Bukkit.broadcastMessage(String.format("%s§6%s §7war der beste Spieler der Runde!", prefix, player.getName()));
+                DailyWin.reward(player, prefix);
+            }
         }
     }
 }

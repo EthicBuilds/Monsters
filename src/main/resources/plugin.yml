@@ -3,7 +3,7 @@ version: '${project.version}'
 main: de.ethicbuilds.monsters.Main
 api-version: '1.21'
 authors: [ codedByGruba ]
-softdepend: [ ProtocolLib ]
+softdepend: [ ProtocolLib, LuckPerms ]
 
 commands:
   createMapConfig:
