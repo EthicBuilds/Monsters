@@ -14,7 +14,6 @@ import de.ethicbuilds.monsters.monster.TrackerGlow;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.reward.DailyChallenge;
-import de.ethicbuilds.monsters.reward.EthicCoins;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.powerup.PowerupManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
@@ -38,7 +37,6 @@ import java.net.http.HttpResponse;
 
 
 public class GameManager {
-    private static final long WINNER_ETHICCOINS = 50;
 
     @Inject private Main plugin;
     @Inject private UserManager userManager;
@@ -120,6 +118,7 @@ public class GameManager {
                     powerupManager.start();
                     plugin.getInjector().getInstance(de.ethicbuilds.monsters.event.WaveEvents.class).start();
                     scoreboardManager.startTime();
+                    de.ethicbuilds.monsters.reward.RoundReward.start(plugin, () -> getCurrentPhase() == GamePhase.WAVE);
 
                     for (var gamePlayer : userManager.getGamePlayers()) {
                         // JoinMe only before the start, the slot stays empty for lying on the ground
@@ -169,7 +168,7 @@ public class GameManager {
         lines.addAll(awards(players));
         lines.add("§8§m                                              ");
         for (Player player : Bukkit.getOnlinePlayers()) lines.forEach(player::sendMessage);
-        rewardWinner(players);
+        de.ethicbuilds.monsters.reward.RoundReward.payOut(players, waveManager.getCurrentWave(), plugin.getMonstersPrefix());
         DailyChallenge.check(players, waveManager.getCurrentWave());
     }
 
@@ -188,16 +187,6 @@ public class GameManager {
         players.stream().max(Comparator.comparingInt(value)).filter(best -> value.applyAsInt(best) > 0).ifPresent(best ->
                 lines.add(String.format("§7%s §8» §f%s §8(§e%s§8)", title, best.getPlayer().getName(),
                         String.format(java.util.Locale.GERMANY, "%,d", value.applyAsInt(best)))));
-    }
-
-    // The best player of the round wins and gets EthicCoins for the network
-    private void rewardWinner(List<GamePlayer> ranked) {
-        if (ranked.isEmpty()) return;
-        Player winner = ranked.getFirst().getPlayer();
-        if (!winner.isOnline()) return;
-        long coins = EthicCoins.withRankBonus(winner, WINNER_ETHICCOINS);
-        if (!EthicCoins.deposit(winner.getUniqueId(), coins, "Monsters Rundensieg")) return;
-        Bukkit.broadcastMessage(String.format("%s§6%s §7gewinnt die Runde und bekommt §6%d EthicCoins§7!", plugin.getMonstersPrefix(), winner.getName(), coins));
     }
 
     public void gameEnd() {
