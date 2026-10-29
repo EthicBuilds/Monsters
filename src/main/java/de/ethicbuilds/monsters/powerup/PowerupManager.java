@@ -31,6 +31,7 @@ import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -41,7 +42,7 @@ import java.util.function.Supplier;
 /***
  * Powerups on the ground: medkits spawn now and then on spots where players have been, monsters drop
  * medkits, speed, instakill and ammo with luck. Speed and instakill count for all players for 10 seconds,
- * ammo fills the weapons of everyone at once.
+ * picking up the same one again adds 10 seconds to the running bar. Ammo fills the weapons of everyone at once.
  */
 public class PowerupManager {
     private static final int MAX_MEDKITS = 2;
@@ -86,6 +87,7 @@ public class PowerupManager {
 
     private final LinkedList<Location> spots = new LinkedList<>();
     private final Map<ItemDisplay, Type> powerups = new HashMap<>();
+    private final Map<Type, Countdown> countdowns = new EnumMap<>(Type.class);
     private int nextSpawn = MIN_DELAY;
     private long instakillUntil;
     private int ammoWave = -1, ammoDrops;
@@ -257,17 +259,17 @@ public class PowerupManager {
                 location.getWorld().spawnParticle(Particle.HEART, location, 6, 0.4, 0.3, 0.4, 0);
             }
             case SPEED -> {
+                int left = announce(player, type, "§x§4§F§B§3§F§F§lTEMPO!", "§7Alle sind 10 Sekunden schneller", BarColor.BLUE, Sound.ENTITY_BREEZE_WIND_BURST, 1.3F, null);
                 for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
                     Player other = gamePlayer.getPlayer();
                     if (other.isOnline() && !userManager.isPlayerDead(other.getUniqueId())) {
-                        other.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, EFFECT_TICKS, 1, false, false, true));
+                        other.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, left, 1, false, false, true));
                     }
                 }
-                announce(player, "§x§4§F§B§3§F§F§lTEMPO!", "§7Alle sind 10 Sekunden schneller", BarColor.BLUE, Sound.ENTITY_BREEZE_WIND_BURST, 1.3F, null);
             }
             case INSTAKILL -> {
-                instakillUntil = System.currentTimeMillis() + EFFECT_TICKS * 50L;
-                announce(player, "§x§F§F§3§B§3§B§lINSTA-KILL!", "§7Jeder Treffer tötet, 10 Sekunden lang", BarColor.RED, Sound.ENTITY_EVOKER_CAST_SPELL, 1.4F, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE);
+                int left = announce(player, type, "§x§F§F§3§B§3§B§lINSTA-KILL!", "§7Jeder Treffer tötet, 10 Sekunden lang", BarColor.RED, Sound.ENTITY_EVOKER_CAST_SPELL, 1.4F, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE);
+                instakillUntil = System.currentTimeMillis() + left * 50L;
             }
             case AMMO -> {
                 for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
@@ -282,34 +284,56 @@ public class PowerupManager {
         }
     }
 
-    // Title for everyone and a boss bar counting down the 10 seconds
-    private void announce(Player finder, String title, String subtitle, BarColor color, Sound sound, float pitch, Sound extra) {
-        BossBar bar = Bukkit.createBossBar(title + " §7von " + finder.getName(), color, BarStyle.SEGMENTED_10);
+    private static final class Countdown {
+        private final BossBar bar;
+        private int left = EFFECT_TICKS, total = EFFECT_TICKS;
+
+        private Countdown(BossBar bar) {
+            this.bar = bar;
+        }
+    }
+
+    // Title for everyone and one boss bar per powerup, picking it up again adds 10 seconds. Returns the ticks left
+    private int announce(Player finder, Type type, String title, String subtitle, BarColor color, Sound sound, float pitch, Sound extra) {
+        Countdown running = countdowns.get(type);
+        Countdown countdown = running != null ? running : new Countdown(Bukkit.createBossBar("", color, BarStyle.SEGMENTED_10));
+        if (running != null) {
+            countdown.left += EFFECT_TICKS;
+            countdown.total = countdown.left;
+            subtitle = String.format("§7+10 Sekunden §8· §7noch %d Sekunden", countdown.left / 20);
+        }
+        countdown.bar.setTitle(title + " §7von " + finder.getName());
+        countdown.bar.setProgress(1);
         for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
             Player player = gamePlayer.getPlayer();
             if (!player.isOnline()) continue;
             player.sendTitle(title, subtitle, 5, 30, 10);
             player.playSound(player.getLocation(), sound, 0.6F, pitch);
             if (extra != null) player.playSound(player.getLocation(), extra, 0.6F, 0.7F);
-            bar.addPlayer(player);
+            countdown.bar.addPlayer(player);
         }
-        new BukkitRunnable() {
-            int left = EFFECT_TICKS;
+        if (running != null) return countdown.left;
 
+        countdowns.put(type, countdown);
+        BossBar bar = countdown.bar;
+        new BukkitRunnable() {
             @Override
             public void run() {
-                left -= 5;
+                countdown.left -= 5;
+                int left = countdown.left;
                 if (left <= 0 || gameManager.getCurrentPhase() != GamePhase.WAVE) {
                     // Running out is heard without looking at the bar: a tick in the last 3 seconds, then a soft off
                     if (left <= 0) bar.getPlayers().forEach(p -> p.playSound(p.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.4F, 1.4F));
                     bar.removeAll();
+                    countdowns.remove(type);
                     cancel();
                     return;
                 }
                 if (left <= 60 && left % 20 == 0) bar.getPlayers().forEach(p -> p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 0.4F, 1.2F));
-                bar.setProgress(left / (double) EFFECT_TICKS);
+                bar.setProgress(left / (double) countdown.total);
             }
         }.runTaskTimer(plugin, 5L, 5L);
+        return countdown.left;
     }
 
     private boolean isAwayFromPlayers(Location location) {
