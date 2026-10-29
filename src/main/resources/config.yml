@@ -3,7 +3,7 @@ server-name: " "
 health-bars: true
 
 # Statistik-Zeile je Spieler in der Tab-Liste, setzt Monsters selbst (nur dieser Server sieht sie)
-tab-player-lines: true
+tab-player-lines: false
 
 # Monsters-Paket (Werkbank, Lebensanzeige, Munition, Scoreboard-Icons), wird beim Betreten zusaetzlich zum Lobby-Paket geschickt
 resource-pack:

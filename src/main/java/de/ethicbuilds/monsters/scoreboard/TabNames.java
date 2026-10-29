@@ -31,7 +31,7 @@ public class TabNames {
     private int ticks;
 
     public void start() {
-        if (!plugin.getConfig().getBoolean("tab-player-lines", true)) return;
+        if (!plugin.getConfig().getBoolean("tab-player-lines", false)) return;
         plugin.getServer().getScheduler().runTaskTimer(plugin, this::update, 20L, 20L);
     }
 
