@@ -6,7 +6,7 @@ import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.lang.DualBar;
-import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
@@ -50,6 +50,7 @@ public class WaveEvents {
     private static final Particle.DustOptions SAND = new Particle.DustOptions(Color.fromRGB(0xD9B26F), 1.6F);
     private static final Particle.DustOptions BLOOD = new Particle.DustOptions(Color.fromRGB(0x8B1A1A), 1.2F);
     public static final Particle.DustOptions GOLD = new Particle.DustOptions(Color.fromRGB(0xFFCC2E), 1.0F);
+    private static final String SAND_COLOR = "#D9B26F", BLOOD_COLOR = "#E04848";
 
     private static long goldUntil;
     private static boolean bloodMoon;
@@ -104,7 +105,7 @@ public class WaveEvents {
                 switch (ThreadLocalRandom.current().nextInt(3)) {
                     case 0 -> {
                         Location middle = teamMiddle();
-                        if (middle != null) sandstorm(middle, "§7Ein Sandsturm zieht auf, raus aus dem Sand!", "§7A sandstorm is coming, get out of the sand!");
+                        if (middle != null) sandstorm(middle, "Raus aus dem Sand", "get out of the sand");
                     }
                     case 1 -> scarabs();
                     default -> goldRush();
@@ -119,8 +120,11 @@ public class WaveEvents {
                 && ThreadLocalRandom.current().nextDouble() < BLOOD_MOON_CHANCE;
         Bukkit.getScheduler().runTask(plugin, () -> {
             setBloodMoon(moon);
-            if (moon) announce("§4§lBLUTMOND", "§4§lBLOOD MOON", "§cDie Monster sind schneller §8· §6doppelte Coins",
-                    "§cMonsters are faster §8· §6double Coins", Sound.ENTITY_WITHER_SPAWN, 0.4F, 0.6F);
+            if (!moon) return;
+            Overlay.bigAll(BLOOD_COLOR, Overlay.line(Overlay.MOON, BLOOD_COLOR, "BLUTMOND", null),
+                    Overlay.line(Overlay.MOON, BLOOD_COLOR, "BLOOD MOON", null),
+                    "<color:" + Overlay.GREY + ">Monster werden stärker</color>", "<color:" + Overlay.GREY + ">Monsters grow stronger</color>");
+            sound(Sound.ENTITY_WITHER_SPAWN, 0.4F, 0.6F);
         });
     }
 
@@ -137,9 +141,11 @@ public class WaveEvents {
 
     private void goldRush() {
         goldUntil = System.currentTimeMillis() + GOLD_SECONDS * 1000L;
-        announce("§6§lGOLDRAUSCH!", "§6§lGOLD RUSH!", "§e30 Sekunden doppelte Coins und mehr Powerups",
-                "§e30 seconds of double Coins and more powerups", Sound.ENTITY_PLAYER_LEVELUP, 0.6F, 1.4F);
-        countdown("§6§lGoldrausch", "§6§lGold Rush", BarColor.YELLOW, GOLD_SECONDS * 20);
+        String seconds = Overlay.num(GOLD_SECONDS + " s");
+        Overlay.mediumAll(Overlay.GOLD, Overlay.line(Overlay.COINS, Overlay.GOLD, "GOLDRAUSCH", "Doppelte Coins · " + seconds),
+                Overlay.line(Overlay.COINS, Overlay.GOLD, "GOLD RUSH", "double coins · " + seconds));
+        sound(Sound.ENTITY_PLAYER_LEVELUP, 0.6F, 1.4F);
+        countdown(GOLD_SECONDS * 20);
     }
 
     // No title, the beetles simply come out of the sand now and then
@@ -160,20 +166,23 @@ public class WaveEvents {
         campSeconds++;
         if (campSeconds == CAMP_WARN) {
             for (Player player : living()) {
-                player.sendTitle("", Lang.t(player, "§eIhr bleibt zu lange hier, die Wüste wird unruhig", "§eYou've stayed here too long, the desert is getting restless"), 5, 50, 10);
+                Overlay.medium(player, SAND_COLOR, Overlay.line(Overlay.STORM, SAND_COLOR, "ZU LANGE HIER", "Die Wüste wird unruhig"),
+                        Overlay.line(Overlay.STORM, SAND_COLOR, "TOO LONG HERE", "the desert is getting restless"));
             }
         }
         if (campSeconds < CAMP_PUNISH) return;
         campSeconds = 0;
-        sandstorm(middle, "§cIhr habt zu lange hier ausgeharrt!", "§cYou held out here too long!");
+        sandstorm(middle, "Ihr habt zu lange hier ausgeharrt", "you held out here too long");
         for (EnemyMonster monster : List.copyOf(monsterManager.getMonsters().values())) {
             if (monster.getMonster() != null) monster.getMonster().addPotionEffect(new PotionEffect(PotionEffectType.SPEED, CAMP_SPEED_TICKS, 0, false, false));
         }
     }
 
-    /** Sand around the spot, warned first, then it hurts and slows whoever stays inside */
-    public void sandstorm(Location center, String subtitle, String subtitleEn) {
-        announce("§6§lSANDSTURM!", "§6§lSANDSTORM!", subtitle, subtitleEn, Sound.ENTITY_BREEZE_WIND_BURST, 1.0F, 0.6F);
+    /** Sand around the spot, warned first, then it hurts and slows whoever stays inside. The extra text is plain */
+    public void sandstorm(Location center, String extra, String extraEn) {
+        Overlay.mediumAll(SAND_COLOR, Overlay.line(Overlay.STORM, SAND_COLOR, "SANDSTURM", extra),
+                Overlay.line(Overlay.STORM, SAND_COLOR, "SANDSTORM", extraEn));
+        sound(Sound.ENTITY_BREEZE_WIND_BURST, 1.0F, 0.6F);
         World world = center.getWorld();
         new BukkitRunnable() {
             int ticks = 0;
@@ -226,15 +235,14 @@ public class WaveEvents {
                 .filter(player -> player.isOnline() && !userManager.isPlayerDead(player.getUniqueId())).toList();
     }
 
-    private void announce(String title, String titleEn, String subtitle, String subtitleEn, Sound sound, float volume, float pitch) {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            player.sendTitle(Lang.t(player, title, titleEn), Lang.t(player, subtitle, subtitleEn), 5, 40, 10);
-            player.playSound(player.getLocation(), sound, volume, pitch);
-        }
+    private void sound(Sound sound, float volume, float pitch) {
+        for (Player player : Bukkit.getOnlinePlayers()) player.playSound(player.getLocation(), sound, volume, pitch);
     }
 
-    private void countdown(String title, String titleEn, BarColor color, int ticks) {
-        DualBar bar = new DualBar(title, titleEn, color, BarStyle.SEGMENTED_10);
+    // Gold rush bar with the time left
+    private void countdown(int ticks) {
+        DualBar bar = new DualBar("", "", BarColor.YELLOW, BarStyle.SEGMENTED_10);
+        goldTitle(bar, ticks);
         Bukkit.getOnlinePlayers().forEach(bar::addPlayer);
         new BukkitRunnable() {
             int left = ticks;
@@ -248,7 +256,15 @@ public class WaveEvents {
                     return;
                 }
                 bar.setProgress(left / (double) ticks);
+                goldTitle(bar, left);
             }
         }.runTaskTimer(plugin, 5L, 5L);
+    }
+
+    private static void goldTitle(DualBar bar, int ticks) {
+        int seconds = (ticks + 19) / 20;
+        String time = Overlay.num(String.format("%d:%02d", seconds / 60, seconds % 60));
+        bar.setTitle(Overlay.parse(Overlay.line(Overlay.COINS, Overlay.GOLD, "Goldrausch", time)),
+                Overlay.parse(Overlay.line(Overlay.COINS, Overlay.GOLD, "Gold rush", time)));
     }
 }

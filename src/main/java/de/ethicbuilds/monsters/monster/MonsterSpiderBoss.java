@@ -3,11 +3,11 @@ package de.ethicbuilds.monsters.monster;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.lang.DualBar;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.title.Title;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
@@ -25,7 +25,6 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -54,6 +53,7 @@ public class MonsterSpiderBoss extends MonsterSpider {
     private static final int REWARD_PER_LEVEL = 500;
     public static final NamespacedKey SHOW_FIREWORK = new NamespacedKey("monsters", "boss_feuerwerk");
     private static final Color AMETHYST = Color.fromRGB(0xA970FF), GOLD = Color.fromRGB(0xFFCC2E), ORANGE = Color.fromRGB(0xF9A11E);
+    private static final String BOSS_COLOR = "#A970FF", RAGE_COLOR = "#FF4838", SILK_COLOR = "#ECE8F0";
 
     private enum Attack { VOLLEY, WEB, STOMP, BROOD, LEAP, COCOON, PULL, RAIN }
 
@@ -101,7 +101,7 @@ public class MonsterSpiderBoss extends MonsterSpider {
     protected void onSpawn() {
         super.onSpawn();
         if (level >= 5) look(Color.fromRGB(LEVEL_TINTS[Math.min(level - 5, LEVEL_TINTS.length - 1)]));
-        bar = new DualBar("§5§lAmethyst-Weberin §8· §dStufe " + level, "§5§lAmethyst Weaver §8· §dLevel " + level, BarColor.PURPLE, BarStyle.SEGMENTED_10);
+        bar = new DualBar(barName("Amethyst-Weberin", "Stufe", ""), barName("Amethyst Weaver", "Level", ""), BarColor.PURPLE, BarStyle.SEGMENTED_10);
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -178,7 +178,7 @@ public class MonsterSpiderBoss extends MonsterSpider {
         var attack = monster.getAttribute(org.bukkit.attribute.Attribute.ATTACK_DAMAGE);
         if (attack != null) attack.setBaseValue(attack.getBaseValue() * RAGE_DAMAGE);
         bar.setColor(BarColor.RED);
-        bar.setTitle("§5§lAmethyst-Weberin §8· §dStufe " + level + " §8· §c§lWUT", "§5§lAmethyst Weaver §8· §dLevel " + level + " §8· §c§lRAGE");
+        bar.setTitle(barName("Amethyst-Weberin", "Stufe", "WUT"), barName("Amethyst Weaver", "Level", "RAGE"));
         Location at = monster.getLocation();
         Particle.DustOptions dust = new Particle.DustOptions(RAGE_DUST, 1.5F);
         for (int i = 0; i < 32; i++) {
@@ -190,11 +190,14 @@ public class MonsterSpiderBoss extends MonsterSpider {
             monster.getWorld().playSound(monster.getLocation(), Sound.ENTITY_RAVAGER_ROAR, 1.0F, 0.7F);
             monster.getWorld().playSound(monster.getLocation(), Sound.ENTITY_WITHER_AMBIENT, 0.5F, 0.6F);
         });
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            player.showTitle(Title.title(Lang.mm(player, "<bold><#FF4838>DIE WEBERIN TOBT!</#FF4838></bold>", "<bold><#FF4838>THE WEAVER RAGES!</#FF4838></bold>"),
-                    Lang.mm(player, "<#8A93A3>schneller · stärker · häufiger</#8A93A3>", "<#8A93A3>faster · stronger · more often</#8A93A3>"),
-                    Title.Times.times(Duration.ofMillis(250), Duration.ofSeconds(2), Duration.ofMillis(500))));
-        }
+        Overlay.mediumAll(RAGE_COLOR, Overlay.line(Overlay.BOSS, RAGE_COLOR, "DIE WEBERIN TOBT", null),
+                Overlay.line(Overlay.BOSS, RAGE_COLOR, "THE WEAVER RAGES", null));
+    }
+
+    // Boss bar name with the level, in rage another bold red word
+    private Component barName(String name, String stage, String rage) {
+        String rest = stage + " " + Overlay.num(level) + (rage.isEmpty() ? "" : " · <color:" + RAGE_COLOR + "><b>" + rage + "</b></color>");
+        return Overlay.parse(Overlay.line(Overlay.BOSS, BOSS_COLOR, name, rest));
     }
 
     private Player farthest() {
@@ -259,7 +262,7 @@ public class MonsterSpiderBoss extends MonsterSpider {
             if (!target.isOnline()) return;
             monster.getWorld().playSound(monster.getLocation(), Sound.ENTITY_SPIDER_AMBIENT, 1.0F, 0.6F);
             target.playSound(target.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE, 1.0F, 0.6F);
-            target.sendActionBar(Lang.mm(target, "<#ECE8F0>Seidenzug!</#ECE8F0>", "<#ECE8F0>Silk pull!</#ECE8F0>"));
+            Overlay.small(target, Overlay.line(Overlay.SILK, SILK_COLOR, "Gezogen!", null), Overlay.line(Overlay.SILK, SILK_COLOR, "Pulled!", null));
             silk(target, 4);
             new BukkitRunnable() {
                 int tick = 0;
@@ -430,25 +433,23 @@ public class MonsterSpiderBoss extends MonsterSpider {
         world.playSound(at, Sound.ENTITY_WITHER_DEATH, 0.3F, 1.6F);
 
         if (bar != null) {
-            bar.setTitle("§x§F§F§C§C§2§E✔ Amethyst-Weberin besiegt", "§x§F§F§C§C§2§E✔ Amethyst Weaver defeated");
+            bar.setTitle(Overlay.parse(Overlay.line(Overlay.TROPHY, Overlay.GOLD, "Amethyst-Weberin besiegt", null)),
+                    Overlay.parse(Overlay.line(Overlay.TROPHY, Overlay.GOLD, "Amethyst Weaver defeated", null)));
             bar.setColor(BarColor.YELLOW);
             bar.setProgress(1);
             Bukkit.getScheduler().runTaskLater(Main.getINSTANCE(), bar::removeAll, 60L);
         }
 
-        MiniMessage mm = MiniMessage.miniMessage();
-        Title.Times times = Title.Times.times(Duration.ofMillis(250), Duration.ofMillis(2500), Duration.ofMillis(750));
-        String coin = " <white><font:monsters:hud></font></white>";
+        String prize = Overlay.num("+" + reward) + " " + Overlay.coin();
         Bukkit.getScheduler().runTaskLater(Main.getINSTANCE(), () -> {
             for (GamePlayer gamePlayer : team) {
                 Player player = gamePlayer.getPlayer();
                 if (!player.isOnline()) continue;
                 player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0F, 1.0F);
-                player.showTitle(Title.title(Lang.mm(player, "<bold><gradient:#FFCC2E:#F9A11E>BOSS BESIEGT</gradient></bold>",
-                                "<bold><gradient:#FFCC2E:#F9A11E>BOSS DEFEATED</gradient></bold>"),
-                        Lang.mm(player, "<#A970FF>Amethyst-Weberin</#A970FF> <#8A93A3>· Stufe " + level + " · +" + reward + "</#8A93A3>" + coin,
-                                "<#A970FF>Amethyst Weaver</#A970FF> <#8A93A3>· Level " + level + " · +" + reward + "</#8A93A3>" + coin),
-                        times));
+                Overlay.big(player, Overlay.GOLD, Overlay.line(Overlay.TROPHY, Overlay.GOLD, "BOSS BESIEGT", null),
+                        Overlay.line(Overlay.TROPHY, Overlay.GOLD, "BOSS DEFEATED", null),
+                        "<color:" + BOSS_COLOR + ">Amethyst-Weberin</color> <color:" + Overlay.GREY + ">· " + prize + "</color>",
+                        "<color:" + BOSS_COLOR + ">Amethyst Weaver</color> <color:" + Overlay.GREY + ">· " + prize + "</color>");
             }
         }, 8L);
 
@@ -480,7 +481,7 @@ public class MonsterSpiderBoss extends MonsterSpider {
             for (GamePlayer gamePlayer : team) {
                 Player player = gamePlayer.getPlayer();
                 if (!player.isOnline()) continue;
-                player.sendActionBar(mm.deserialize("<#FFCC2E>+" + reward + " <white><font:monsters:hud></font></white>"));
+                Overlay.small(player, prize, prize);
                 player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0F, 1.2F);
             }
             Lang.broadcast("%s§5Amethyst-Weberin §7(Stufe %d) besiegt! Alle bekommen §6%d Coins§7!",

@@ -27,15 +27,26 @@ public class AnimatedModel {
     private static final String IDLE = "stehen", WALK = "laufen", DEATH = "tod";
     // Walk animation, quicker monsters run instead
     private String walk = WALK;
+    // The walk plays faster or slower with the real speed, so the steps fit (blocks per tick of a normal walk)
+    private static final double WALK_SPEED = 0.12, MIN_RATE = 0.6, MAX_RATE = 1.6;
 
     private final BoneModel model;
     private final LivingEntity base;
     private final float size;
     private final ItemDisplay[] parts;
+    // Second display per bone with the same pose, e.g. armor plates of the design session
+    private ItemDisplay[] layer;
+    // Legs on the real ground (spiders), only near players; the model turns itself instead of following the body yaw
+    private LegRig rig;
+    private boolean rigActive;
+    private boolean steering;
+    private org.bukkit.entity.Entity faceTarget;
+    // Turning speed of a steered model, degrees per tick
+    private static final float TURN_PER_TICK = 12;
     private final int[] parents;
     private final BukkitTask task;
 
-    private float time;
+    private float time, walkTime;
     private String action;
     private float actionTime;
     private boolean dying;
@@ -85,6 +96,48 @@ public class AnimatedModel {
         }
     }
 
+    /** Feet on the ground with leg IK, and the model turns itself: walking head first, facing its target when standing */
+    public void enableLegs() {
+        rig = new LegRig(model, size);
+        steering = true;
+    }
+
+    /** Whom the model looks at while it stands */
+    public void face(org.bukkit.entity.Entity target) {
+        faceTarget = target;
+    }
+
+    /** Whether the front points at the spot, within this many degrees */
+    public boolean faces(Location at, double maxDegrees) {
+        if (!steering) return true;
+        double dx = at.getX() - base.getLocation().getX(), dz = at.getZ() - base.getLocation().getZ();
+        if (dx * dx + dz * dz < 0.01) return true;
+        return Math.abs(angleTo(yaw, yawOf(dx, dz))) <= maxDegrees;
+    }
+
+    private static float yawOf(double dx, double dz) {
+        return (float) Math.toDegrees(Math.atan2(-dx, dz));
+    }
+
+    private static float angleTo(float from, float to) {
+        float d = (to - from) % 360;
+        if (d > 180) d -= 360;
+        if (d < -180) d += 360;
+        return d;
+    }
+
+    /** A second item model on every bone (folder/<bone>) that follows all animations */
+    public void addLayer(String folder) {
+        List<BoneModel.Bone> bones = model.bones();
+        layer = new ItemDisplay[bones.size()];
+        for (int i = 0; i < bones.size(); i++) {
+            if (parts[i] == null) continue;
+            String id = folder + "/" + bones.get(i).id();
+            layer[i] = spawnPart(id);
+            base.addPassenger(layer[i]);
+        }
+    }
+
     /** All bones whose name starts like this are drawn bigger */
     public void scaleBones(String prefix, float scale) {
         List<BoneModel.Bone> bones = model.bones();
@@ -124,7 +177,7 @@ public class AnimatedModel {
         actionTime = 0;
         // The death animation lies on the ground, also when the monster died in the air or while climbing
         Location at = ground(base.getLocation());
-        for (ItemDisplay part : parts) {
+        for (ItemDisplay part : all()) {
             if (part == null) continue;
             part.leaveVehicle();
             Location spot = at.clone();
@@ -142,9 +195,15 @@ public class AnimatedModel {
         return ground;
     }
 
+    private List<ItemDisplay> all() {
+        List<ItemDisplay> all = new java.util.ArrayList<>(java.util.Arrays.asList(parts));
+        if (layer != null) all.addAll(java.util.Arrays.asList(layer));
+        return all;
+    }
+
     public void remove() {
         task.cancel();
-        for (ItemDisplay part : parts) {
+        for (ItemDisplay part : all()) {
             if (part != null) part.remove();
         }
     }
@@ -181,8 +240,30 @@ public class AnimatedModel {
             if (!near && ++skipped < FAR_EVERY) return;
             skipped = 0;
             setInterpolation(near ? TICKS : TICKS * FAR_EVERY);
-            yaw = base.getBodyYaw();
-            boolean moving = now.getWorld().equals(lastPosition.getWorld()) && now.distanceSquared(lastPosition) > 0.0004;
+            int elapsed = near ? TICKS : TICKS * FAR_EVERY;
+            boolean same = now.getWorld().equals(lastPosition.getWorld());
+            boolean moving = same && now.distanceSquared(lastPosition) > 0.0004;
+            if (!steering) {
+                yaw = base.getBodyYaw();
+            } else {
+                // Head first in walking direction, standing it turns to its target, at most 12 degrees per tick
+                Float want = null;
+                if (moving) want = yawOf(now.getX() - lastPosition.getX(), now.getZ() - lastPosition.getZ());
+                else if (faceTarget != null && faceTarget.isValid() && faceTarget.getWorld().equals(now.getWorld())) {
+                    want = yawOf(faceTarget.getLocation().getX() - now.getX(), faceTarget.getLocation().getZ() - now.getZ());
+                }
+                if (want != null) {
+                    float turn = angleTo(yaw, want), max = TURN_PER_TICK * elapsed;
+                    yaw += Math.max(-max, Math.min(max, turn));
+                }
+            }
+            rigActive = rig != null && near;
+            if (rigActive) rig.update(now, yaw, elapsed);
+            else if (rig != null) rig.reset();
+            if (moving) {
+                double perTick = now.distance(lastPosition) / (near ? TICKS : TICKS * FAR_EVERY);
+                walkTime += step * (float) Math.max(MIN_RATE, Math.min(MAX_RATE, perTick / WALK_SPEED)) * (near ? 1 : FAR_EVERY);
+            }
             lastPosition = now;
             render(model.animation(moving ? walk : IDLE), one);
         } else {
@@ -201,7 +282,7 @@ public class AnimatedModel {
     private void setInterpolation(int ticks) {
         if (ticks == interpolation) return;
         interpolation = ticks;
-        for (ItemDisplay part : parts) {
+        for (ItemDisplay part : all()) {
             if (part != null && part.isValid()) part.setInterpolationDuration(ticks);
         }
     }
@@ -214,7 +295,8 @@ public class AnimatedModel {
         Matrix4f root = new Matrix4f().translate(0, -lift, 0).rotateY((float) Math.toRadians(180 - yaw)).scale(size / 16f);
         Vector3f rotation = new Vector3f(), position = new Vector3f(), scale = new Vector3f();
         Vector3f value = new Vector3f();
-        float loopTime = loop != null && loop.length() > 0 ? time % loop.length() : 0;
+        float clock = loop != null && model.animation(walk) == loop ? walkTime : time;
+        float loopTime = loop != null && loop.length() > 0 ? clock % loop.length() : 0;
 
         for (int i = 0; i < bones.size(); i++) {
             BoneModel.Bone bone = bones.get(i);
@@ -228,6 +310,17 @@ public class AnimatedModel {
                 else if (loop != null && loop.sample(bone.id(), channel, loopTime, value)) out.set(value);
             }
             rotation.add(bone.rest());
+            if (rigActive) {
+                Vector3f leg = rig.rotation(bone.id());
+                if (leg != null) {
+                    rotation.set(leg);
+                    position.set(0);
+                } else if (bone.id().equals("body")) {
+                    // The body only follows the ground, otherwise the feet would slide
+                    rotation.set(bone.rest()).add(rig.bodyPitch(), 0, rig.bodyRoll());
+                    position.set(0, rig.bodyLift(), 0);
+                }
+            }
             int parent = parents[i];
             Vector3f origin = parent < 0 ? new Vector3f() : bones.get(parent).pivot();
             world[i] = new Matrix4f(parent < 0 ? root : world[parent])
@@ -245,12 +338,20 @@ public class AnimatedModel {
             Float extra = extraScale.get(i);
             if (extra != null) matrix.scale(extra);
             part.setTransformationMatrix(matrix);
+            if (layer != null && layer[i] != null && layer[i].isValid()) {
+                layer[i].setInterpolationDelay(0);
+                layer[i].setTransformationMatrix(matrix);
+            }
         }
     }
 
     private ItemDisplay spawnPart(BoneModel.Bone bone) {
+        return spawnPart(model.id() + "/" + bone.id());
+    }
+
+    private ItemDisplay spawnPart(String modelId) {
         ItemStack item = new ItemStack(Material.PAPER);
-        item.editMeta(meta -> meta.setItemModel(new NamespacedKey("monsters", model.id() + "/" + bone.id())));
+        item.editMeta(meta -> meta.setItemModel(new NamespacedKey("monsters", modelId)));
         Location at = base.getLocation();
         at.setYaw(0);
         at.setPitch(0);

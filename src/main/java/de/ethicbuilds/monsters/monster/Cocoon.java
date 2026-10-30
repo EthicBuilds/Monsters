@@ -3,7 +3,7 @@ package de.ethicbuilds.monsters.monster;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
-import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
 import org.bukkit.Bukkit;
@@ -36,6 +36,7 @@ import java.util.UUID;
 public final class Cocoon implements Listener {
     private static final int HITS = 6, MAX_SECONDS = 8;
     private static final double DAMAGE = 2;
+    private static final String COLOR = "#ECE8F0";
     private static final Set<UUID> trapped = new HashSet<>();
 
     private final Player player;
@@ -73,6 +74,8 @@ public final class Cocoon implements Listener {
         Cocoon cocoon = new Cocoon(player, boss);
         Bukkit.getPluginManager().registerEvents(cocoon, Main.getINSTANCE());
         player.getWorld().playSound(player.getLocation(), Sound.BLOCK_WOOL_PLACE, 1.0F, 0.8F);
+        Overlay.medium(player, COLOR, Overlay.line(Overlay.COCOON, COLOR, "EINGESPONNEN", "Mitspieler befreien dich"),
+                Overlay.line(Overlay.COCOON, COLOR, "WEBBED", "teammates free you"));
         cocoon.tick();
     }
 
@@ -95,12 +98,11 @@ public final class Cocoon implements Listener {
                 }
                 seconds++;
                 player.damage(DAMAGE, boss.isValid() ? boss : null);
-                player.sendActionBar(Lang.mm(player, "<#ECE8F0>Eingesponnen!</#ECE8F0> <#8A93A3>Mitspieler müssen dich freischlagen</#8A93A3>",
-                        "<#ECE8F0>Spun in!</#ECE8F0> <#8A93A3>Teammates have to hit you free</#8A93A3>"));
+                String name = "<color:" + COLOR + "><b>" + player.getName() + "</b></color> ";
                 for (Player other : spot.getWorld().getPlayers()) {
                     if (other.equals(player) || other.getLocation().distanceSquared(spot) > 40 * 40) continue;
-                    other.sendActionBar(Lang.mm(other, "<white>" + player.getName() + "</white> <#8A93A3>ist eingesponnen – schlag den Kokon!</#8A93A3>",
-                            "<white>" + player.getName() + "</white> <#8A93A3>is spun in – hit the cocoon!</#8A93A3>"));
+                    Overlay.small(other, Overlay.icon(Overlay.COCOON, COLOR, name + "<color:" + Overlay.GREY + ">ist eingesponnen – schlag den Kokon!</color>"),
+                            Overlay.icon(Overlay.COCOON, COLOR, name + "<color:" + Overlay.GREY + ">is webbed – hit the cocoon!</color>"));
                 }
             }
         }.runTaskTimer(Main.getINSTANCE(), 20L, 20L);

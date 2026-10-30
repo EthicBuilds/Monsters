@@ -5,6 +5,7 @@ import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.lang.DualBar;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -14,8 +15,6 @@ import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -35,7 +34,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
@@ -52,7 +50,7 @@ public class PauseManager implements Listener {
     private static final NamespacedKey ITEM_KEY = new NamespacedKey("monsters", "pause");
     private static final Key COOLDOWN_GROUP = Key.key("monsters", "pause"), RESUME_GROUP = Key.key("monsters", "weiter");
     private static final MiniMessage MM = MiniMessage.miniMessage();
-    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+    private static final String GO_COLOR = "#3CDC6E";
 
     private static volatile boolean paused;
 
@@ -183,7 +181,7 @@ public class PauseManager implements Listener {
         if (cooldownLeft() > 0) {
             replaceItem(player, pauseItem(player, false));
             showCooldown(player);
-            player.sendActionBar(Lang.t(player, "§7Nächste Pause in §f", "§7Next break in §f") + clock(cooldownLeft()));
+            hint(player, "Nächste Pause in", "Next break in", cooldownLeft());
             return;
         }
         if (now - askedAt > CONFIRM_MILLIS) {
@@ -201,6 +199,12 @@ public class PauseManager implements Listener {
         start(player);
     }
 
+    private static void hint(Player player, String de, String en, long millis) {
+        String time = " " + Overlay.num(clock(millis));
+        Overlay.small(player, Overlay.icon(Overlay.HOURGLASS, Overlay.GOLD, "<color:" + Overlay.GREY + ">" + de + "</color>" + time),
+                Overlay.icon(Overlay.HOURGLASS, Overlay.GOLD, "<color:" + Overlay.GREY + ">" + en + "</color>" + time));
+    }
+
     // The creator ends the break early, at the earliest after 1 minute
     private void resume(Player player, long now) {
         if (!paused) {
@@ -211,7 +215,7 @@ public class PauseManager implements Listener {
         if (wait > 0) {
             replaceItem(player, resumeItem(player, false));
             player.setCooldown(RESUME_GROUP, (int) (wait / 50));
-            player.sendActionBar(Lang.t(player, "§7Fortsetzen ab §f", "§7Go on from §f") + clock(wait));
+            hint(player, "Fortsetzen ab", "Go on from", wait);
             return;
         }
         if (now - askedAt > CONFIRM_MILLIS) {
@@ -233,13 +237,10 @@ public class PauseManager implements Listener {
         freeze(true);
         // Monsters of a spawn batch that was already on its way
         Bukkit.getScheduler().runTaskLater(plugin, () -> { if (paused) freeze(true); }, 5L);
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            player.showTitle(Title.title(Lang.mm(player, "<bold><gradient:#FFCC2E:#F9A11E>PAUSE</gradient></bold>", "<bold><gradient:#FFCC2E:#F9A11E>BREAK</gradient></bold>"),
-                    Lang.mm(player, "<white>" + by.getName() + "</white> <#8A93A3>gönnt euch 5 Minuten · Monster eingefroren</#8A93A3>",
-                            "<white>" + by.getName() + "</white> <#8A93A3>gives you 5 minutes · monsters frozen</#8A93A3>"),
-                    Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofMillis(500))));
-            player.playSound(player.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.8F, 1.2F);
-        }
+        String minutes = Overlay.num(PAUSE_MILLIS / 60_000);
+        Overlay.mediumAll(Overlay.GOLD, Overlay.line(Overlay.HOURGLASS, Overlay.GOLD, "PAUSE", by.getName() + " gönnt euch " + minutes + " Minuten"),
+                Overlay.line(Overlay.HOURGLASS, Overlay.GOLD, "BREAK", by.getName() + " gives you " + minutes + " minutes"));
+        for (Player player : Bukkit.getOnlinePlayers()) player.playSound(player.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.8F, 1.2F);
         by.getInventory().setItem(ITEM_SLOT, resumeItem(by, false));
         by.setCooldown(RESUME_GROUP, (int) (MIN_PAUSE_MILLIS / 50));
         DualBar bar = new DualBar("", "", BarColor.YELLOW, BarStyle.SOLID);
@@ -255,9 +256,9 @@ public class PauseManager implements Listener {
                     return;
                 }
                 boolean last = left <= 10_000;
-                String time = (last ? "<#FF4838>" : "<white>") + clock(left);
-                bar.setTitle(LEGACY.serialize(MM.deserialize("<bold><#FFCC2E>PAUSE</#FFCC2E></bold> <#8A93A3>·</#8A93A3> " + time)),
-                        LEGACY.serialize(MM.deserialize("<bold><#FFCC2E>BREAK</#FFCC2E></bold> <#8A93A3>·</#8A93A3> " + time)));
+                String time = last ? "<#FF4838>" + clock(left) + "</#FF4838>" : Overlay.num(clock(left));
+                bar.setTitle(Overlay.parse(Overlay.line(Overlay.HOURGLASS, Overlay.GOLD, "Pause", time)),
+                        Overlay.parse(Overlay.line(Overlay.HOURGLASS, Overlay.GOLD, "Break", time)));
                 bar.setProgress(Math.max(0, Math.min(1, left / (double) PAUSE_MILLIS)));
                 Bukkit.getOnlinePlayers().forEach(bar::addPlayer);
                 if (last) Bukkit.getOnlinePlayers().forEach(p -> p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 0.5F, 1.2F));
@@ -277,8 +278,8 @@ public class PauseManager implements Listener {
         paused = false;
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (kind(player) == RESUME) removeItems(player);
-            player.showTitle(Title.title(Lang.mm(player, "<bold><#FF4838>WEITER GEHT'S!</#FF4838></bold>", "<bold><#FF4838>BACK TO IT!</#FF4838></bold>"),
-                    Component.empty(), Title.Times.times(Duration.ofMillis(250), Duration.ofSeconds(2), Duration.ofMillis(500))));
+            Overlay.medium(player, GO_COLOR, Overlay.line(Overlay.NEXT, GO_COLOR, "WEITER GEHT'S", null),
+                    Overlay.line(Overlay.NEXT, GO_COLOR, "BACK TO IT", null));
             player.playSound(player.getLocation(), Sound.EVENT_RAID_HORN, 0.5F, 1.2F);
         }
     }

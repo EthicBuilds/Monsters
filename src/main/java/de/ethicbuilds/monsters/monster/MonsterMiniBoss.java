@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.monster;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.lang.DualBar;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
@@ -28,6 +29,7 @@ public class MonsterMiniBoss extends MonsterZombie {
     private static final String[] NAMES = {"Grabwächter", "Wüstenfürst", "Knochenbrecher", "Mumienkönig", "Sandschlund"};
     private static final String[] NAMES_EN = {"Tomb Warden", "Desert Lord", "Bonecrusher", "Mummy King", "Sand Maw"};
     private static final int LOOT_COINS = 300;
+    private static final String BAR_COLOR = "#FF4838";
 
     private final String title, titleEn;
     private DualBar bar;
@@ -54,7 +56,8 @@ public class MonsterMiniBoss extends MonsterZombie {
             equipment.setChestplateDropChance(0);
         }
 
-        bar = new DualBar("§c§l" + title, "§c§l" + titleEn, BarColor.RED, BarStyle.SEGMENTED_6);
+        bar = new DualBar(Overlay.parse(Overlay.line(Overlay.BOSS, BAR_COLOR, title, null)),
+                Overlay.parse(Overlay.line(Overlay.BOSS, BAR_COLOR, titleEn, null)), BarColor.RED, BarStyle.SEGMENTED_6);
         new BukkitRunnable() {
             @Override
             public void run() {

@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.monster.manager;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.monster.EliteTier;
@@ -36,6 +37,7 @@ public class MonsterManager {
     public static final int SPIDER_WAVE = 5;
     private static final int GROWTH_UNTIL = 10;
     private static final int HORDE_PER_PLAYER = 10, HORDE_BONUS = 100;
+    private static final String HORDE_COLOR = "#FF4838", BEATEN_COLOR = "#3CDC6E";
     private static final int SCARABS_PER_PLAYER = 8;
     private static final double BOSS_LEASH = 40;
     public static final int BOSS_WAVE = 10;
@@ -104,7 +106,7 @@ public class MonsterManager {
         int tier = EliteTier.of(wave);
         List<EnemyMonster> horde = new ArrayList<>();
         for (int i = 0; i < players * HORDE_PER_PLAYER; i++) {
-            EnemyMonster monster = new MonsterZombie();
+            EnemyMonster monster = new de.ethicbuilds.monsters.monster.MonsterCrawler();
             monster.setTier(tier);
             monster.setWave(wave);
             monster.setSprinter(true);
@@ -134,12 +136,15 @@ public class MonsterManager {
                         Player player = gamePlayer.getPlayer();
                         if (!player.isOnline()) continue;
                         if (!userManager.isPlayerDead(player.getUniqueId())) gamePlayer.addCoins(HORDE_BONUS);
-                        player.sendTitle("", de.ethicbuilds.monsters.lang.Lang.f(player, "§aHorde besiegt! §6+%d Coins", "§aHorde beaten! §6+%d Coins", HORDE_BONUS), 5, 40, 10);
+                        String bonus = Overlay.num("+" + HORDE_BONUS) + " " + Overlay.coin();
+                        Overlay.medium(player, BEATEN_COLOR, Overlay.line(Overlay.HORDE, BEATEN_COLOR, "HORDE BESIEGT", bonus),
+                                Overlay.line(Overlay.HORDE, BEATEN_COLOR, "HORDE BEATEN", bonus));
                         player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.6F, 1.2F);
                     }
                     return;
                 }
-                bar.setTitle(String.format("§c§lHORDE §8· §f%d §7übrig", left), String.format("§c§lHORDE §8· §f%d §7left", left));
+                bar.setTitle(Overlay.parse(Overlay.line(Overlay.HORDE, HORDE_COLOR, "Horde", Overlay.num(left) + " übrig")),
+                        Overlay.parse(Overlay.line(Overlay.HORDE, HORDE_COLOR, "Horde", Overlay.num(left) + " left")));
                 bar.setProgress(Math.max(0, Math.min(1, left / (double) total)));
                 Bukkit.getOnlinePlayers().forEach(bar::addPlayer);
             }

@@ -497,7 +497,7 @@ public class WorkbenchManager implements Listener {
         WorkbenchTitle title = new WorkbenchTitle().name(Lang.t(player, "Werkbank", "Workbench"));
         int coins = gamePlayer.getCoins();
         title.centered("guthaben_name", 52, new WorkbenchTitle.Part(Lang.t(player, "Guthaben", "Balance"), GREY))
-                .centered("guthaben", 52, new WorkbenchTitle.Part(COIN + " " + coins(player, coins), ORANGE));
+                .centered("guthaben", 52, new WorkbenchTitle.Part(COIN + " " + shortCoins(player, coins, 1_000_000), ORANGE));
         if (card == null) return title.build();
 
         int level = card.level();
@@ -540,7 +540,7 @@ public class WorkbenchManager implements Listener {
             title.glyph(affordable ? '\uE020' : '\uE021', affordable ? 93 : 95, affordable ? 78 : 74)
                     .centered("knopf", 132, new WorkbenchTitle.Part(Lang.t(player, "Verbessern", "Upgrade"), affordable ? WHITE : BUTTON_GREY))
                     .centered("preis", 132, new WorkbenchTitle.Part(COIN, affordable ? TextColor.color(0xFFD36B) : TOO_EXPENSIVE),
-                            new WorkbenchTitle.Part(" " + coins(player, price), affordable ? WHITE : TOO_EXPENSIVE));
+                            new WorkbenchTitle.Part(" " + shortCoins(player, price, 100_000), affordable ? WHITE : TOO_EXPENSIVE));
         }
 
         // Scrap button over the whole bottom row, one line of text
@@ -556,8 +556,13 @@ public class WorkbenchManager implements Listener {
         return title.build();
     }
 
+    // A card line has 48 px (design session): when "old -> new" is longer, only the new value is shown
+    private static final int CARD_WIDTH = 48;
+
     private static void cardValue(WorkbenchTitle title, String line, String now, String next, boolean arrow) {
-        if (arrow) {
+        if (arrow && WorkbenchTitle.width(line, now + ARROW + next) > CARD_WIDTH) {
+            title.left(line, 117, new WorkbenchTitle.Part(next, NEW_VALUE));
+        } else if (arrow) {
             title.left(line, 117, new WorkbenchTitle.Part(now, LIGHT), new WorkbenchTitle.Part(ARROW, ORANGE), new WorkbenchTitle.Part(next, NEW_VALUE));
         } else {
             title.left(line, 117, new WorkbenchTitle.Part(now, LIGHT));
@@ -571,6 +576,13 @@ public class WorkbenchManager implements Listener {
 
     private static String coins(Player player, int coins) {
         return Lang.f(player, "%,d", "%,d", coins);
+    }
+
+    // Short form from the limit on, so it fits the field: 152k, 1,2M
+    private static String shortCoins(Player player, int coins, int from) {
+        if (coins < from) return coins(player, coins);
+        if (coins >= 1_000_000) return Lang.f(player, "%.1fM", "%.1fM", coins / 100_000 / 10.0);
+        return coins / 1000 + "k";
     }
 
     private static ItemStack icon(Material material, String model, Component name, Component... lore) {

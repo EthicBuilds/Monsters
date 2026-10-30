@@ -17,6 +17,7 @@ public class MonsterSpider extends EnemyMonster {
     private static BoneModel weaver;
 
     protected AnimatedModel model;
+    private static final double MAX_BITE_ANGLE = 15;
     // Model size and hitbox of the spider underneath
     protected float modelSize = 0.28F;
     protected double hitboxScale = 0.8;
@@ -51,6 +52,8 @@ public class MonsterSpider extends EnemyMonster {
         var scale = monster.getAttribute(Attribute.SCALE);
         if (scale != null) scale.setBaseValue(hitboxScale);
         model = new AnimatedModel(weaver(), monster, modelSize);
+        // Feet on the ground, head first and only biting from the front (design session)
+        model.enableLegs();
         var attack = monster.getAttribute(Attribute.ATTACK_DAMAGE);
         if (attack != null) attack.setBaseValue(damage);
         // Spiders do not attack while something rides on them, the model parts do, so the bite is done here
@@ -63,7 +66,10 @@ public class MonsterSpider extends EnemyMonster {
                 }
                 if (de.ethicbuilds.monsters.gameplay.manager.PauseManager.isPaused() || --nextAttack > 0) return;
                 if (!(monster.getTarget() instanceof Player player) || !player.isValid() || !player.getWorld().equals(monster.getWorld())) return;
+                model.face(player);
                 if (!monster.getBoundingBox().expand(0.6).overlaps(player.getBoundingBox())) return;
+                // It turns first, then bites from the front
+                if (!model.faces(player.getLocation(), MAX_BITE_ANGLE)) return;
                 nextAttack = attackCooldown / 5;
                 monster.attack(player);
             }

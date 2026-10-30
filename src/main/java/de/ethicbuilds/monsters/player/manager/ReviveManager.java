@@ -4,6 +4,7 @@ import de.ethicbuilds.monsters.sound.Sounds;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
@@ -49,6 +50,7 @@ public class ReviveManager implements Listener {
     private static final int REVIVE_MILLIS = 3000, STEP_MILLIS = 200;
     private static final long STEP_GAP = 150;
     private static final double REACH = 4;
+    private static final String GREEN = "#3CDC6E";
     private static final int EMPTY_SLOT = 8;
     public static final int MEDKIT_SLOT = 7;
     private static final long SELF_REVIVE_DELAY = 60;
@@ -154,7 +156,8 @@ public class ReviveManager implements Listener {
     private void trySelfRevive(Player player) {
         ItemStack stored = player.getInventory().getItem(MEDKIT_SLOT);
         if (stored == null || stored.getType().isAir() || selfRevived.contains(player.getUniqueId())) return;
-        player.sendTitle("§aMedkit!", Lang.t(player, "§7Du stehst gleich wieder auf", "§7You'll be back up in a moment"), 5, 40, 10);
+        Overlay.medium(player, GREEN, Overlay.line(Overlay.MEDKIT, GREEN, "MEDKIT", "Du stehst gleich wieder auf"),
+                Overlay.line(Overlay.MEDKIT, GREEN, "MEDKIT", "you'll be back up in a moment"));
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!player.isOnline() || !isDown(player.getUniqueId())) return;
             selfRevived.add(player.getUniqueId());
@@ -424,17 +427,20 @@ public class ReviveManager implements Listener {
 
         int cost = cost(downed);
         if (helperPlayer.getCoins() < cost) {
-            helper.sendActionBar(Lang.f(helper, "§cDu brauchst noch §6%d Coins §cum %s wiederzubeleben", "§cYou need §6%d more Coins §cto revive %s",
-                    cost - helperPlayer.getCoins(), downedPlayer.getPlayer().getName()));
+            String missing = Overlay.num(cost - helperPlayer.getCoins()) + " " + Overlay.coin();
+            String name = downedPlayer.getPlayer().getName();
+            Overlay.small(helper, Overlay.icon(Overlay.REVIVE, GREEN, grey("Du brauchst noch ") + missing + grey(" um " + name + " wiederzubeleben")),
+                    Overlay.icon(Overlay.REVIVE, GREEN, grey("You need ") + missing + grey(" more to revive " + name)));
             if (reviveProgress.putIfAbsent(downed, 0) == null) Sounds.deny(helper);
             return;
         }
         int progress = reviveProgress.merge(downed, STEP_MILLIS, Integer::sum);
         if (progress < REVIVE_MILLIS) {
             String bar = progressBar(progress / (double) REVIVE_MILLIS);
-            helper.sendActionBar(Lang.t(helper, "§7Wiederbeleben ", "§7Reviving ") + bar + Lang.t(helper, " §8· §7Klick halten", " §8· §7Hold click"));
-            Player downedOne = downedPlayer.getPlayer();
-            downedOne.sendActionBar("§a" + helper.getName() + Lang.t(downedOne, " §7belebt dich wieder ", " §7is reviving you ") + bar);
+            Overlay.small(helper, Overlay.icon(Overlay.REVIVE, GREEN, green("Wiederbeleben") + " " + bar + grey(" · Klick halten")),
+                    Overlay.icon(Overlay.REVIVE, GREEN, green("Reviving") + " " + bar + grey(" · hold click")));
+            Overlay.small(downedPlayer.getPlayer(), Overlay.icon(Overlay.REVIVE, GREEN, green(helper.getName()) + grey(" belebt dich wieder ") + bar),
+                    Overlay.icon(Overlay.REVIVE, GREEN, green(helper.getName()) + grey(" is reviving you ") + bar));
             return;
         }
         reviveProgress.remove(downed);
@@ -445,6 +451,8 @@ public class ReviveManager implements Listener {
         Location spot = spots.get(downed).clone();
         spot.setPitch(0);
         userManager.revivePlayer(downed, spot);
+        Overlay.medium(downedPlayer.getPlayer(), GREEN, Overlay.line(Overlay.REVIVE, GREEN, "WIEDERBELEBT", "von " + helper.getName()),
+                Overlay.line(Overlay.REVIVE, GREEN, "REVIVED", "by " + helper.getName()));
 
         spot.getWorld().spawnParticle(Particle.HEART, spot.clone().add(0, 1, 0), 8, 0.4, 0.4, 0.4, 0);
         Lang.broadcast("%s§a%s §7hat §a%s §7wiederbelebt! §c-%d Coins", "%s§a%s §7revived §a%s§7! §c-%d Coins", plugin.getMonstersPrefix(),
@@ -453,7 +461,15 @@ public class ReviveManager implements Listener {
 
     private static String progressBar(double done) {
         int filled = (int) Math.round(done * 10);
-        return "§x§3§C§D§C§6§E" + "▮".repeat(filled) + "§x§3§A§3§F§4§A" + "▮".repeat(10 - filled);
+        return "<color:" + GREEN + ">" + "▮".repeat(filled) + "</color><color:#3A3F4A>" + "▮".repeat(10 - filled) + "</color>";
+    }
+
+    private static String green(String text) {
+        return "<color:" + GREEN + "><b>" + text + "</b></color>";
+    }
+
+    private static String grey(String text) {
+        return "<color:" + Overlay.GREY + ">" + text + "</color>";
     }
 
     // Only who stands at the body can revive

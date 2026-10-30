@@ -6,6 +6,7 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
@@ -118,7 +119,8 @@ public class UserManager {
             player.heal(20);
             de.ethicbuilds.monsters.items.ArmorSet.equip(player, gamePlayers.get(uuid).getArmorLevel());
             player.teleport(location);
-            player.sendTitle(Lang.t(player, "§aWiederbelebt!", "§aRevived!"), "");
+            Overlay.medium(player, "#3CDC6E", Overlay.line(Overlay.REVIVE, "#3CDC6E", "WIEDERBELEBT", null),
+                    Overlay.line(Overlay.REVIVE, "#3CDC6E", "REVIVED", null));
             player.playSound(player.getLocation(), Sound.BLOCK_CONDUIT_ACTIVATE, 0.8F, 1.2F);
         }
     }

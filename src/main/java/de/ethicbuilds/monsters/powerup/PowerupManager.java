@@ -1,6 +1,5 @@
 package de.ethicbuilds.monsters.powerup;
 
-import de.ethicbuilds.monsters.weapons.AmmoHud;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
@@ -8,6 +7,7 @@ import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.lang.DualBar;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.ReviveManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -46,6 +46,7 @@ import java.util.function.Supplier;
  */
 public class PowerupManager {
     private static final int MAX_MEDKITS = 2;
+    private static final String MEDKIT_COLOR = "#3CDC6E";
     private static final int MIN_DELAY = 60 * 20;
     private static final int MAX_DELAY = 90 * 20;
     private static final int LIFETIME = 60 * 20;
@@ -242,9 +243,8 @@ public class PowerupManager {
                             ? java.util.List.of("§7Gets you back up once", "§7per round when you are down")
                             : java.util.List.of("§7Holt dich einmal pro Runde", "§7wieder hoch, wenn du am Boden liegst")));
                     player.getInventory().setItem(ReviveManager.MEDKIT_SLOT, stored);
-                    AmmoHud.pause(player);
-                    player.sendActionBar(Lang.t(player, "§aMedkit eingesteckt! §7Es holt dich hoch, wenn du am Boden liegst",
-                            "§aMedkit stored! §7It gets you back up when you are down"));
+                    Overlay.small(player, Overlay.line(Overlay.MEDKIT, MEDKIT_COLOR, "Medkit eingesteckt", "holt dich hoch, wenn du am Boden liegst"),
+                            Overlay.line(Overlay.MEDKIT, MEDKIT_COLOR, "Medkit stored", "gets you back up when you are down"));
                     player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 0.8F, 1.2F);
                     powerup.remove();
                     return true;
@@ -261,9 +261,11 @@ public class PowerupManager {
     private void pickUp(Player player, Type type, Location location) {
         switch (type) {
             case MEDKIT -> {
-                player.setHealth(player.getAttribute(Attribute.MAX_HEALTH).getValue());
-                AmmoHud.pause(player);
-                player.sendActionBar(Lang.t(player, "§aErste Hilfe! §7Du bist wieder voll geheilt", "§aMedkit! §7You are fully healed"));
+                double max = player.getAttribute(Attribute.MAX_HEALTH).getValue();
+                String healed = "+" + (int) Math.ceil(max - player.getHealth());
+                player.setHealth(max);
+                Overlay.small(player, Overlay.icon(Overlay.MEDKIT, MEDKIT_COLOR, "<color:" + MEDKIT_COLOR + "><b>" + healed + "</b></color> <color:" + Overlay.GREY + ">Leben</color>"),
+                        Overlay.icon(Overlay.MEDKIT, MEDKIT_COLOR, "<color:" + MEDKIT_COLOR + "><b>" + healed + "</b></color> <color:" + Overlay.GREY + ">health</color>"));
                 player.playSound(location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0F, 1.2F);
                 player.playSound(location, Sound.BLOCK_NOTE_BLOCK_CHIME, 1.0F, 1.5F);
                 location.getWorld().spawnParticle(Particle.HEART, location, 6, 0.4, 0.3, 0.4, 0);

@@ -1,12 +1,11 @@
 package de.ethicbuilds.monsters.map.decoration;
 
-import de.ethicbuilds.monsters.weapons.AmmoHud;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.items.CrowbarLevel;
 import de.ethicbuilds.monsters.items.GameItems;
-import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
@@ -42,6 +41,7 @@ public class CrateManager implements Listener {
     private static final double AMMO_CHANCE = 0.15;
     private static final int COINS = 100;
     private static final double REACH = 5;
+    private static final String COLOR = "#F9A11E";
 
     @Inject private UserManager userManager;
     @Inject private GameManager gameManager;
@@ -96,8 +96,7 @@ public class CrateManager implements Listener {
         if (gamePlayer == null || userManager.isPlayerDead(player.getUniqueId())) return;
 
         if (!GameItems.isCrowbar(player.getInventory().getItemInMainHand())) {
-            AmmoHud.pause(player);
-            player.sendActionBar(Lang.t(player, "§7Zerschlage die Kiste mit der §6Brechstange", "§7Smash the crate with the §6Crowbar"));
+            crate(player, grey("Zerschlage die Kiste mit der ") + bold("Brechstange"), grey("Smash the crate with the ") + bold("Crowbar"));
             return;
         }
 
@@ -151,18 +150,30 @@ public class CrateManager implements Listener {
         int coins = COINS + CrowbarLevel.extraCoins(gamePlayer.getCrowbarLevel());
 
         if (roll < GRENADE_CHANCE + extra && grenadeManager.give(player)) {
-            player.sendActionBar(Lang.t(player, "§aGlück gehabt! §7Du hast eine §aGranate §7gefunden", "§aLucky! §7You found a §aGrenade"));
+            crate(player, bold("Granate") + grey(" gefunden"), bold("Grenade") + grey(" found"));
             player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1.0F, 1.2F);
         } else if (roll < GRENADE_CHANCE + COINS_CHANCE + 2 * extra) {
             gamePlayer.addCoins(coins);
-            player.sendActionBar(Lang.f(player, "§6+%d Coins §7gefunden", "§6+%d Coins §7found", coins));
+            String found = "<b>" + Overlay.num("+" + coins) + "</b> " + Overlay.coin();
+            crate(player, found + grey(" gefunden"), found + grey(" found"));
             player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0F, 1.4F);
         } else if (roll < GRENADE_CHANCE + COINS_CHANCE + AMMO_CHANCE + 3 * extra && gamePlayer.refillWeapons()) {
-            AmmoHud.pause(player);
-            player.sendActionBar(Lang.t(player, "§aGlück gehabt! §7Du hast §x§F§2§C§1§4§EMunition §7gefunden", "§aLucky! §7You found §x§F§2§C§1§4§EAmmo"));
+            crate(player, bold("Munition") + grey(" aufgefüllt"), bold("Ammo") + grey(" refilled"));
             player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 0.8F, 1.2F);
         } else {
-            player.sendActionBar(Lang.t(player, "§7Die Kiste war leer", "§7The crate was empty"));
+            crate(player, grey("Die Kiste war leer"), grey("The crate was empty"));
         }
+    }
+
+    private static void crate(Player player, String de, String en) {
+        Overlay.small(player, Overlay.icon(Overlay.CRATE, COLOR, de), Overlay.icon(Overlay.CRATE, COLOR, en));
+    }
+
+    private static String bold(String text) {
+        return "<color:" + COLOR + "><b>" + text + "</b></color>";
+    }
+
+    private static String grey(String text) {
+        return "<color:" + Overlay.GREY + ">" + text + "</color>";
     }
 }

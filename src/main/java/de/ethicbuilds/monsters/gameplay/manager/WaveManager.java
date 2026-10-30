@@ -3,18 +3,18 @@ package de.ethicbuilds.monsters.gameplay.manager;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.decoration.CrateManager;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.EliteTier;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import lombok.Getter;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
+import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 
 public class WaveManager {
@@ -28,7 +28,11 @@ public class WaveManager {
     private static final long HORDE_WARNING = 3000;
     // Every weaver is about 40 animated displays, so fewer of them at once (8 players would bring over 100)
     private static final int MAX_SPIDERS_ALIVE = 40;
+    private static final String[] TIERS = {"", "Bronze", "Silber", "Gold", "Diamant", "Netherit"};
     private static final String[] TIERS_EN = {"", "Bronze", "Silver", "Gold", "Diamond", "Netherite"};
+    private static final String[] TIER_COLORS = {"", "#E3A46A", "#C0C8D4", "#FFCC2E", "#5EE0E0", "#8B7A8E"};
+    private static final String WAVE_COLOR = "#F9A11E", BOSS_COLOR = "#A970FF", HORDE_COLOR = "#FF4838";
+    private static final long ELITE_DELAY = 60;
 
     @Inject
     private UserManager userManager;
@@ -69,7 +73,6 @@ public class WaveManager {
     private void startWave() throws InterruptedException {
         currentWave++;
         Lang.broadcast("%s§aStarte Welle §4%d", "%s§aStarting wave §4%d", plugin.getMonstersPrefix(), currentWave);
-        Bukkit.getOnlinePlayers().forEach(p -> p.showTitle(Title.title(waveTitle(p), waveSubtitle(p))));
         userManager.broadcastSound(Sound.BLOCK_TRIAL_SPAWNER_AMBIENT_OMINOUS, 2.0F, 1.0F);
 
         startOnMinecraftThread(crateManager::resetAll);
@@ -81,6 +84,7 @@ public class WaveManager {
 
         plugin.getInjector().getInstance(de.ethicbuilds.monsters.event.WaveEvents.class).onWaveStart(currentWave);
         monsterManager.createMonsters(currentWave);
+        startOnMinecraftThread(this::announceWave);
 
         // A few monsters per tick, never more than MAX_ALIVE at once: the rest comes when others die
         // From wave 8 every second wave on average: once a good third is beaten, a quick horde storms out
@@ -116,33 +120,31 @@ public class WaveManager {
         }
     }
 
-    private Component waveTitle(Player player) {
-        return Lang.mm(player, "<bold><gradient:#F9A11E:#8B4BD8>Welle " + currentWave + "</gradient></bold>",
-                "<bold><gradient:#F9A11E:#8B4BD8>Wave " + currentWave + "</gradient></bold>");
-    }
-
-    private Component waveSubtitle(Player player) {
-        if (currentWave % MonsterManager.BOSS_WAVE == 0) {
-            int stage = currentWave / MonsterManager.BOSS_WAVE;
-            return Lang.mm(player, "<#8B4BD8>Boss-Welle: die Amethyst-Weberin kommt! <#D58BFF>Stufe " + stage,
-                    "<#8B4BD8>Boss wave: the Amethyst Weaver is coming! <#D58BFF>Stage " + stage);
+    // Boss wave big, every other wave medium, a new elite tier follows once the wave text is gone
+    private void announceWave() {
+        int wave = currentWave;
+        if (wave % MonsterManager.BOSS_WAVE == 0) {
+            String stage = Overlay.num(wave / MonsterManager.BOSS_WAVE);
+            Overlay.bigAll(BOSS_COLOR, Overlay.line(Overlay.BOSS, BOSS_COLOR, "BOSS-WELLE", null), Overlay.line(Overlay.BOSS, BOSS_COLOR, "BOSS WAVE", null),
+                    Overlay.line((char) 0, BOSS_COLOR, "Amethyst-Weberin", "Stufe " + stage), Overlay.line((char) 0, BOSS_COLOR, "Amethyst Weaver", "Level " + stage));
+            return;
         }
-        if (currentWave % MonsterManager.SPIDER_WAVE == 0) {
-            return Lang.mm(player, "<#8B4BD8>Spinnen-Welle: die Weberinnen kommen!", "<#8B4BD8>Spider wave: the Weavers are coming!");
-        }
-        if (currentWave > 10 && currentWave % 10 == 1) {
-            int tier = EliteTier.of(currentWave);
-            String text = Lang.english(player) ? "New elite tier: " + TIERS_EN[tier] : "Neue Elite-Stufe: " + EliteTier.name(tier).replaceAll("§.", "");
-            return Component.text(text).color(net.kyori.adventure.text.format.TextColor.color(0xF9A11E));
-        }
-        return Component.empty();
+        String count = Overlay.num(monsterManager.remaining());
+        boolean spiders = wave % MonsterManager.SPIDER_WAVE == 0;
+        Overlay.mediumAll(WAVE_COLOR, Overlay.line(Overlay.WAVE, WAVE_COLOR, "WELLE " + wave, spiders ? "Die Weberinnen kommen" : count + " Monster"),
+                Overlay.line(Overlay.WAVE, WAVE_COLOR, "WAVE " + wave, spiders ? "the weavers are coming" : count + " monsters"));
+        if (wave <= 10 || wave % 10 != 1) return;
+        int tier = EliteTier.of(wave);
+        String color = TIER_COLORS[tier];
+        Bukkit.getScheduler().runTaskLater(plugin, () -> Overlay.mediumAll(color,
+                Overlay.line(Overlay.ELITE, color, "ELITE: " + TIERS[tier].toUpperCase(Locale.ROOT), "Monster tragen Rüstung"),
+                Overlay.line(Overlay.ELITE, color, "ELITE: " + TIERS_EN[tier].toUpperCase(Locale.ROOT), "monsters wear armor")), ELITE_DELAY);
     }
 
     private void announceHorde() {
-        for (var player : Bukkit.getOnlinePlayers()) {
-            player.sendTitle("§c§lHORDE!", Lang.t(player, "§7Gleich stürmt eine schnelle Horde los", "§7A fast horde is about to charge"), 5, 40, 10);
-            player.playSound(player.getLocation(), org.bukkit.Sound.EVENT_RAID_HORN, 0.5F, 1.2F);
-        }
+        Overlay.bigAll(HORDE_COLOR, Overlay.line(Overlay.HORDE, HORDE_COLOR, "HORDE!", null), Overlay.line(Overlay.HORDE, HORDE_COLOR, "HORDE!", null),
+                "<color:" + Overlay.GREY + ">Haltet zusammen</color>", "<color:" + Overlay.GREY + ">Stick together</color>");
+        for (Player player : Bukkit.getOnlinePlayers()) player.playSound(player.getLocation(), Sound.EVENT_RAID_HORN, 0.5F, 1.2F);
     }
 
     private void startOnMinecraftThread(Runnable action) {

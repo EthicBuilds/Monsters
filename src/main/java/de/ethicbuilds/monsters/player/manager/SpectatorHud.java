@@ -5,13 +5,11 @@ import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
-import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.DualBar;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
-import org.bukkit.Bukkit;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
-import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -26,9 +24,7 @@ public class SpectatorHud {
     @Inject private MonsterManager monsterManager;
     @Inject private UserManager userManager;
 
-    // One bar per language
-    private final BossBar bar = Bukkit.createBossBar("", BarColor.WHITE, BarStyle.SOLID);
-    private final BossBar barEn = Bukkit.createBossBar("", BarColor.WHITE, BarStyle.SOLID);
+    private final DualBar bar = new DualBar("", "", BarColor.WHITE, BarStyle.SOLID);
 
     public void start() {
         new BukkitRunnable() {
@@ -36,7 +32,6 @@ public class SpectatorHud {
             public void run() {
                 if (gameManager.getCurrentPhase() != GamePhase.WAVE) {
                     bar.removeAll();
-                    barEn.removeAll();
                     cancel();
                     return;
                 }
@@ -46,16 +41,13 @@ public class SpectatorHud {
     }
 
     private void update() {
-        bar.setTitle(String.format("§6Welle %d §8· §f%d Monster §8| %s", waveManager.getCurrentWave(), monsterManager.remaining(), team(false)));
-        barEn.setTitle(String.format("§6Wave %d §8· §f%d Monsters §8| %s", waveManager.getCurrentWave(), monsterManager.remaining(), team(true)));
+        bar.setTitle(String.format("§6Welle %d §8· §f%d Monster §8| %s", waveManager.getCurrentWave(), monsterManager.remaining(), team(false)),
+                String.format("§6Wave %d §8· §f%d Monsters §8| %s", waveManager.getCurrentWave(), monsterManager.remaining(), team(true)));
         for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
             Player player = gamePlayer.getPlayer();
             if (!player.isOnline()) continue;
-            boolean english = Lang.english(player);
-            BossBar own = english ? barEn : bar;
-            (english ? bar : barEn).removePlayer(player);
-            if (userManager.isPlayerDead(player.getUniqueId())) own.addPlayer(player);
-            else own.removePlayer(player);
+            if (userManager.isPlayerDead(player.getUniqueId())) bar.addPlayer(player);
+            else bar.removePlayer(player);
         }
     }
 

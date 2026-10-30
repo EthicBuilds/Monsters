@@ -12,6 +12,9 @@ import java.io.IOException;
 public class MonsterZombie extends EnemyMonster {
     // Crawling out of the ground takes 1.2 seconds, meanwhile it does not walk yet
     private static final long SPAWN_TICKS = 24;
+    // Elite tiers wear their armor as plates on the model, the protection of the old helmet stays
+    private static final String[] ARMOR = {null, "zombie_bronze", "zombie_silber", "zombie_gold", "zombie_diamant", "zombie_netherit"};
+    private static final double[] ARMOR_POINTS = {0, 1, 2, 2, 3, 3};
     private static BoneModel zombie;
 
     private AnimatedModel model;
@@ -41,9 +44,9 @@ public class MonsterZombie extends EnemyMonster {
         return zombie;
     }
 
-    // Own model from the design session, for now only for the plain zombie without elite tier
+    // Own model from the design session for the plain zombie, elite tiers with armor plates
     private boolean modeled() {
-        return getClass() == MonsterZombie.class && type == EntityType.ZOMBIE && getTier() == 0
+        return getClass() == MonsterZombie.class && type == EntityType.ZOMBIE
                 && Main.getINSTANCE().getConfig().getBoolean("zombie-model", true);
     }
 
@@ -59,6 +62,12 @@ public class MonsterZombie extends EnemyMonster {
             if (monster.isValid() && monster.getEquipment() != null) monster.getEquipment().clear();
         }, 1L);
         model = new AnimatedModel(zombie(), monster, 1.0F);
+        int tier = Math.min(getTier(), ARMOR.length - 1);
+        if (tier > 0) {
+            model.addLayer(ARMOR[tier]);
+            var armor = monster.getAttribute(org.bukkit.attribute.Attribute.ARMOR);
+            if (armor != null) armor.setBaseValue(armor.getBaseValue() + ARMOR_POINTS[tier]);
+        }
         if (isSprinter()) model.setWalk("rennen");
         model.play("spawn");
         if (monster instanceof Mob mob) {

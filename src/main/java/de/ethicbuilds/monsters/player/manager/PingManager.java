@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
-import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import io.papermc.paper.event.player.PlayerPickBlockEvent;
 import io.papermc.paper.event.player.PlayerPickEntityEvent;
@@ -85,8 +85,10 @@ public class PingManager implements Listener {
         long now = System.currentTimeMillis();
         long wait = lastPing.getOrDefault(player.getUniqueId(), 0L) + cooldown - now;
         if (wait > 0) {
-            de.ethicbuilds.monsters.weapons.AmmoHud.pause(player);
-            player.sendActionBar(Lang.f(player, "§7Ping wieder in §f%d s", "§7Ping again in §f%d s", (wait + 999) / 1000));
+            String seconds = " " + Overlay.num((wait + 999) / 1000 + " s");
+            String grey = "<color:" + Overlay.GREY + ">";
+            Overlay.small(player, Overlay.icon(Overlay.PING, Overlay.GREY, grey + "Ping bereit in</color>" + seconds),
+                    Overlay.icon(Overlay.PING, Overlay.GREY, grey + "Ping ready in</color>" + seconds));
             return;
         }
 

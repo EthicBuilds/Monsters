@@ -4,6 +4,7 @@ import com.destroystokyo.paper.entity.Pathfinder;
 import com.destroystokyo.paper.entity.ai.GoalType;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -49,11 +50,10 @@ public class MonsterBounty extends EnemyMonster {
             equipment.setHelmetDropChance(0);
             equipment.setChestplateDropChance(0);
         }
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            player.sendTitle(Lang.t(player, "§6§lKOPFGELD!", "§6§lBOUNTY!"),
-                    Lang.t(player, "§7Ein goldener Zombie flieht §8· §6", "§7A golden zombie is fleeing §8· §6") + reward + " Coins", 5, 40, 10);
-            player.playSound(player.getLocation(), Sound.BLOCK_BELL_USE, 0.8F, 1.6F);
-        }
+        String prize = Overlay.num("+" + reward) + " " + Overlay.coin();
+        Overlay.mediumAll(Overlay.GOLD, Overlay.line(Overlay.BOUNTY, Overlay.GOLD, "KOPFGELD", "Goldener Zombie · " + prize),
+                Overlay.line(Overlay.BOUNTY, Overlay.GOLD, "BOUNTY", "golden zombie · " + prize));
+        for (Player player : Bukkit.getOnlinePlayers()) player.playSound(player.getLocation(), Sound.BLOCK_BELL_USE, 0.8F, 1.6F);
     }
 
     // Runs to the trail spot farthest from the players, after 45 seconds it is gone
