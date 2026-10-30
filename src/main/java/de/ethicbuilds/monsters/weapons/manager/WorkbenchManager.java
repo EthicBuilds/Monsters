@@ -8,6 +8,7 @@ import de.ethicbuilds.monsters.items.ArmorSet;
 import de.ethicbuilds.monsters.items.CrowbarLevel;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.MenuTitle;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -44,7 +45,7 @@ import java.util.UUID;
 /***
  * Weapon workbench: opens from wave 5 for 5000 coins, then every weapon can be upgraded 4 times
  * (price per weapon, then 1.5 times each level). Menu design from the design session: one background,
- * tab, stars, button and texts are drawn into the title (WorkbenchTitle).
+ * tab, stars, button and texts are drawn into the title (MenuTitle).
  */
 public class WorkbenchManager implements Listener {
     public static final int UNLOCK_WAVE = 5;
@@ -494,10 +495,10 @@ public class WorkbenchManager implements Listener {
 
     private Component title(GamePlayer gamePlayer, Card card, int row, Weapon weapon) {
         Player player = gamePlayer.getPlayer();
-        WorkbenchTitle title = new WorkbenchTitle().name(Lang.t(player, "Werkbank", "Workbench"));
+        MenuTitle title = MenuTitle.workbench().name(Lang.t(player, "Werkbank", "Workbench"));
         int coins = gamePlayer.getCoins();
-        title.centered("guthaben_name", 52, new WorkbenchTitle.Part(Lang.t(player, "Guthaben", "Balance"), GREY))
-                .centered("guthaben", 52, new WorkbenchTitle.Part(COIN + " " + shortCoins(player, coins, 1_000_000), ORANGE));
+        title.centered("guthaben_name", 52, new MenuTitle.Part(Lang.t(player, "Guthaben", "Balance"), GREY))
+                .centered("guthaben", 52, new MenuTitle.Part(COIN + " " + shortCoins(player, coins, 1_000_000), ORANGE));
         if (card == null) return title.build();
 
         int level = card.level();
@@ -511,47 +512,47 @@ public class WorkbenchManager implements Listener {
         title.glyph((char) (0xE030 + level), level == 0 ? 30 : 27, STAR_WIDTHS[level]);
 
         // Card: what you get
-        title.left("name_0", 117, new WorkbenchTitle.Part(Lang.t(player, "Stufe", "Level"), GREY));
-        if (max) title.left("wert_0", 117, new WorkbenchTitle.Part(level + "/" + card.max(), LIGHT));
-        else if (values) title.left("wert_0", 117, new WorkbenchTitle.Part(String.valueOf(level), LIGHT),
-                new WorkbenchTitle.Part(ARROW, ORANGE), new WorkbenchTitle.Part(String.valueOf(level + 1), TextColor.color(LEVEL_COLORS[level])));
-        else title.left("wert_0", 117, new WorkbenchTitle.Part("-", LIGHT));
-        title.left("name_1", 117, new WorkbenchTitle.Part(card.name1(), GREY));
+        title.left("name_0", 117, new MenuTitle.Part(Lang.t(player, "Stufe", "Level"), GREY));
+        if (max) title.left("wert_0", 117, new MenuTitle.Part(level + "/" + card.max(), LIGHT));
+        else if (values) title.left("wert_0", 117, new MenuTitle.Part(String.valueOf(level), LIGHT),
+                new MenuTitle.Part(ARROW, ORANGE), new MenuTitle.Part(String.valueOf(level + 1), TextColor.color(LEVEL_COLORS[level])));
+        else title.left("wert_0", 117, new MenuTitle.Part("-", LIGHT));
+        title.left("name_1", 117, new MenuTitle.Part(card.name1(), GREY));
         cardValue(title, "wert_1", card.now1(), card.next1(), values && card.arrow1());
-        title.left("name_2", 117, new WorkbenchTitle.Part(card.name2(), GREY));
+        title.left("name_2", 117, new MenuTitle.Part(card.name2(), GREY));
         cardValue(title, "wert_2", card.now2().isEmpty() && !(values && card.arrow2()) ? card.next2() : card.now2(), card.next2(), values && card.arrow2());
 
         // Button with price
         if (locked) {
             title.glyph('\uE024', 95, 74)
-                    .centered("knopf", 132, new WorkbenchTitle.Part(Lang.t(player, "Gesperrt", "Locked"), BUTTON_GREY))
-                    .centered("knopf_2", 132, new WorkbenchTitle.Part(Lang.t(player, "Ab Welle ", "From wave ") + UNLOCK_WAVE, ORANGE));
+                    .centered("knopf", 132, new MenuTitle.Part(Lang.t(player, "Gesperrt", "Locked"), BUTTON_GREY))
+                    .centered("knopf_2", 132, new MenuTitle.Part(Lang.t(player, "Ab Welle ", "From wave ") + UNLOCK_WAVE, ORANGE));
         } else if (!open) {
             title.glyph('\uE022', 93, 78)
-                    .centered("knopf", 132, new WorkbenchTitle.Part(Lang.t(player, "Freischalten", "Unlock"), WHITE))
-                    .centered("preis", 132, new WorkbenchTitle.Part(COIN + " " + coins(player, UNLOCK_PRICE - unlockPaid), WHITE));
+                    .centered("knopf", 132, new MenuTitle.Part(Lang.t(player, "Freischalten", "Unlock"), WHITE))
+                    .centered("preis", 132, new MenuTitle.Part(COIN + " " + coins(player, UNLOCK_PRICE - unlockPaid), WHITE));
         } else if (max) {
             title.glyph('\uE023', 93, 78)
-                    .centered("knopf", 132, new WorkbenchTitle.Part(Lang.t(player, "Maximal", "Max"), TextColor.color(0x3B2A00)))
-                    .centered("knopf_2", 132, new WorkbenchTitle.Part(Lang.t(player, "Stufe ", "Level ") + level + "/" + card.max(), TextColor.color(0x5A4200)));
+                    .centered("knopf", 132, new MenuTitle.Part(Lang.t(player, "Maximal", "Max"), TextColor.color(0x3B2A00)))
+                    .centered("knopf_2", 132, new MenuTitle.Part(Lang.t(player, "Stufe ", "Level ") + level + "/" + card.max(), TextColor.color(0x5A4200)));
         } else {
             int price = card.price();
             boolean affordable = coins >= price;
             title.glyph(affordable ? '\uE020' : '\uE021', affordable ? 93 : 95, affordable ? 78 : 74)
-                    .centered("knopf", 132, new WorkbenchTitle.Part(Lang.t(player, "Verbessern", "Upgrade"), affordable ? WHITE : BUTTON_GREY))
-                    .centered("preis", 132, new WorkbenchTitle.Part(COIN, affordable ? TextColor.color(0xFFD36B) : TOO_EXPENSIVE),
-                            new WorkbenchTitle.Part(" " + shortCoins(player, price, 100_000), affordable ? WHITE : TOO_EXPENSIVE));
+                    .centered("knopf", 132, new MenuTitle.Part(Lang.t(player, "Verbessern", "Upgrade"), affordable ? WHITE : BUTTON_GREY))
+                    .centered("preis", 132, new MenuTitle.Part(COIN, affordable ? TextColor.color(0xFFD36B) : TOO_EXPENSIVE),
+                            new MenuTitle.Part(" " + shortCoins(player, price, 100_000), affordable ? WHITE : TOO_EXPENSIVE));
         }
 
         // Scrap button over the whole bottom row, one line of text
         int scrap = weapon == null ? 0 : scrapValue(weapon);
         if (scrap <= 0) {
-            title.glyph('', 26, 143).centered("schrott", 97, new WorkbenchTitle.Part(Lang.t(player, "Nicht möglich", "Not possible"), SCRAP_GREY));
+            title.glyph('', 26, 143).centered("schrott", 97, new MenuTitle.Part(Lang.t(player, "Nicht möglich", "Not possible"), SCRAP_GREY));
         } else {
             boolean asked = isScrapAsked(player);
             title.glyph(asked ? '' : '', asked ? 24 : 26, asked ? 147 : 143)
-                    .centered("schrott", 97, new WorkbenchTitle.Part(asked ? Lang.t(player, "Sicher? ", "Sure? ") : Lang.t(player, "Verschrotten ", "Scrap "), WHITE),
-                            new WorkbenchTitle.Part(COIN + " " + coins(player, scrap), SCRAP_GOLD));
+                    .centered("schrott", 97, new MenuTitle.Part(asked ? Lang.t(player, "Sicher? ", "Sure? ") : Lang.t(player, "Verschrotten ", "Scrap "), WHITE),
+                            new MenuTitle.Part(COIN + " " + coins(player, scrap), SCRAP_GOLD));
         }
         return title.build();
     }
@@ -559,13 +560,13 @@ public class WorkbenchManager implements Listener {
     // A card line has 48 px (design session): when "old -> new" is longer, only the new value is shown
     private static final int CARD_WIDTH = 48;
 
-    private static void cardValue(WorkbenchTitle title, String line, String now, String next, boolean arrow) {
-        if (arrow && WorkbenchTitle.width(line, now + ARROW + next) > CARD_WIDTH) {
-            title.left(line, 117, new WorkbenchTitle.Part(next, NEW_VALUE));
+    private static void cardValue(MenuTitle title, String line, String now, String next, boolean arrow) {
+        if (arrow && title.width(line, now + ARROW + next) > CARD_WIDTH) {
+            title.left(line, 117, new MenuTitle.Part(next, NEW_VALUE));
         } else if (arrow) {
-            title.left(line, 117, new WorkbenchTitle.Part(now, LIGHT), new WorkbenchTitle.Part(ARROW, ORANGE), new WorkbenchTitle.Part(next, NEW_VALUE));
+            title.left(line, 117, new MenuTitle.Part(now, LIGHT), new MenuTitle.Part(ARROW, ORANGE), new MenuTitle.Part(next, NEW_VALUE));
         } else {
-            title.left(line, 117, new WorkbenchTitle.Part(now, LIGHT));
+            title.left(line, 117, new MenuTitle.Part(now, LIGHT));
         }
     }
 

@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.gameplay;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.MenuTitle;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.reward.DailyChallenge;
 import de.ethicbuilds.monsters.reward.EthicCoins;
@@ -38,6 +39,8 @@ import java.util.concurrent.CompletableFuture;
 public class RoundEndCard implements Listener {
     private static final long OPEN_DELAY = 60;
     private static final int SIZE = 45;
+    private static final net.kyori.adventure.text.format.TextColor TITLE_WHITE = net.kyori.adventure.text.format.TextColor.color(0xF2F5F8),
+            TITLE_GOLD = net.kyori.adventure.text.format.TextColor.color(0xFFCC2E);
     private static final int MVP_SLOT = 4;
     private static final int WAVE_SLOT = 10, KILLS_SLOT = 12, HEADSHOTS_SLOT = 14, REVIVES_SLOT = 16;
     private static final int ROUND_SLOT = 28, KILL_COINS_SLOT = 29, RANK_SLOT = 30, FIRST_WIN_SLOT = 31, CHALLENGE_SLOT = 32, TOTAL_SLOT = 34;
@@ -67,23 +70,48 @@ public class RoundEndCard implements Listener {
 
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (!player.isOnline()) return;
-                card.inventory = Bukkit.createInventory(card, SIZE, title(player));
+                card.inventory = Bukkit.createInventory(card, SIZE, title(card));
                 fill(card);
                 player.openInventory(card.inventory);
             }, OPEN_DELAY);
         }
     }
 
-    // Design session: the glyph background title (like WorkbenchTitle) goes here, until then a plain title
-    private static Component title(Player player) {
-        return Component.text(Lang.t(player, "Auswertung", "Summary"));
+    // Background of the design session with the values in their line fonts; the items stay invisible for the details on hover
+    private static Component title(Card card) {
+        Player player = card.gamePlayer.getPlayer();
+        MenuTitle title = MenuTitle.roundEnd(Lang.english(player));
+        title.right("welle", 79, new MenuTitle.Part(number(player, card.wave), TITLE_WHITE))
+                .right("kills", 79, new MenuTitle.Part(number(player, card.gamePlayer.getKilledZombies()), TITLE_WHITE))
+                .right("kopf", 79, new MenuTitle.Part(number(player, card.gamePlayer.getHeadshots()), TITLE_WHITE));
+        if (card.mvp != null) title.left("mvp", 13, new MenuTitle.Part(card.mvp.getPlayer().getName(), TITLE_GOLD));
+        RoundReward.Parts parts = card.parts;
+        long bonus = (parts == null ? 0 : parts.bonus()) + paidBonus(card.firstWin) + paidBonus(card.challenge);
+        String[] posts = {
+                coinsText(player, parts == null ? 0 : parts.base()), coinsText(player, parts == null ? 0 : parts.waves()),
+                coinsText(player, parts == null ? 0 : parts.kills()), coinsText(player, bonus),
+                card.firstWin == null ? "..." : coinsText(player, card.firstWin.base()),
+                card.challenge == null ? "..." : coinsText(player, card.challenge.base())};
+        for (int i = 0; i < posts.length; i++) title.right("posten_" + i, 164, new MenuTitle.Part(posts[i], TITLE_WHITE));
+        long total = (parts == null ? 0 : parts.paid()) + paid(card.firstWin) + paid(card.challenge);
+        title.right("gesamt", 164, new MenuTitle.Part(number(player, total) + " \uE017", TITLE_GOLD));
+        return title.build();
     }
 
-    // Results come from other threads: set on the main thread and redraw an open card
+    private static String coinsText(Player player, long coins) {
+        return "+" + number(player, coins) + " \uE017";
+    }
+
+    // Results come from other threads: set on the main thread and redraw an open card, the title needs a new menu
     private void later(Card card, Runnable update) {
         Bukkit.getScheduler().runTask(plugin, () -> {
             update.run();
-            if (card.inventory != null) fill(card);
+            if (card.inventory == null) return;
+            Player player = card.gamePlayer.getPlayer();
+            boolean open = player.isOnline() && player.getOpenInventory().getTopInventory() == card.inventory;
+            card.inventory = Bukkit.createInventory(card, SIZE, title(card));
+            fill(card);
+            if (open) player.openInventory(card.inventory);
         });
     }
 
@@ -111,7 +139,7 @@ public class RoundEndCard implements Listener {
                 Lang.t(player, "Mitspieler, die du aufgehoben hast", "Teammates you got back up")));
 
         RoundReward.Parts parts = card.parts;
-        int round = parts == null ? 0 : parts.round();
+        int round = parts == null ? 0 : parts.base() + parts.waves();
         int kills = parts == null ? 0 : parts.kills();
         String roundHint = Lang.t(player, "Aktive Minuten, Welle, Wiederbelebungen", "Active minutes, wave, revives");
         inventory.setItem(ROUND_SLOT, card.mvp == card.gamePlayer

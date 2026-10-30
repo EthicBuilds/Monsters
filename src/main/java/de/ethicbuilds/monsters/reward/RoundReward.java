@@ -32,18 +32,18 @@ public final class RoundReward {
 
     private RoundReward() {}
 
-    /** What one player got: round part (minutes, wave, revives, best player) and kills part before the rank bonus */
-    public record Parts(int round, int kills, long bonus, boolean tooShort, CompletableFuture<Payout> firstWin) {
+    /** What one player got: base (minutes, revives, best player), waves and kills before the rank bonus */
+    public record Parts(int base, int waves, int kills, long bonus, boolean tooShort, CompletableFuture<Payout> firstWin) {
         static Parts none(boolean tooShort) {
-            return new Parts(0, 0, 0, tooShort, CompletableFuture.completedFuture(Payout.NONE));
+            return new Parts(0, 0, 0, 0, tooShort, CompletableFuture.completedFuture(Payout.NONE));
         }
 
         public long paid() {
-            return round + kills + bonus;
+            return base + waves + kills + bonus;
         }
     }
 
-    private record Split(int round, int kills) {}
+    private record Split(int base, int waves, int kills) {}
 
     public static void start(Plugin plugin, BooleanSupplier running) {
         roundStart = System.currentTimeMillis();
@@ -73,17 +73,18 @@ public final class RoundReward {
 
     public static int amount(GamePlayer gamePlayer, int wave, boolean best) {
         Split split = split(gamePlayer, wave, best);
-        return split.round() + split.kills();
+        return split.base() + split.waves() + split.kills();
     }
 
     // The cap comes off the round part, the kills part stays
     private static Split split(GamePlayer gamePlayer, int wave, boolean best) {
         int minutes = activeMinutes.getOrDefault(gamePlayer.getPlayer().getUniqueId(), 0);
-        if (minutes == 0) return new Split(0, 0);
+        if (minutes == 0) return new Split(0, 0, 0);
         int kills = Math.min(MAX_PER_ROUND, gamePlayer.getKilledZombies() / KILLS_PER_COIN);
-        int round = (int) Math.round(minutes * PER_ACTIVE_MINUTE) + PER_WAVE * wave + PER_REVIVE * gamePlayer.getRevives();
-        if (best) round += BEST_BONUS;
-        return new Split(Math.min(round, MAX_PER_ROUND - kills), kills);
+        int base = (int) Math.round(minutes * PER_ACTIVE_MINUTE) + PER_REVIVE * gamePlayer.getRevives() + (best ? BEST_BONUS : 0);
+        int round = Math.min(base + PER_WAVE * wave, MAX_PER_ROUND - kills);
+        int waves = Math.min(PER_WAVE * wave, round);
+        return new Split(round - waves, waves, kills);
     }
 
     /** At the round end, best player first in the list. Returns what each online player got */
@@ -100,7 +101,7 @@ public final class RoundReward {
             if (!player.isOnline()) continue;
             parts.put(player.getUniqueId(), Parts.none(false));
             Split split = split(ranked.get(i), wave, i == 0);
-            int base = split.round() + split.kills();
+            int base = split.base() + split.waves() + split.kills();
             if (base <= 0) continue;
             long coins = EthicCoins.withRankBonus(player, base);
             if (!EthicCoins.deposit(player.getUniqueId(), coins, "Monsters Runde")) continue;
@@ -111,7 +112,7 @@ public final class RoundReward {
                 Lang.broadcast("%s§6%s §7war der beste Spieler der Runde!", "%s§6%s §7was the best player of the round!", prefix, player.getName());
                 firstWin = DailyWin.reward(player, prefix);
             }
-            parts.put(player.getUniqueId(), new Parts(split.round(), split.kills(), coins - base, false, firstWin));
+            parts.put(player.getUniqueId(), new Parts(split.base(), split.waves(), split.kills(), coins - base, false, firstWin));
         }
         return parts;
     }
