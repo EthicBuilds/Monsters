@@ -65,6 +65,8 @@ public class MonsterManager {
     public void createMonsters(int wave) {
         monsters.clear();
         initialMonsters.clear();
+        lastLocation.clear();
+        lastMoveTime.clear();
         spawnIndex = 0;
 
         int players = Math.max(1, userManager.getGamePlayers().size());
@@ -191,7 +193,10 @@ public class MonsterManager {
     }
 
     public void removeMonster(Monster monster) {
-        monsters.remove(monster);
+        EnemyMonster removed = monsters.remove(monster);
+        if (removed == null) return;
+        lastLocation.remove(removed);
+        lastMoveTime.remove(removed);
     }
 
     public void removeMonster(EnemyMonster monster) {
@@ -312,8 +317,7 @@ public class MonsterManager {
             // Frozen monsters during a pause are not stuck
             if (de.ethicbuilds.monsters.gameplay.manager.PauseManager.isPaused()) return;
             long now = System.currentTimeMillis();
-            HealthBars.removeOrphans(plugin.getWorld());
-            HealthBars.hideIdle(plugin.getWorld());
+            HealthBars.tidy(plugin.getWorld());
 
             List<EnemyMonster> toRemove = new ArrayList<>();
 

@@ -59,18 +59,6 @@ public final class HealthBars {
         attach(mob);
     }
 
-    /** Bars of monsters that were not hit for a while */
-    public static void hideIdle(World world) {
-        long now = System.currentTimeMillis();
-        for (TextDisplay display : world.getEntitiesByClass(TextDisplay.class)) {
-            if (!isBar(display) || !(display.getVehicle() instanceof LivingEntity mob)) continue;
-            if (now - lastHit.getOrDefault(mob.getUniqueId(), 0L) > VISIBLE_MILLIS) {
-                display.remove();
-                lastHit.remove(mob.getUniqueId());
-            }
-        }
-    }
-
     /** After damage or healing, once the new health is known */
     public static void updateLater(LivingEntity mob) {
         Bukkit.getScheduler().runTask(Main.getINSTANCE(), () -> {
@@ -82,17 +70,25 @@ public final class HealthBars {
     }
 
     public static void remove(Entity mob) {
+        lastHit.remove(mob.getUniqueId());
         for (Entity passenger : mob.getPassengers()) {
             if (isBar(passenger)) passenger.remove();
         }
     }
 
-    /** Bars whose monster is gone (died, removed, unloaded) */
-    public static void removeOrphans(World world) {
+    /** One pass over all bars: away when the monster is gone (died, removed, unloaded) or was not hit for a while */
+    public static void tidy(World world) {
+        long now = System.currentTimeMillis();
         for (TextDisplay display : world.getEntitiesByClass(TextDisplay.class)) {
             if (!isBar(display)) continue;
             Entity vehicle = display.getVehicle();
-            if (vehicle == null || !vehicle.isValid() || vehicle.isDead()) display.remove();
+            if (vehicle == null || !vehicle.isValid() || vehicle.isDead()) {
+                display.remove();
+                if (vehicle != null) lastHit.remove(vehicle.getUniqueId());
+            } else if (vehicle instanceof LivingEntity mob && now - lastHit.getOrDefault(mob.getUniqueId(), 0L) > VISIBLE_MILLIS) {
+                display.remove();
+                lastHit.remove(mob.getUniqueId());
+            }
         }
     }
 
