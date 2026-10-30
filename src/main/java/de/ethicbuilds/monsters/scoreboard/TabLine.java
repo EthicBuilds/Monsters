@@ -2,14 +2,16 @@ package de.ethicbuilds.monsters.scoreboard;
 
 /***
  * One line of the tab list as MiniMessage, drawn with a pen at pixel positions (design session).
- * Everything is in the font monsters:tab: it holds the symbols, the spaces, the small capitals from U+E100
- * and refers to the normal Minecraft font for the rest.
+ * Symbols, spaces and small capitals (from U+E100) each in their own font tag of monsters:tab, normal text stays
+ * in the Minecraft font (one font tag around the whole line came out invisible through TAB).
  */
 final class TabLine {
     private static final String SMALL = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789.:-/#·";
     private static final char SMALL_SPACE = '';
 
-    private final StringBuilder out = new StringBuilder("<font:monsters:tab>");
+    private static final String FONT = "<font:monsters:tab>", FONT_END = "</font>";
+
+    private final StringBuilder out = new StringBuilder();
     private int x;
 
     TabLine(int start) {
@@ -22,6 +24,8 @@ final class TabLine {
 
     TabLine moveTo(int px) {
         int distance = px - x;
+        if (distance == 0) return this;
+        out.append(FONT);
         for (int i = 7; i >= 0; i--) {
             int step = 1 << i;
             while (Math.abs(distance) >= step) {
@@ -29,6 +33,7 @@ final class TabLine {
                 distance += distance > 0 ? -step : step;
             }
         }
+        out.append(FONT_END);
         x = px;
         return this;
     }
@@ -40,7 +45,7 @@ final class TabLine {
     /** Symbol of monsters:tab, advance = width + 1 */
     TabLine glyph(int px, char glyph, int advance, String color) {
         moveTo(px);
-        out.append("<color:").append(color).append(">").append(glyph).append("</color>");
+        out.append("<color:").append(color).append(">").append(FONT).append(glyph).append(FONT_END).append("</color>");
         x += advance;
         return this;
     }
@@ -73,7 +78,7 @@ final class TabLine {
             int index = SMALL.indexOf(Character.toUpperCase(c));
             chars.append(c == ' ' ? SMALL_SPACE : index >= 0 ? (char) (0xE100 + index) : c);
         }
-        out.append("<color:").append(color).append(">").append(chars).append("</color>");
+        out.append("<color:").append(color).append(">").append(FONT).append(chars).append(FONT_END).append("</color>");
         x += smallWidth(text);
         return this;
     }
@@ -84,7 +89,7 @@ final class TabLine {
     }
 
     String end() {
-        return out.append("</font>").toString();
+        return out.toString();
     }
 
     String end(int px) {
