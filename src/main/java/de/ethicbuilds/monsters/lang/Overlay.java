@@ -96,7 +96,8 @@ public final class Overlay {
         Long until = titleUntil.get(player.getUniqueId());
         if (until != null && until > System.currentTimeMillis()) return;
         String color = kill ? HIT_KILL : headshot ? HIT_HEAD : armor ? HIT_ARMOR : HIT_WHITE;
-        player.showTitle(Title.title(Component.empty(), parse(glyph(headshot ? HEAD_HIT : HIT, color)), HIT_TIMES));
+        // The glyph is 12 px wide but its cross sits at 8 px (the empty right side does not count): 4 px after it centre it
+        player.showTitle(Title.title(Component.empty(), parse(glyph(headshot ? HEAD_HIT : HIT, color) + space(4)), HIT_TIMES));
     }
 
     private static void shown(Player player, Title.Times times) {

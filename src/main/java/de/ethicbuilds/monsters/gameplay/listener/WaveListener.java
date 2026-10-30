@@ -103,7 +103,7 @@ public class WaveListener implements Listener {
 
         EnemyMonster enemyMonster = monsterManager.getEnemyMonster(monster);
         if (enemyMonster == null) return;
-        enemyMonster.onHit();
+        enemyMonster.onHit(player);
 
         // Coins only for shots, grenades and the knife, not for hitting with a gun or other items.
         // The hand does not matter for grenades, after the last one it is empty

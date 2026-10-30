@@ -25,6 +25,12 @@ public class AnimatedModel implements Corpses.Corpse {
     private static final double NEAR_DISTANCE = 12, DETAIL_DISTANCE = 24, LOD_BACK = 20;
     private static final int MID_EVERY = 2, FAR_EVERY = 3;
     private static final float SINK_PER_TICK = 0.05F, SINK_DEPTH = 1.6F;
+    // Hit recoil on top of every animation: body and head pushed away from the hit, quickly back
+    private static final float RECOIL_RISE = 0.05F, RECOIL_BACK = 0.3F;
+    private static final String BODY = "koerper", HEAD = "kopf";
+    // Killed it turns to the killer and falls backwards, lies a moment and sinks into the ground
+    private static final String DEATH_BACK = "tod_hinten";
+    private static final float LIE_SECONDS = 1.5F, DEATH_TURN = 45;
     private static final String IDLE = "stehen", WALK = "laufen", DEATH = "tod";
     // Walk animation, quicker monsters run instead
     private String walk = WALK;
@@ -50,6 +56,8 @@ public class AnimatedModel implements Corpses.Corpse {
     private boolean stroll;
     private boolean sinking, removed;
     private float sunk;
+    private float recoilTime = Float.NaN, deathYaw = Float.NaN, lying;
+    private final Vector3f bodyRecoil = new Vector3f(), headRecoil = new Vector3f();
     // Legs on the real ground (spiders), only near players; the model turns itself instead of following the body yaw
     private LegRig rig;
     private boolean rigActive;
@@ -231,11 +239,33 @@ public class AnimatedModel implements Corpses.Corpse {
         actionTime = 0;
     }
 
-    /** Death animation where the monster died, then the model disappears */
+    /** Pushed away from where the hit came from, body and head in degrees, on top of what it plays */
+    public void recoil(Location from, float body, float head) {
+        if (dying || far || from == null || !from.getWorld().equals(base.getWorld())) return;
+        Location at = base.getLocation();
+        Vector3f push = new Vector3f((float) (at.getX() - from.getX()), 0, (float) (at.getZ() - from.getZ()));
+        if (push.lengthSquared() < 0.0001F) return;
+        push.normalize().rotateY((float) -Math.toRadians(180 - yaw));
+        // +X tilts the top backwards (+Z), +Z tilts it to -X
+        bodyRecoil.set(body * push.z, 0, -body * push.x);
+        headRecoil.set(head * push.z, 0, -head * push.x);
+        recoilTime = 0;
+    }
+
     public void die() {
+        die(null);
+    }
+
+    /** Death animation where the monster died; knowing the killer it falls away from him, if the model can */
+    public void die(Location from) {
         if (dying) return;
+        String death = DEATH;
+        if (from != null && from.getWorld().equals(base.getWorld()) && model.animation(DEATH_BACK) != null) {
+            death = DEATH_BACK;
+            deathYaw = yawOf(from.getX() - base.getLocation().getX(), from.getZ() - base.getLocation().getZ());
+        }
         // Without a death animation the model just goes
-        if (model.animation(DEATH) == null) {
+        if (model.animation(death) == null) {
             remove();
             return;
         }
@@ -243,7 +273,7 @@ public class AnimatedModel implements Corpses.Corpse {
         if (lodPart != null) lodPart.remove();
         dying = true;
         Corpses.add(this);
-        action = DEATH;
+        action = death;
         actionTime = 0;
         // The death animation lies on the ground, also when the monster died in the air or while climbing
         Location at = ground(base.getLocation());
@@ -296,6 +326,7 @@ public class AnimatedModel implements Corpses.Corpse {
         float step = TICKS / 20f;
         time += step;
         if (action != null) actionTime += step;
+        if (!Float.isNaN(recoilTime) && (recoilTime += step) > RECOIL_RISE + RECOIL_BACK) recoilTime = Float.NaN;
 
         if (Float.isNaN(offsetY)) {
             for (ItemDisplay part : parts) {
@@ -309,11 +340,13 @@ public class AnimatedModel implements Corpses.Corpse {
         BoneModel.Animation one = action != null ? model.animation(action) : null;
         if (one != null && actionTime > one.length()) {
             if (dying) {
-                remove();
-                return;
+                // Stays down on the last frame, then sinks
+                actionTime = one.length();
+                if ((lying += step) > LIE_SECONDS) sinking = true;
+            } else {
+                action = null;
+                one = null;
             }
-            action = null;
-            one = null;
         }
 
         if (!dying) {
@@ -360,6 +393,7 @@ public class AnimatedModel implements Corpses.Corpse {
                 remove();
                 return;
             }
+            if (!Float.isNaN(deathYaw)) yaw += Math.max(-DEATH_TURN, Math.min(DEATH_TURN, angleTo(yaw, deathYaw)));
             setInterpolation(TICKS);
             render(null, one);
         }
@@ -453,6 +487,11 @@ public class AnimatedModel implements Corpses.Corpse {
                 else if (loop != null && loop.sample(bone.id(), channel, loopTime, value)) out.set(value);
             }
             rotation.add(bone.rest());
+            if (!Float.isNaN(recoilTime) && !dying) {
+                float k = recoilTime < RECOIL_RISE ? recoilTime / RECOIL_RISE : (float) Math.pow(Math.max(0, 1 - (recoilTime - RECOIL_RISE) / RECOIL_BACK), 2);
+                if (bone.id().equals(BODY)) rotation.add(bodyRecoil.x * k, 0, bodyRecoil.z * k);
+                else if (bone.id().equals(HEAD)) rotation.add(headRecoil.x * k, 0, headRecoil.z * k);
+            }
             if (rigActive) {
                 Vector3f leg = rig.rotation(bone.id());
                 if (leg != null) {

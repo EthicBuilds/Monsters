@@ -26,6 +26,8 @@ public class MonsterZombie extends EnemyMonster {
     // Limb loss (design session): under half health a small chance per hit, once per zombie; from gold on never
     private static final double LIMB_CHANCE = 0.04, LIMB_HEALTH = 0.5, ARM_DAMAGE = 0.8, CRAWL_SPEED = 0.45, CRAWL_SCALE = 0.35;
     private static final int LIMB_SAFE_TIER = 3, LIMB_LIFETIME = 60;
+    // Recoil in degrees: body and head, a headshot throws the head back harder
+    private static final float RECOIL_BODY = 12, RECOIL_HEAD = 8, HEADSHOT_BODY = 6, HEADSHOT_HEAD = 28;
     private static BoneModel zombie;
 
     private AnimatedModel model;
@@ -244,7 +246,9 @@ public class MonsterZombie extends EnemyMonster {
     @Override
     public void onDeath() {
         if (model == null) return;
-        model.die();
+        // Falls away from the killer, crawling it just collapses
+        org.bukkit.entity.Player killer = monster.getKiller();
+        model.die(killer != null && !crawling ? killer.getLocation() : null);
         monster.getWorld().playSound(monster.getLocation(), org.bukkit.Sound.ENTITY_ZOMBIE_DEATH, 1.0F, 1.0F);
     }
 
@@ -255,9 +259,10 @@ public class MonsterZombie extends EnemyMonster {
     }
 
     @Override
-    public void onHit() {
+    public void onHit(org.bukkit.entity.Player by) {
         if (model == null) return;
-        if (!crawling) model.play("getroffen");
+        boolean head = de.ethicbuilds.monsters.weapons.ShotDamage.isHeadshot();
+        if (!crawling) model.recoil(by.getLocation(), head ? HEADSHOT_BODY : RECOIL_BODY, head ? HEADSHOT_HEAD : RECOIL_HEAD);
         maybeLoseLimb();
         // The damage is dealt after this event
         Main.getINSTANCE().getServer().getScheduler().runTask(Main.getINSTANCE(), this::splinter);

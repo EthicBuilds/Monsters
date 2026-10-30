@@ -230,6 +230,11 @@ public abstract class EnemyMonster {
     /** A player hit it */
     public void onHit() {}
 
+    /** A player hit it, knowing who: models push away from him */
+    public void onHit(Player by) {
+        onHit();
+    }
+
     /** Movement speed limit, always below the players' walking speed */
     protected double maxSpeed() {
         return 0.23;
