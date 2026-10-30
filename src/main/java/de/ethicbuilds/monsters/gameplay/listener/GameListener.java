@@ -1,11 +1,9 @@
 package de.ethicbuilds.monsters.gameplay.listener;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.RoundLoader;
-import de.ethicbuilds.monsters.dto.StopServerDto;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.weapons.AmmoHud;
@@ -26,11 +24,6 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 
 /***
  * Listener for the whole Game (Pregame, Wave, AfterGame)
@@ -42,11 +35,8 @@ public class GameListener implements Listener {
     private Main plugin;
     @Inject
     private RoundLoader roundLoader;
-
-    private final Gson gson;
-    public GameListener() {
-        this.gson = new GsonBuilder().setPrettyPrinting().create();
-    }
+    @Inject
+    private GameManager gameManager;
 
     //Weapon Shoot
     @EventHandler
@@ -159,24 +149,7 @@ public class GameListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         // A waiting server without a round keeps running
         if (Bukkit.getOnlinePlayers().size() == 1 && roundLoader.isLoaded()) {
-            HttpClient client = HttpClient.newHttpClient();
-
-            var dto = new StopServerDto(plugin.getConfig().getString("server-name"));
-
-            var request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8080/gameManager/api/server/stop"))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(dto)))
-                    .build();
-
-            try {
-                var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                System.out.println(response);
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-
-
+            gameManager.requestStop();
             Bukkit.shutdown();
         }
     }

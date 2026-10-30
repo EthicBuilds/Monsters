@@ -38,11 +38,14 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 
 
 public class GameManager {
 
     private static final String START_COLOR = "#3CDC6E";
+    private static final String STOP_URL = "http://localhost:8080/gameManager/api/server/stop";
+    private static final HttpClient HTTP = HttpClient.newHttpClient();
 
     @Inject private Main plugin;
     @Inject private UserManager userManager;
@@ -83,22 +86,7 @@ public class GameManager {
                 }
                 if (Bukkit.getOnlinePlayers().isEmpty()) {
                     if (System.currentTimeMillis() - lastPlayerOnlineTime >= 30_000) {
-                        HttpClient client = HttpClient.newHttpClient();
-
-                        var dto = new StopServerDto(plugin.getConfig().getString("server-name"));
-
-                        var request = HttpRequest.newBuilder()
-                                .uri(URI.create("http://localhost:8080/gameManager/api/server/stop"))
-                                .header("Content-Type", "application/json")
-                                .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(dto)))
-                                .build();
-
-                        try {
-                            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                            System.out.println(response);
-                        } catch (IOException | InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
+                        requestStop();
                         Bukkit.shutdown();
                     }
                 } else {
@@ -219,22 +207,7 @@ public class GameManager {
             statisticManager.saveStats(gamePlayer);
         }
 
-        HttpClient client = HttpClient.newHttpClient();
-
-        var dto = new StopServerDto(plugin.getConfig().getString("server-name"));
-
-        var request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/gameManager/api/server/stop"))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(dto)))
-                .build();
-
-        try {
-            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            System.out.println(response);
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        requestStop();
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             String wave = Overlay.num(waveManager.getCurrentWave());
@@ -265,6 +238,24 @@ public class GameManager {
                 i--;
             }
         }.runTaskTimer(plugin, 0L, 20L);
+    }
+
+    /** Tells the GameManager that this server stops; the round end goes on also when it does not answer */
+    public void requestStop() {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(STOP_URL))
+                .timeout(Duration.ofSeconds(5))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(new StopServerDto(plugin.getConfig().getString("server-name")))))
+                .build();
+        try {
+            HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
+            plugin.getLogger().info("Stopp an den GameManager gemeldet: " + response.statusCode());
+        } catch (IOException e) {
+            plugin.getLogger().warning("GameManager nicht erreichbar: " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     public void loadGameConfig() {
