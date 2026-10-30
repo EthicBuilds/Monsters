@@ -69,6 +69,7 @@ public class GameManager {
     @Getter
     private GameConfig gameConfig;
     private BukkitTask gameStartTask;
+    private int startIn;
     private String roundKey = "";
 
     private long lastPlayerOnlineTime = System.currentTimeMillis();
@@ -108,9 +109,11 @@ public class GameManager {
             @Override
             public void run() {
                 if (!userManager.isFull()) {
+                    startIn = 0;
                     this.cancel();
                     return;
                 }
+                startIn = i;
 
                 if (i <= 5) {
                     String count = Overlay.num(i);
@@ -141,6 +144,7 @@ public class GameManager {
                     Overlay.mediumAll(START_COLOR, Overlay.line(Overlay.START, START_COLOR, "LOS!", "Überlebt so lange wie möglich"),
                             Overlay.line(Overlay.START, START_COLOR, "GO!", "survive as long as you can"));
 
+                    startIn = 0;
                     userManager.startMonsterTrackerTask();
                     plugin.getInjector().getInstance(SpectatorHud.class).start();
                     if (Bukkit.getPluginManager().isPluginEnabled("ProtocolLib")) {
@@ -159,6 +163,12 @@ public class GameManager {
         if (gameStartTask != null) {
             gameStartTask.cancel();
         }
+        startIn = 0;
+    }
+
+    /** Seconds until the start while the countdown runs, otherwise 0 */
+    public int getStartIn() {
+        return startIn;
     }
 
     // Who did what this round, best player first

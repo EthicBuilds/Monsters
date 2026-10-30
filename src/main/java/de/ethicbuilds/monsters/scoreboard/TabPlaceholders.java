@@ -62,12 +62,20 @@ public class TabPlaceholders extends PlaceholderExpansion {
         boolean round = gameManager.getCurrentPhase() != GamePhase.PRE_GAME;
         // Without the Monsters pack the symbols would be boxes, those viewers get plain text
         boolean plain = player != null && !PackStatus.hasPack(player.getUniqueId());
-        if (params.startsWith("tab_kopf_")) return !round ? "" : plain ? plainHead(number(params), english(player)) : head(number(params), english(player));
-        if (params.startsWith("tab_fuss_")) return !round ? "" : plain ? plainFoot(number(params), english(player)) : foot(number(params), english(player));
+        if (params.startsWith("tab_kopf_")) {
+            int line = number(params);
+            if (!round) return plain ? plainWaitHead(line, english(player)) : waitHead(line, english(player));
+            return plain ? plainHead(line, english(player)) : head(line, english(player));
+        }
+        if (params.startsWith("tab_fuss_")) {
+            int line = number(params);
+            if (!round) return plain ? plainWaitFoot(line, english(player)) : waitFoot(line, english(player));
+            return plain ? plainFoot(line, english(player)) : foot(line, english(player));
+        }
         if (player == null) return "";
         GamePlayer gamePlayer = userManager.getGamePlayer(player.getUniqueId());
         return switch (params) {
-            case "tab_zeile" -> round && gamePlayer != null ? row(gamePlayer) : "<color:" + TEXT + ">" + player.getName();
+            case "tab_zeile" -> gamePlayer == null ? "<color:" + TEXT + ">" + player.getName() : round ? row(gamePlayer) : waitRow(gamePlayer);
             case "sortierung" -> gamePlayer == null ? "0" : String.valueOf(gone(gamePlayer) ? -1 : gamePlayer.getEarnedCoins());
             case "punkte" -> gamePlayer == null ? "0" : coins(gamePlayer.getEarnedCoins());
             case "platz" -> gamePlayer == null ? "" : String.valueOf(ranked().indexOf(gamePlayer) + 1);
@@ -191,6 +199,79 @@ public class TabPlaceholders extends PlaceholderExpansion {
         tab.textRight(284, count(gamePlayer.getHeadshots()), gone ? GONE_VALUE : HEADSHOTS);
         tab.textRight(340, String.valueOf(gamePlayer.getRevives()), gone ? GONE_VALUE : REVIVES);
         return tab.end(ROW_END);
+    }
+
+    // Waiting for players: logo, map, players and start, then the names under the column head
+    private String waitHead(int line, boolean english) {
+        return switch (line) {
+            case 2, 7 -> rule();
+            case 3 -> new TabLine(0).glyph(125, '', 105, "white").end(WIDTH);
+            case 6 -> centered(tab -> {
+                tab.glyph('', 9, "white").gap(2).small(english ? "MAP" : "KARTE", LABEL).gap(4).text(mapName(), TEXT).gap(8)
+                        .glyph('', 9, "white").gap(2).small(english ? "PLAYERS" : "SPIELER", LABEL).gap(4)
+                        .text(userManager.getGamePlayers().size() + "/" + playerCount(), TEXT).gap(8)
+                        .glyph('', 9, "white").gap(2);
+                int startIn = gameManager.getStartIn();
+                if (startIn > 0) tab.small("START IN", LABEL).gap(4).text(startIn + "s", REVIVES);
+                else tab.small(english ? "WAITING" : "WARTEN", LABEL);
+            });
+            case 8 -> new TabLine(0).moveTo(24).small(english ? "PLAYER" : "SPIELER", LABEL).end(WIDTH);
+            default -> "";
+        };
+    }
+
+    private String waitFoot(int line, boolean english) {
+        return switch (line) {
+            case 1, 7 -> rule();
+            case 2 -> centered(tab -> {
+                int startIn = gameManager.getStartIn();
+                if (startIn > 0) {
+                    tab.bold("START IN " + startIn + "s", REVIVES);
+                    return;
+                }
+                int missing = Math.max(0, playerCount() - userManager.getGamePlayers().size());
+                tab.glyph('', 9, TEAM).gap(2).small(english ? "WAITING FOR" : "WARTEN AUF", LABEL).gap(4).text(String.valueOf(missing), TEXT)
+                        .gap(4).small(english ? (missing == 1 ? "PLAYER" : "PLAYERS") : "SPIELER", LABEL);
+            });
+            case 3 -> centered(tab -> tab.small(english ? "INVITE PLAYERS WITH JOINME" : "MIT JOINME MITSPIELER EINLADEN", LABEL));
+            case 6 -> centered(tab -> tab.text("EthicBuilds.de", WEBSITE));
+            default -> "";
+        };
+    }
+
+    // Before the round only the team symbol and the name
+    private static String waitRow(GamePlayer gamePlayer) {
+        return new TabLine(9).glyph(12, '', 9, TEAM).text(24, gamePlayer.getPlayer().getName(), TEXT).end(ROW_END);
+    }
+
+    private String plainWaitHead(int line, boolean english) {
+        return switch (line) {
+            case 3 -> "<bold><gradient:#F9A11E:#8B4BD8>MONSTERS</gradient></bold>";
+            case 6 -> String.format("<color:%s>%s</color> <color:%s>%s</color> <color:%s>·</color> <color:%s>%s</color> <color:%s>%d/%d</color>",
+                    LABEL, english ? "Map" : "Karte", TEXT, mapName().replace("<", ""), LABEL, LABEL, english ? "Players" : "Spieler", TEXT,
+                    userManager.getGamePlayers().size(), playerCount());
+            default -> "";
+        };
+    }
+
+    private String plainWaitFoot(int line, boolean english) {
+        int startIn = gameManager.getStartIn();
+        int missing = Math.max(0, playerCount() - userManager.getGamePlayers().size());
+        return switch (line) {
+            case 2 -> startIn > 0 ? String.format("<color:%s><bold>Start in %ds</bold></color>", REVIVES, startIn)
+                    : String.format("<color:%s>%s</color> <color:%s>%d</color> <color:%s>%s</color>", LABEL, english ? "Waiting for" : "Warten auf",
+                    TEXT, missing, LABEL, english ? (missing == 1 ? "player" : "players") : "Spieler");
+            case 6 -> "<color:" + WEBSITE + ">EthicBuilds.de</color>";
+            default -> "";
+        };
+    }
+
+    private String mapName() {
+        return gameManager.getGameConfig() != null ? gameManager.getGameConfig().getMapName() : "";
+    }
+
+    private int playerCount() {
+        return gameManager.getGameConfig() != null ? gameManager.getGameConfig().getPlayerCount() : 0;
     }
 
     // Without the Monsters pack: plain text in the lines where the logo and the info line are
