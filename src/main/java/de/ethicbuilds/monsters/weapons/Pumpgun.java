@@ -45,7 +45,7 @@ public class Pumpgun extends Weapon {
     public void shoot(Player player) {
         if (isCoolDown) return;
 
-        startCoolDown();
+        startCoolDown(player);
 
         Location start = player.getEyeLocation();
         Vector direction = start.getDirection().normalize();

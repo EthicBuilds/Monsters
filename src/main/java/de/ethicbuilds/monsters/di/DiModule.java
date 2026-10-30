@@ -53,6 +53,8 @@ public class DiModule extends AbstractModule {
         bind(GrenadeManager.class).asEagerSingleton();
         bind(PowerupManager.class).asEagerSingleton();
         bind(WorkbenchManager.class).asEagerSingleton();
+        bind(de.ethicbuilds.monsters.perk.PerkManager.class).asEagerSingleton();
+        bind(de.ethicbuilds.monsters.gameplay.RoundEndCard.class).asEagerSingleton();
         bind(de.ethicbuilds.monsters.event.WaveEvents.class).asEagerSingleton();
 
         //Repositories

@@ -12,7 +12,11 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /***
  * Today's challenge from the GameManager: shown when joining, checked at the end of the round.
@@ -47,6 +51,12 @@ public final class DailyChallenge {
                 Main.getINSTANCE().getMonstersPrefix(), text(player, challenge), challenge.get("reward").getAsInt()));
     }
 
+    /** Today's challenge in the player's language, null while not loaded */
+    public static String describe(Player player) {
+        JsonObject challenge = today;
+        return challenge == null ? null : text(player, challenge);
+    }
+
     // The GameManager only sends the German text, the English one is built from type and goal
     private static String text(Player player, JsonObject challenge) {
         String german = challenge.get("text").getAsString();
@@ -61,10 +71,11 @@ public final class DailyChallenge {
         };
     }
 
-    /** At the end of the round: everyone who made it today gets the reward once */
-    public static void check(List<GamePlayer> players, int wave) {
+    /** At the end of the round: everyone who made it today gets the reward once. Returns the players who made it */
+    public static Map<UUID, CompletableFuture<Payout>> check(List<GamePlayer> players, int wave) {
+        Map<UUID, CompletableFuture<Payout>> results = new HashMap<>();
         JsonObject challenge = today;
-        if (challenge == null) return;
+        if (challenge == null) return results;
         String type = challenge.get("type").getAsString();
         int goal = challenge.get("goal").getAsInt();
         int reward = challenge.get("reward").getAsInt();
@@ -78,16 +89,25 @@ public final class DailyChallenge {
             };
             if (value < goal) continue;
             Player player = gamePlayer.getPlayer();
+            CompletableFuture<Payout> result = new CompletableFuture<>();
+            results.put(player.getUniqueId(), result);
             Bukkit.getScheduler().runTaskAsynchronously(Main.getINSTANCE(), () -> {
-                if (!claim(player)) return;
+                if (!claim(player)) {
+                    result.complete(Payout.NONE);
+                    return;
+                }
                 Bukkit.getScheduler().runTask(Main.getINSTANCE(), () -> {
-                    if (!player.isOnline()) return;
                     long coins = EthicCoins.withRankBonus(player, reward);
-                    if (!EthicCoins.deposit(player.getUniqueId(), coins, "Monsters Tagesaufgabe")) return;
+                    if (!player.isOnline() || !EthicCoins.deposit(player.getUniqueId(), coins, "Monsters Tagesaufgabe")) {
+                        result.complete(Payout.NONE);
+                        return;
+                    }
                     player.sendMessage(Lang.f(player, "%s§aTagesaufgabe geschafft! §6+%d EthicCoins", "%s§aDaily challenge done! §6+%d EthicCoins", Main.getINSTANCE().getMonstersPrefix(), coins));
+                    result.complete(new Payout(reward, coins));
                 });
             });
         }
+        return results;
     }
 
     private static boolean claim(Player player) {

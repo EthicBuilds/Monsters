@@ -89,7 +89,7 @@ public abstract class Weapon {
     public void shoot(Player player) {
         if (isCoolDown) return;
 
-        startCoolDown();
+        startCoolDown(player);
 
         Location start = player.getEyeLocation();
         Vector direction = aim(player);
@@ -232,13 +232,14 @@ public abstract class Weapon {
         return ammu >= maxAmmu && magazine >= maxMagazine;
     }
 
-    protected void startCoolDown() {
+    // Quick Reload makes the weapon ready sooner
+    protected void startCoolDown(Player player) {
         isCoolDown = true;
         new BukkitRunnable() {
             @Override
             public void run() {
                 isCoolDown = false;
             }
-        }.runTaskLater(Main.getINSTANCE(), fireRate);
+        }.runTaskLater(Main.getINSTANCE(), Main.getINSTANCE().getInjector().getInstance(de.ethicbuilds.monsters.perk.PerkManager.class).cooldown(player, fireRate));
     }
 }

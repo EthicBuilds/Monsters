@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.dto.StopServerDto;
+import de.ethicbuilds.monsters.gameplay.RoundEndCard;
 import de.ethicbuilds.monsters.gameplay.model.GameConfig;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.gameplay.repository.GameStates;
@@ -13,6 +14,7 @@ import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.adapter.LocationAdapter;
 import de.ethicbuilds.monsters.monster.TrackerGlow;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
+import de.ethicbuilds.monsters.perk.PerkManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.reward.DailyChallenge;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -48,6 +50,8 @@ public class GameManager {
     @Inject private MonsterManager monsterManager;
     @Inject private StatisticManager statisticManager;
     @Inject private PowerupManager powerupManager;
+    @Inject private PerkManager perkManager;
+    @Inject private RoundEndCard roundEndCard;
 
     private final Gson gson;
 
@@ -157,8 +161,9 @@ public class GameManager {
         List<GamePlayer> players = new ArrayList<>(userManager.getGamePlayers());
         players.sort(Comparator.comparingInt(GamePlayer::getKilledZombies).reversed());
         for (Player player : Bukkit.getOnlinePlayers()) summary(player, players).forEach(player::sendMessage);
-        de.ethicbuilds.monsters.reward.RoundReward.payOut(players, waveManager.getCurrentWave(), plugin.getMonstersPrefix());
-        DailyChallenge.check(players, waveManager.getCurrentWave());
+        var rewards = de.ethicbuilds.monsters.reward.RoundReward.payOut(players, waveManager.getCurrentWave(), plugin.getMonstersPrefix());
+        var challenges = DailyChallenge.check(players, waveManager.getCurrentWave());
+        roundEndCard.show(players, waveManager.getCurrentWave(), rewards, challenges);
     }
 
     private List<String> summary(Player viewer, List<GamePlayer> players) {
@@ -197,6 +202,7 @@ public class GameManager {
 
     public void gameEnd() {
         gameStates.setCurrentPhase(GamePhase.AFTER_GAME);
+        perkManager.clear();
         for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
             statisticManager.saveStats(gamePlayer);
         }
@@ -219,7 +225,7 @@ public class GameManager {
         }
 
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.sendTitle(Lang.t(player, "§4Spiel Vorbei", "§4Game Over"), Lang.f(player, "§cIhr habt es bis Runde §7%d §cgeschaft!", "§cYou made it to wave §7%d§c!", waveManager.getCurrentWave()));
+            player.sendTitle(Lang.t(player, "§4Spiel Vorbei", "§4Game Over"), Lang.f(player, "§cIhr habt es bis Runde §7%d §cgeschafft!", "§cYou made it to wave §7%d§c!", waveManager.getCurrentWave()));
         }
         sendSummary();
 
