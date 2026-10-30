@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import de.ethicbuilds.monsters.building.BuildManager;
 import de.ethicbuilds.monsters.commands.RoundEndCommand;
 import de.ethicbuilds.monsters.commands.SurrenderCommand;
 import de.ethicbuilds.monsters.di.DiModule;
@@ -118,6 +119,7 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(new PackStatus(), this);
         if (pm.isPluginEnabled("PlaceholderAPI")) injector.getInstance(TabPlaceholders.class).register();
         injector.getInstance(TabNames.class).start();
+        injector.getInstance(BuildManager.class).start();
     }
 
 }

@@ -27,6 +27,8 @@ public class GamePlayer extends GameUser {
     // Armor set from the workbench, 0 = none
     @Getter @Setter private int armorLevel;
     @Getter @Setter private int crowbarLevel;
+    // Building parts, each player collects their own
+    @Getter @Setter private int parts;
 
 
     public GamePlayer(Player player) {

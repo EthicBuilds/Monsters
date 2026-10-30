@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.map.decoration;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.building.BuildManager;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.perk.Perk;
@@ -60,6 +61,7 @@ public class DecorationManager implements Listener {
             "waffenkiste_sturm_1", "sturmgewehr"
     );
     private static final String AMMO_CRATE = "munitionskiste_v1";
+    private static final String PARTS_CRATE = "monsters_bauteilkiste";
     private static final Set<String> SOLID = Set.of(
             "fass_1", "fass_2", "fass_3", "kiste_leer_2", "kiste_leer_3", "kiste_voll_1", "kiste_voll_2"
     );
@@ -70,6 +72,7 @@ public class DecorationManager implements Listener {
     @Inject private Main plugin;
     @Inject private WeaponManager weaponManager;
     @Inject private CrateManager crateManager;
+    @Inject private BuildManager buildManager;
 
     private final Set<UUID> registered = new HashSet<>();
     private final Map<UUID, String> stations = new HashMap<>();
@@ -152,7 +155,11 @@ public class DecorationManager implements Listener {
         }
 
         if (SOLID.contains(id) && entity instanceof ItemDisplay display) {
-            crateManager.register(display, block);
+            crateManager.register(display, block, false);
+        } else if (PARTS_CRATE.equals(id) && entity instanceof ItemDisplay display) {
+            crateManager.register(display, block, true);
+        } else if (entity instanceof ItemDisplay display && buildManager.register(display, id, block)) {
+            return;
         } else if (WEAPON_CRATES.containsKey(id)) {
             createWeaponStation(block, WEAPON_CRATES.get(id));
         } else if (WORKBENCH_STATION.equals(id)) {
@@ -174,6 +181,50 @@ public class DecorationManager implements Listener {
             createStation(block, AMMO_STATION, "Munition", "Ammo", price(WaveListener.AMMO_PRICE) + "\n<#9AA6B8>für die Waffe in der Hand",
                     price(WaveListener.AMMO_PRICE) + "\n<#9AA6B8>for the weapon in your hand");
         }
+    }
+
+    /** Shows another Nexo model on the furniture, with the look Nexo gives it */
+    public void setModel(ItemDisplay display, String id) {
+        ItemStack item = new ItemStack(Material.PAPER);
+        GameItems.setModel(item, id);
+        display.setItemStack(item);
+        look().apply(display, id);
+    }
+
+    /** The barrier blocks Nexo placed for this furniture: the turn is found by trying which one hits barriers */
+    public List<Block> barriers(Block base, String id) {
+        List<int[]> offsets = look().barriers(id);
+        if (offsets.isEmpty()) return List.of();
+        for (int turn = 0; turn < 4; turn++) {
+            List<Block> blocks = new ArrayList<>();
+            for (int[] offset : offsets) {
+                int x = offset[0], z = offset[2];
+                for (int i = 0; i < turn; i++) {
+                    int old = x;
+                    x = -z;
+                    z = old;
+                }
+                blocks.add(base.getRelative(x, offset[1], z));
+            }
+            if (blocks.stream().allMatch(block -> block.getType() == Material.BARRIER)) return blocks;
+        }
+        return List.of();
+    }
+
+    /** Clickable area without a sign, the station name goes to the click handling */
+    public Interaction hitbox(Block block, String station, float width, float height) {
+        Interaction hitbox = block.getWorld().spawn(block.getLocation().add(0.5, 0, 0.5), Interaction.class, interaction -> {
+            interaction.setInteractionWidth(width);
+            interaction.setInteractionHeight(height);
+            interaction.setPersistent(false);
+        });
+        stations.put(hitbox.getUniqueId(), station);
+        return hitbox;
+    }
+
+    public void removeHitbox(Interaction hitbox) {
+        stations.remove(hitbox.getUniqueId());
+        hitbox.remove();
     }
 
     private void createWeaponStation(Block block, String weaponName) {

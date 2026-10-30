@@ -7,6 +7,8 @@ import de.ethicbuilds.monsters.sound.Sounds;
 import de.ethicbuilds.monsters.weapons.AmmoHud;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.building.BuildManager;
+import de.ethicbuilds.monsters.building.Parts;
 import de.ethicbuilds.monsters.gameplay.manager.DoorManager;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
@@ -34,6 +36,7 @@ import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 import de.ethicbuilds.monsters.weapons.manager.WorkbenchManager;
 import org.bukkit.*;
+import org.bukkit.block.Block;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -53,10 +56,13 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class WaveListener implements Listener {
     @Inject private GameManager gameManager;
@@ -70,6 +76,7 @@ public class WaveListener implements Listener {
     @Inject private WorkbenchManager workbenchManager;
     @Inject private PowerupManager powerupManager;
     @Inject private PerkManager perkManager;
+    @Inject private BuildManager buildManager;
     @Inject private Main plugin;
 
     public static final int AMMO_PRICE = 500;
@@ -81,6 +88,10 @@ public class WaveListener implements Listener {
     private final Map<UUID, Long> knifeCoins = new HashMap<>();
 
     private static final int DOOR_PRICE = 2500;
+    // Rubble without a door of the map config, and how near a door has to be to belong to it
+    private static final int RUBBLE_PRICE = 1500;
+    private static final double RUBBLE_DOOR = 5;
+    private static final double PART_DROP = 0.06;
     private static final double DOOR_REACH = 5;
     private static final int HEADSHOT_COINS = 25;
     // Coins already put into a door by players who did not have enough
@@ -135,6 +146,7 @@ public class WaveListener implements Listener {
 
         boolean kill = event.getFinalDamage() >= monster.getHealth();
         if (kill) gamePlayer.setKilledZombies(gamePlayer.getKilledZombies() + 1);
+        if (kill && buildManager.isUsed() && ThreadLocalRandom.current().nextDouble() < PART_DROP) Parts.give(gamePlayer, 1);
 
         // Only headshot kills count (tab, awards, challenge, stats), the coin bonus stays for every headshot
         boolean headshot = ShotDamage.isHeadshot();
@@ -284,6 +296,13 @@ public class WaveListener implements Listener {
         GamePlayer gamePlayer = userManager.getGamePlayer(player.getUniqueId());
         if (gamePlayer == null || userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) return;
 
+        if (station.startsWith(BuildManager.RUBBLE)) {
+            BuildManager.Rubble rubble = buildManager.rubble(station);
+            if (rubble != null) clearRubble(gamePlayer, rubble);
+            return;
+        }
+        if (buildManager.use(gamePlayer, station)) return;
+
         Perk perk = Perk.byFurniture(station);
         if (station.equals(DecorationManager.AMMO_STATION)) {
             refillHeldWeapon(gamePlayer);
@@ -359,6 +378,37 @@ public class WaveListener implements Listener {
         Sounds.buy(player);
     }
 
+    // Rubble at a door opens that door, otherwise it is bought on its own
+    private void clearRubble(GamePlayer gamePlayer, BuildManager.Rubble rubble) {
+        for (Door door : mapManager.getMapConfiguration().getDoors()) {
+            if (!door.getClickableLocations().isEmpty() && door.getHoloLocation().getWorld().equals(rubble.center().getWorld())
+                    && door.getHoloLocation().distanceSquared(rubble.center()) <= RUBBLE_DOOR * RUBBLE_DOOR) {
+                breakDoor(gamePlayer, door);
+                return;
+            }
+        }
+        Player player = gamePlayer.getPlayer();
+        if (!GameItems.isCrowbar(player.getInventory().getItemInMainHand())) {
+            AmmoHud.pause(player);
+            player.sendActionBar(Lang.t(player, "§cRäum den Schutt mit der §6Brechstange §cweg!", "§cClear the rubble with the §6Crowbar§c!"));
+            Sounds.deny(player);
+            return;
+        }
+        if (gamePlayer.getCoins() < RUBBLE_PRICE) {
+            Lang.note(player, Lang.f(player, "§cDu brauchst noch §6%d Coins", "§cNot enough coins, §6%d Coins §cmissing", RUBBLE_PRICE - gamePlayer.getCoins()));
+            Sounds.deny(player);
+            return;
+        }
+        List<Location> blocks = rubble.barriers().isEmpty() ? List.of(rubble.block().getLocation()) : rubble.barriers().stream().map(Block::getLocation).toList();
+        Door pile = new Door("Schutt", new ArrayList<>(blocks), rubble.center());
+        doorManager.breakOpen(gamePlayer, pile, () -> {
+            if (gamePlayer.getCoins() < RUBBLE_PRICE || !rubble.display().isValid()) return;
+            gamePlayer.setCoins(gamePlayer.getCoins() - RUBBLE_PRICE);
+            buildManager.clear(rubble);
+            Sounds.buy(player);
+        });
+    }
+
     private void breakDoor(GamePlayer gamePlayer, Door door) {
         Player player = gamePlayer.getPlayer();
 
@@ -428,6 +478,7 @@ public class WaveListener implements Listener {
             location.getBlock().setType(Material.AIR);
         }
         door.getClickableLocations().clear();
+        buildManager.clearRubbleNear(door.getHoloLocation(), RUBBLE_DOOR);
         removeHolo(door.getHoloLocation());
         removeHolo(door.getHoloLocation().clone().subtract(0, 1, 0));
 

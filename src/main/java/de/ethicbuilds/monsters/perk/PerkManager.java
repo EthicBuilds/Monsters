@@ -1,5 +1,7 @@
 package de.ethicbuilds.monsters.perk;
 
+import com.google.inject.Inject;
+import de.ethicbuilds.monsters.building.PowerGrid;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.player.GamePlayer;
@@ -29,6 +31,7 @@ import java.util.UUID;
  * so lying down, the sniper scope and the reset between rounds keep working with their base values.
  */
 public class PerkManager implements Listener {
+    @Inject private PowerGrid powerGrid;
     private static final double EXTRA_HEALTH = 10, SPEED_BOOST = 0.12, RELOAD_FACTOR = 0.6;
     private static final NamespacedKey HEALTH_KEY = new NamespacedKey("monsters", "perk_leben");
     private static final NamespacedKey SPEED_KEY = new NamespacedKey("monsters", "perk_tempo");
@@ -55,6 +58,11 @@ public class PerkManager implements Listener {
         Player player = gamePlayer.getPlayer();
         if (has(player, perk)) {
             Lang.note(player, Lang.t(player, "§7Du hast §a" + perk.getNameDe() + " §7schon", "§7You already have §a" + perk.getNameEn()));
+            Sounds.deny(player);
+            return;
+        }
+        if (!powerGrid.isPowered()) {
+            Lang.note(player, Lang.t(player, "§eKein Strom! §7Schaltet erst den Strom ein", "§eNo power! §7Turn the power on first"));
             Sounds.deny(player);
             return;
         }

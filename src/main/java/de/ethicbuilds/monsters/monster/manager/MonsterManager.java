@@ -8,6 +8,7 @@ import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.lang.DualBar;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.MapManager;
+import de.ethicbuilds.monsters.building.Breakouts;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.monster.EliteTier;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
@@ -256,6 +257,7 @@ public class MonsterManager {
             }
             enemyMonster.summon(players.get(spawnIndex % players.size()), location);
             monsters.put(enemyMonster.getMonster(), enemyMonster);
+            Breakouts.burst(location);
             spawnIndex++;
         }
     }

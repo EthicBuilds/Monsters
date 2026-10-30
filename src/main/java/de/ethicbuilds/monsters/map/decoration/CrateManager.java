@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.map.decoration;
 
 import com.google.inject.Inject;
+import de.ethicbuilds.monsters.building.Parts;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.items.CrowbarLevel;
@@ -41,6 +42,7 @@ public class CrateManager implements Listener {
     private static final double COINS_CHANCE = 0.2;
     private static final double AMMO_CHANCE = 0.15;
     private static final int COINS = 100;
+    private static final int PARTS = 2;
     private static final double REACH = 5;
     private static final String COLOR = "#F9A11E";
 
@@ -57,19 +59,22 @@ public class CrateManager implements Listener {
         private final ItemStack item;
         private final Transformation transformation;
         private final Block block;
+        // Part crate: building parts instead of the usual loot
+        private final boolean parts;
         private int damage;
 
-        private Crate(ItemDisplay display, Block block) {
+        private Crate(ItemDisplay display, Block block, boolean parts) {
             this.display = display;
+            this.parts = parts;
             this.item = display.getItemStack().clone();
             this.transformation = display.getTransformation();
             this.block = block;
         }
     }
 
-    public void register(ItemDisplay display, Block block) {
+    public void register(ItemDisplay display, Block block, boolean parts) {
         if (block.getType().isAir()) block.setType(Material.BARRIER, false);
-        crates.put(block.getLocation(), new Crate(display, block));
+        crates.put(block.getLocation(), new Crate(display, block, parts));
     }
 
     /** Called at the start of every wave */
@@ -135,6 +140,11 @@ public class CrateManager implements Listener {
         center.getWorld().spawnParticle(Particle.CLOUD, center, 8, 0.3, 0.3, 0.3, 0.02);
         crate.display.setItemStack(null);
         crate.block.setType(Material.AIR, false);
+        if (crate.parts) {
+            // A better crowbar finds one more
+            Parts.give(gamePlayer, PARTS + ThreadLocalRandom.current().nextInt(2) + (gamePlayer.getCrowbarLevel() >= 2 ? 1 : 0));
+            return;
+        }
         loot(gamePlayer);
         if (ThreadLocalRandom.current().nextDouble() < CrowbarLevel.powerupChance(gamePlayer.getCrowbarLevel())) powerupManager.dropAt(center);
     }
