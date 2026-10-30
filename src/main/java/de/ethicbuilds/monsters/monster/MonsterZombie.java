@@ -60,7 +60,7 @@ public class MonsterZombie extends EnemyMonster {
         this.coin = 20;
     }
 
-    private static java.util.Optional<BoneModel> load(String id) {
+    static java.util.Optional<BoneModel> load(String id) {
         return loaded.computeIfAbsent(id, key -> {
             var in = MonsterZombie.class.getResourceAsStream("/mobs/" + key + ".json");
             if (in == null) return java.util.Optional.empty();
@@ -75,6 +75,15 @@ public class MonsterZombie extends EnemyMonster {
     /** Model of the design session (/mobs/<id>.json, zombie bones), null = vanilla; other kinds override it */
     protected String modelId() {
         return getClass() == MonsterZombie.class ? KIND_MODELS.get(type) : null;
+    }
+
+    /** Drawn bigger than designed, e.g. the mini bosses */
+    protected float modelSize() {
+        return 1.0F;
+    }
+
+    protected Voice voice() {
+        return Voice.of(type);
     }
 
     // Own model from the design session, elite tiers with armor plates (those only fit the zombie shape)
@@ -105,8 +114,8 @@ public class MonsterZombie extends EnemyMonster {
         Main.getINSTANCE().getServer().getScheduler().runTaskLater(Main.getINSTANCE(), () -> {
             if (monster.isValid() && monster.getEquipment() != null) monster.getEquipment().clear();
         }, 1L);
-        model = new AnimatedModel(bones, monster, 1.0F);
-        voice = Voice.of(type);
+        model = new AnimatedModel(bones, monster, modelSize());
+        voice = voice();
         if (bones.id().equals(TORCH_MODEL)) TorchLight.follow(monster);
         int tier = bones.id().startsWith("zombie") ? Math.min(getTier(), ARMOR.length - 1) : 0;
         if (tier > 0) {
@@ -175,9 +184,14 @@ public class MonsterZombie extends EnemyMonster {
         if (model != null) model.stroll(on && !crawling);
     }
 
+    /** Bosses keep their limbs */
+    protected boolean losesLimbs() {
+        return true;
+    }
+
     private void maybeLoseLimb() {
         var maxHealth = monster.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
-        if (limbLost || getTier() >= LIMB_SAFE_TIER || maxHealth == null || monster.getHealth() > maxHealth.getValue() * LIMB_HEALTH) return;
+        if (limbLost || !losesLimbs() || getTier() >= LIMB_SAFE_TIER || maxHealth == null || monster.getHealth() > maxHealth.getValue() * LIMB_HEALTH) return;
         var random = java.util.concurrent.ThreadLocalRandom.current();
         if (random.nextDouble() >= LIMB_CHANCE) return;
         limbLost = true;

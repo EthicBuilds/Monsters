@@ -26,8 +26,12 @@ public class MonsterBounty extends EnemyMonster {
     private static final int BASE_REWARD = 500, REWARD_PER_WAVE = 50;
     private static final double FLEE_DISTANCE = 30;
 
+    private static final String MODEL = "kopfgeld_zombie";
+    private static final org.bukkit.Color GLOW = org.bukkit.Color.fromRGB(0xFFCC2E);
+
     private final int reward;
     private int seconds;
+    private de.ethicbuilds.monsters.monster.model.AnimatedModel model;
 
     public MonsterBounty(int wave) {
         this.health = 40;
@@ -42,8 +46,19 @@ public class MonsterBounty extends EnemyMonster {
     @Override
     protected void onSpawn() {
         Bukkit.getMobGoals().removeAllGoals(monster, GoalType.TARGET);
-        monster.setGlowing(true);
-        var equipment = monster.getEquipment();
+        // Model of the design session glowing gold, else the vanilla zombie in gold armor
+        var bones = MonsterZombie.load(MODEL).orElse(null);
+        var equipment = bones == null ? monster.getEquipment() : null;
+        if (bones != null) {
+            monster.setInvisible(true);
+            monster.setCanPickupItems(false);
+            if (monster.getEquipment() != null) monster.getEquipment().clear();
+            model = new de.ethicbuilds.monsters.monster.model.AnimatedModel(bones, monster, 1.0F);
+            model.glow(GLOW);
+            model.play("spawn");
+        } else {
+            monster.setGlowing(true);
+        }
         if (equipment != null) {
             equipment.setHelmet(new ItemStack(Material.GOLDEN_HELMET));
             equipment.setChestplate(new ItemStack(Material.GOLDEN_CHESTPLATE));
@@ -87,6 +102,7 @@ public class MonsterBounty extends EnemyMonster {
     private void escape() {
         Main.getINSTANCE().getInjector().getInstance(MonsterManager.class).removeMonster(this);
         monster.getWorld().spawnParticle(Particle.CLOUD, monster.getLocation().add(0, 1, 0), 20, 0.3, 0.6, 0.3, 0.05);
+        if (model != null) model.remove();
         monster.remove();
         Lang.noteAll("%s§7Der Kopfgeld-Zombie ist entkommen!", "%s§7The Bounty Zombie got away!", Main.getINSTANCE().getMonstersPrefix());
     }
@@ -94,6 +110,7 @@ public class MonsterBounty extends EnemyMonster {
     @Override
     public void onDeath() {
         Player killer = monster.getKiller();
+        if (model != null) model.die(killer != null ? killer.getLocation() : null);
         if (killer == null) return;
         GamePlayer hunter = Main.getINSTANCE().getInjector().getInstance(UserManager.class).getGamePlayer(killer.getUniqueId());
         if (hunter == null) return;

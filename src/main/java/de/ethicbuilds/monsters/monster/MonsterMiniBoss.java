@@ -84,12 +84,38 @@ public class MonsterMiniBoss extends MonsterZombie {
         this.coin = 100;
     }
 
+    // Models of the design session, same order as NAMES
+    private static final String[] MODEL_IDS = {"grabwaechter", "wuestenfuerst", "knochenbrecher", "mumienkoenig", "sandschlund"};
+    // The hitbox stays under 2 blocks for the spawn holes, only the model is bigger
+    private static final float MODEL_SIZE = 1.4F;
+
+    @Override
+    protected String modelId() {
+        return MODEL_IDS[kind];
+    }
+
+    @Override
+    protected float modelSize() {
+        return MODEL_SIZE;
+    }
+
+    @Override
+    protected Voice voice() {
+        return Voice.boss();
+    }
+
+    @Override
+    protected boolean losesLimbs() {
+        return false;
+    }
+
     @Override
     protected void onSpawn() {
-        // Normal size (under 2 blocks), so it fits through every spawn hole; the gold helmet and boss bar mark it
+        super.onSpawn();
+        // Normal size (under 2 blocks), so it fits through every spawn hole; the boss bar marks it
         var attack = monster.getAttribute(Attribute.ATTACK_DAMAGE);
         if (attack != null) attack.setBaseValue(damage);
-        EntityEquipment equipment = monster.getEquipment();
+        EntityEquipment equipment = model() == null ? monster.getEquipment() : null;
         if (equipment != null) {
             equipment.setHelmet(new ItemStack(Material.GOLDEN_HELMET));
             equipment.setChestplate(new ItemStack(Material.IRON_CHESTPLATE));
@@ -361,7 +387,8 @@ public class MonsterMiniBoss extends MonsterZombie {
         EntityEquipment equipment = monster.getEquipment();
         ItemStack[] armor = equipment != null ? equipment.getArmorContents() : null;
         if (equipment != null) equipment.setArmorContents(new ItemStack[4]);
-        monster.setInvisible(true);
+        if (model() != null) model().conceal(true);
+        else monster.setInvisible(true);
         monster.setInvulnerable(true);
         mob.setAware(false);
         mob.setTarget(null);
@@ -403,7 +430,8 @@ public class MonsterMiniBoss extends MonsterZombie {
         Location to = exit.clone();
         to.setYaw(monster.getLocation().getYaw());
         monster.teleport(to, io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_PASSENGERS);
-        monster.setInvisible(false);
+        if (model() != null) model().conceal(false);
+        else monster.setInvisible(false);
         if (equipment != null && armor != null) equipment.setArmorContents(armor);
         if (!PauseManager.isPaused()) {
             monster.setInvulnerable(false);

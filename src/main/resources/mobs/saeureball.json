@@ -1,0 +1,1 @@
+{"id":"saeureball","bones":[{"id":"root","pivot":[0,0,0],"rest":[0,0,0],"model":false},{"id":"kugel","parent":"root","pivot":[0,4,0],"rest":[0,0,0],"model":true}],"animations":{"fliegen":{"length":0.6,"loopDelay":0,"bones":{"kugel":{"rotation":[[0,0,0,0,"catmullrom"],[0.3,0,0,180,"catmullrom"],[0.6,0,0,360,"catmullrom"]]}},"loop":true}},"modelScale":2.0}

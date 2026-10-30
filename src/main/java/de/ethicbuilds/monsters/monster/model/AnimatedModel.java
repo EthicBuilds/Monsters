@@ -191,13 +191,19 @@ public class AnimatedModel implements Corpses.Corpse {
     public void hideBone(String id) {
         List<BoneModel.Bone> bones = model.bones();
         for (int i = 0; i < bones.size(); i++) {
-            if (!bones.get(i).id().equals(id)) continue;
+            // Children go along, e.g. the weapon in the hand
+            if (!bones.get(i).id().equals(id) && !descends(i, id)) continue;
             if (parts[i] != null) parts[i].remove();
             if (layer != null && layer[i] != null) {
                 layer[i].remove();
                 layer[i] = null;
             }
         }
+    }
+
+    private boolean descends(int bone, String ancestor) {
+        for (int p = parents[bone]; p >= 0; p = parents[p]) if (model.bones().get(p).id().equals(ancestor)) return true;
+        return false;
     }
 
     /** Only the plate of a bone comes off, e.g. broken armor; returns where it was */
@@ -208,6 +214,28 @@ public class AnimatedModel implements Corpses.Corpse {
         layer[i].remove();
         layer[i] = null;
         return at;
+    }
+
+    private ItemStack[] concealed;
+
+    /** Hidden for a while (e.g. dug into the ground), the bones keep moving */
+    public void conceal(boolean on) {
+        List<ItemDisplay> all = all();
+        if (on && concealed == null) {
+            concealed = new ItemStack[all.size()];
+            for (int i = 0; i < all.size(); i++) {
+                ItemDisplay part = all.get(i);
+                if (part == null || !part.isValid()) continue;
+                concealed[i] = part.getItemStack();
+                part.setItemStack(new ItemStack(Material.AIR));
+            }
+        } else if (!on && concealed != null) {
+            for (int i = 0; i < all.size() && i < concealed.length; i++) {
+                ItemDisplay part = all.get(i);
+                if (part != null && part.isValid() && concealed[i] != null) part.setItemStack(concealed[i]);
+            }
+            concealed = null;
+        }
     }
 
     /** Strolls also at normal speed, e.g. on the way to a noise */

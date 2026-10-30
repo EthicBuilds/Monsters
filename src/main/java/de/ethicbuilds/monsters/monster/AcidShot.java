@@ -35,6 +35,15 @@ public final class AcidShot {
 
     private AcidShot() {}
 
+    // Model of the design session (stored at half size like every bone), the slime ball if the pack misses it
+    private static final float BALL_SCALE = 3.0F;
+
+    private static ItemStack ball() {
+        ItemStack item = new ItemStack(Material.SLIME_BALL);
+        item.editMeta(meta -> meta.setItemModel(new org.bukkit.NamespacedKey("monsters", "saeureball/kugel")));
+        return item;
+    }
+
     public static void fire(LivingEntity spitter, Location to) {
         Location from = spitter.getEyeLocation();
         World world = spitter.getWorld();
@@ -44,12 +53,12 @@ public final class AcidShot {
         GroundMark mark = GroundMark.warn(to, GroundMark.DANGER, RADIUS, flight);
         world.playSound(from, Sound.ENTITY_LLAMA_SPIT, 1.0F, 0.6F);
         ItemDisplay ball = world.spawn(from, ItemDisplay.class, display -> {
-            display.setItemStack(new ItemStack(Material.SLIME_BALL));
+            display.setItemStack(ball());
             display.setBillboard(Display.Billboard.CENTER);
             display.setBrightness(new Display.Brightness(15, 15));
             display.setTeleportDuration(1);
             display.setPersistent(false);
-            display.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(0.8F), new AxisAngle4f()));
+            display.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(BALL_SCALE), new AxisAngle4f()));
         });
         Particle.DustOptions dust = new Particle.DustOptions(ACID, 1.2F);
         new BukkitRunnable() {
