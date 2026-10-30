@@ -1,6 +1,14 @@
 package de.ethicbuilds.monsters.weapons;
 
+import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.lang.Overlay;
+import de.ethicbuilds.monsters.monster.manager.MonsterManager;
+import de.ethicbuilds.monsters.sound.Sounds;
+import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 
 /***
@@ -16,7 +24,7 @@ public final class ShotDamage {
     private static boolean headshot;
     // A gun shot, not a grenade
     private static boolean aimed;
-    private static de.ethicbuilds.monsters.monster.manager.MonsterManager monsters;
+    private static MonsterManager monsters;
 
     private ShotDamage() {}
 
@@ -30,21 +38,21 @@ public final class ShotDamage {
     }
 
     /** A shot that hit at this point: at the head it does more damage and gives more coins */
-    public static void shoot(LivingEntity target, double amount, Player shooter, org.bukkit.Location point) {
+    public static void shoot(LivingEntity target, double amount, Player shooter, Location point) {
         // Invisible zombies carry a model with the head at eye height, the other models (spiders) do not
         headshot = target.getEyeLocation().getY() - point.getY() < HEAD_SIZE
-                && (!target.isInvisible() || target.getType() == org.bukkit.entity.EntityType.ZOMBIE);
+                && (!target.isInvisible() || target.getType() == EntityType.ZOMBIE);
         aimed = true;
         try {
             boolean armor = armored(target);
             if (headshot) {
-                de.ethicbuilds.monsters.sound.Sounds.headshot(shooter);
-                target.getWorld().spawnParticle(org.bukkit.Particle.CRIT, target.getEyeLocation(), 8, 0.2, 0.2, 0.2, 0.1);
+                Sounds.headshot(shooter);
+                target.getWorld().spawnParticle(Particle.CRIT, target.getEyeLocation(), 8, 0.2, 0.2, 0.2, 0.1);
             } else if (armor) {
-                de.ethicbuilds.monsters.sound.Sounds.armorHit(shooter);
+                Sounds.armorHit(shooter);
             }
             deal(target, headshot ? amount * HEADSHOT_MULTIPLIER : amount, shooter);
-            de.ethicbuilds.monsters.lang.Overlay.hit(shooter, headshot, armor, target.isDead() || target.getHealth() <= 0);
+            Overlay.hit(shooter, headshot, armor, target.isDead() || target.getHealth() <= 0);
         } finally {
             headshot = false;
             aimed = false;
@@ -52,9 +60,9 @@ public final class ShotDamage {
     }
 
     private static boolean armored(LivingEntity target) {
-        if (!(target instanceof org.bukkit.entity.Monster monster)) return false;
-        if (monsters == null) monsters = de.ethicbuilds.monsters.Main.getINSTANCE().getInjector()
-                .getInstance(de.ethicbuilds.monsters.monster.manager.MonsterManager.class);
+        if (!(target instanceof Monster monster)) return false;
+        if (monsters == null) monsters = Main.getINSTANCE().getInjector()
+                .getInstance(MonsterManager.class);
         var enemy = monsters.getEnemyMonster(monster);
         return enemy != null && enemy.armored();
     }

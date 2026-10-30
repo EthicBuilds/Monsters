@@ -2,16 +2,23 @@ package de.ethicbuilds.monsters.monster.model;
 
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.LagGuard;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.CustomModelData;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,7 +75,7 @@ public class AnimatedModel implements Corpses.Corpse {
     private LegRig rig;
     private boolean rigActive;
     private boolean steering;
-    private org.bukkit.entity.Entity faceTarget;
+    private Entity faceTarget;
     // Turning speed of a steered model, degrees per tick
     private static final float TURN_PER_TICK = 12;
     private final int[] parents;
@@ -113,15 +120,15 @@ public class AnimatedModel implements Corpses.Corpse {
      * Other item models for all bones (same shapes, e.g. the tinted ones of the design session) in one colour,
      * single bones can get their own model (e.g. glowing eyes)
      */
-    public void restyle(String folder, org.bukkit.Color tint, Map<String, String> overrides) {
+    public void restyle(String folder, Color tint, Map<String, String> overrides) {
         List<BoneModel.Bone> bones = model.bones();
         for (int i = 0; i < bones.size(); i++) {
             if (parts[i] == null || !parts[i].isValid()) continue;
             String id = overrides.getOrDefault(bones.get(i).id(), folder + "/" + bones.get(i).id());
             ItemStack item = new ItemStack(Material.PAPER);
             item.editMeta(meta -> meta.setItemModel(new NamespacedKey("monsters", id)));
-            item.setData(io.papermc.paper.datacomponent.DataComponentTypes.CUSTOM_MODEL_DATA,
-                    io.papermc.paper.datacomponent.item.CustomModelData.customModelData().addColor(tint).build());
+            item.setData(DataComponentTypes.CUSTOM_MODEL_DATA,
+                    CustomModelData.customModelData().addColor(tint).build());
             parts[i].setItemStack(item);
         }
     }
@@ -133,7 +140,7 @@ public class AnimatedModel implements Corpses.Corpse {
     }
 
     /** Whom the model looks at while it stands */
-    public void face(org.bukkit.entity.Entity target) {
+    public void face(Entity target) {
         faceTarget = target;
     }
 
@@ -175,7 +182,7 @@ public class AnimatedModel implements Corpses.Corpse {
     }
 
     /** Outline in one colour, null switches it off */
-    public void glow(org.bukkit.Color color) {
+    public void glow(Color color) {
         for (ItemDisplay part : parts) {
             if (part == null || !part.isValid()) continue;
             part.setGlowing(color != null);
@@ -332,8 +339,8 @@ public class AnimatedModel implements Corpses.Corpse {
     }
 
     private List<ItemDisplay> all() {
-        List<ItemDisplay> all = new java.util.ArrayList<>(java.util.Arrays.asList(parts));
-        if (layer != null) all.addAll(java.util.Arrays.asList(layer));
+        List<ItemDisplay> all = new ArrayList<>(Arrays.asList(parts));
+        if (layer != null) all.addAll(Arrays.asList(layer));
         return all;
     }
 
@@ -436,7 +443,7 @@ public class AnimatedModel implements Corpses.Corpse {
     // Squared distance to the nearest player
     private double nearestPlayer(Location at) {
         double nearest = Double.MAX_VALUE;
-        for (org.bukkit.entity.Player player : at.getWorld().getPlayers()) {
+        for (Player player : at.getWorld().getPlayers()) {
             nearest = Math.min(nearest, player.getLocation().distanceSquared(at));
         }
         return nearest;

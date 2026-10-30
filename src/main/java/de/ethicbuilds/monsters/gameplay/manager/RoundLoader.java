@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.gameplay.manager;
 import com.google.gson.Gson;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.map.MapManager;
 import lombok.Getter;
 import org.bukkit.Bukkit;
@@ -66,7 +67,7 @@ public class RoundLoader {
         String body = new Gson().toJson(Map.of(
                 "serverName", plugin.getConfig().getString("server-name", ""),
                 "state", loaded ? "round" : "waiting",
-                "started", loaded && gameManager.getCurrentPhase() != de.ethicbuilds.monsters.gameplay.model.GamePhase.PRE_GAME));
+                "started", loaded && gameManager.getCurrentPhase() != GamePhase.PRE_GAME));
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(STATUS_URL))
                 .header("Content-Type", "application/json")

@@ -8,6 +8,7 @@ import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import de.ethicbuilds.monsters.powerup.PowerupManager;
 import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -46,7 +47,7 @@ public class CrateManager implements Listener {
     @Inject private UserManager userManager;
     @Inject private GameManager gameManager;
     @Inject private GrenadeManager grenadeManager;
-    @Inject private de.ethicbuilds.monsters.powerup.PowerupManager powerupManager;
+    @Inject private PowerupManager powerupManager;
 
     private final Map<Location, Crate> crates = new HashMap<>();
     private final Map<UUID, Long> lastHits = new HashMap<>();

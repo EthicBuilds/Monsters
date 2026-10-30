@@ -6,6 +6,9 @@ import de.ethicbuilds.monsters.monster.model.BoneModel;
 import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Silverfish;
+
+import java.io.IOException;
 
 /***
  * Scarab from the swarm event: small, quick, little health, crawls out of the sand near the players.
@@ -30,7 +33,7 @@ public class MonsterScarab extends EnemyMonster {
         if (beetle == null) {
             try {
                 beetle = BoneModel.load(MonsterScarab.class.getResourceAsStream("/mobs/skarabaeus.json"));
-            } catch (java.io.IOException e) {
+            } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
@@ -43,8 +46,8 @@ public class MonsterScarab extends EnemyMonster {
         model = new AnimatedModel(beetle(), monster, MODEL_SIZE);
         // Not into the walls and no friends out of the stone
         var goals = Bukkit.getMobGoals();
-        goals.removeGoal((org.bukkit.entity.Silverfish) monster, VanillaGoal.SILVERFISH_MERGE_WITH_STONE);
-        goals.removeGoal((org.bukkit.entity.Silverfish) monster, VanillaGoal.SILVERFISH_WAKE_UP_FRIENDS);
+        goals.removeGoal((Silverfish) monster, VanillaGoal.SILVERFISH_MERGE_WITH_STONE);
+        goals.removeGoal((Silverfish) monster, VanillaGoal.SILVERFISH_WAKE_UP_FRIENDS);
         var attack = monster.getAttribute(Attribute.ATTACK_DAMAGE);
         if (attack != null) attack.setBaseValue(damage);
     }

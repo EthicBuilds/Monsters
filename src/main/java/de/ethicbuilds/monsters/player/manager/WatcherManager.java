@@ -1,10 +1,13 @@
 package de.ethicbuilds.monsters.player.manager;
 
+import com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent;
+import com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.MapManager;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -29,8 +32,10 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /***
@@ -50,7 +55,7 @@ public class WatcherManager implements Listener {
     // Watched player, null while the watcher is at the items
     private final Map<UUID, Player> watchers = new HashMap<>();
     private final Map<UUID, Player> lastWatched = new HashMap<>();
-    private final java.util.Set<UUID> switching = new java.util.HashSet<>();
+    private final Set<UUID> switching = new HashSet<>();
     private BukkitRunnable check;
 
     public boolean isWatcher(UUID uuid) {
@@ -77,9 +82,9 @@ public class WatcherManager implements Listener {
         setBase(player, Attribute.GRAVITY, 0);
         player.teleport(mapManager.getMapConfiguration().getSpawn());
         ChatStatus.send(player, true);
-        de.ethicbuilds.monsters.lang.Overlay.medium(player, de.ethicbuilds.monsters.lang.Overlay.GREY,
-                de.ethicbuilds.monsters.lang.Overlay.line(de.ethicbuilds.monsters.lang.Overlay.NEXT, "#3CDC6E", "Zuschauen", "die Runde läuft schon"),
-                de.ethicbuilds.monsters.lang.Overlay.line(de.ethicbuilds.monsters.lang.Overlay.NEXT, "#3CDC6E", "Spectating", "the round is already running"));
+        Overlay.medium(player, Overlay.GREY,
+                Overlay.line(Overlay.NEXT, "#3CDC6E", "Zuschauen", "die Runde läuft schon"),
+                Overlay.line(Overlay.NEXT, "#3CDC6E", "Spectating", "the round is already running"));
         // A moment later, right after joining the camera does not attach yet
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (player.isOnline() && isWatcher(player.getUniqueId())) cycle(player, 1);
@@ -170,7 +175,7 @@ public class WatcherManager implements Listener {
 
     // Sneaking leaves the view and goes back to the items
     @EventHandler
-    public void onStopWatching(com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent event) {
+    public void onStopWatching(PlayerStopSpectatingEntityEvent event) {
         Player player = event.getPlayer();
         if (watchers.get(player.getUniqueId()) == null || !event.getSpectatorTarget().isValid()) return;
         event.setCancelled(true);
@@ -180,7 +185,7 @@ public class WatcherManager implements Listener {
     }
 
     @EventHandler
-    public void onStartWatching(com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent event) {
+    public void onStartWatching(PlayerStartSpectatingEntityEvent event) {
         if (!isWatcher(event.getPlayer().getUniqueId())) return;
         if (!(event.getNewSpectatorTarget() instanceof Player target) || !living().contains(target)) event.setCancelled(true);
     }

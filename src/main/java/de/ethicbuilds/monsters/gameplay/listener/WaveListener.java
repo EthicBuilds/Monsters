@@ -1,5 +1,8 @@
 package de.ethicbuilds.monsters.gameplay.listener;
 
+import de.ethicbuilds.monsters.event.WaveEvents;
+import de.ethicbuilds.monsters.monster.MonsterSpiderBoss;
+import de.ethicbuilds.monsters.reward.RoundReward;
 import de.ethicbuilds.monsters.sound.Sounds;
 import de.ethicbuilds.monsters.weapons.AmmoHud;
 import com.google.inject.Inject;
@@ -51,6 +54,10 @@ import org.bukkit.potion.PotionEffectType;
 import de.ethicbuilds.monsters.powerup.PowerupManager;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public class WaveListener implements Listener {
     @Inject private GameManager gameManager;
@@ -68,24 +75,24 @@ public class WaveListener implements Listener {
 
     public static final int AMMO_PRICE = 500;
     private static final long AMMO_COOLDOWN = 1500;
-    private final java.util.Map<java.util.UUID, Long> ammoCooldowns = new java.util.HashMap<>();
+    private final Map<UUID, Long> ammoCooldowns = new HashMap<>();
 
     // Knife coins at most every 2 seconds, for each player on their own
     private static final long KNIFE_COOLDOWN = 2000;
-    private final java.util.Map<java.util.UUID, Long> knifeCoins = new java.util.HashMap<>();
+    private final Map<UUID, Long> knifeCoins = new HashMap<>();
 
     private static final int DOOR_PRICE = 2500;
     private static final double DOOR_REACH = 5;
     private static final int HEADSHOT_COINS = 25;
     // Coins already put into a door by players who did not have enough
-    private final java.util.Map<Door, Integer> doorPayments = new java.util.IdentityHashMap<>();
+    private final Map<Door, Integer> doorPayments = new IdentityHashMap<>();
 
     // Insta-kill powerup: shots, grenades and the knife kill at once, not the bare hand. Only the boss keeps its health
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onInstakill(EntityDamageByEntityEvent event) {
         if (!powerupManager.isInstakill() || !(event.getEntity() instanceof Monster monster) || !(event.getDamager() instanceof Player player)) return;
         if (!ShotDamage.isActive() && player.getInventory().getItemInMainHand().getType() != GameItems.KNIFE) return;
-        if (monsterManager.getEnemyMonster(monster) instanceof de.ethicbuilds.monsters.monster.MonsterSpiderBoss) return;
+        if (monsterManager.getEnemyMonster(monster) instanceof MonsterSpiderBoss) return;
         event.setDamage(monster.getHealth() + 100);
     }
 
@@ -134,13 +141,13 @@ public class WaveListener implements Listener {
         boolean headshot = ShotDamage.isHeadshot();
         if (headshot && kill) gamePlayer.setHeadshots(gamePlayer.getHeadshots() + 1);
         int coins = (int) Math.round(((headshot ? HEADSHOT_COINS : 20) + EliteTier.extraCoins(enemyMonster.getTier()))
-                * de.ethicbuilds.monsters.event.WaveEvents.coinFactor());
+                * WaveEvents.coinFactor());
 
         gamePlayer.addCoins(coins);
-        de.ethicbuilds.monsters.reward.RoundReward.markActive(player.getUniqueId());
+        RoundReward.markActive(player.getUniqueId());
         CoinPopups.show(player, enemyMonster.getMonster().getLocation(), coins, headshot);
-        if (de.ethicbuilds.monsters.event.WaveEvents.isGoldRush()) {
-            monster.getWorld().spawnParticle(Particle.DUST, monster.getLocation().add(0, 1.2, 0), 6, 0.3, 0.4, 0.3, de.ethicbuilds.monsters.event.WaveEvents.GOLD);
+        if (WaveEvents.isGoldRush()) {
+            monster.getWorld().spawnParticle(Particle.DUST, monster.getLocation().add(0, 1.2, 0), 6, 0.3, 0.4, 0.3, WaveEvents.GOLD);
         }
     }
 
@@ -180,7 +187,7 @@ public class WaveListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onShowFirework(EntityDamageByEntityEvent event) {
         if (event.getDamager() instanceof Firework firework
-                && firework.getPersistentDataContainer().has(de.ethicbuilds.monsters.monster.MonsterSpiderBoss.SHOW_FIREWORK)) {
+                && firework.getPersistentDataContainer().has(MonsterSpiderBoss.SHOW_FIREWORK)) {
             event.setCancelled(true);
         }
     }

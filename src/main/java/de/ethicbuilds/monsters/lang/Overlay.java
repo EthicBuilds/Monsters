@@ -8,6 +8,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /***
  * One look for every popup text (design session, font monsters:overlay): symbol, 3 px, bold main word in the event
@@ -32,7 +35,7 @@ public final class Overlay {
     private static final char HIT = '\uE212', HEAD_HIT = '\uE213';
     private static final String HIT_WHITE = "#FFFFFF", HIT_HEAD = "#FF8A8A", HIT_KILL = "#FF3B3B", HIT_ARMOR = "#9A9A9A";
     // Until then a big or medium text is shown, a hit marker would replace it
-    private static final java.util.Map<java.util.UUID, Long> titleUntil = new java.util.HashMap<>();
+    private static final Map<UUID, Long> titleUntil = new HashMap<>();
 
     private Overlay() {}
 
@@ -87,7 +90,7 @@ public final class Overlay {
     }
 
     // Parsed once per marker look, shots hit many times a second
-    private static final java.util.Map<String, Title> HIT_TITLES = new java.util.HashMap<>();
+    private static final Map<String, Title> HIT_TITLES = new HashMap<>();
 
     /** Hit marker in the middle, only while no other text is shown */
     public static void hit(Player player, boolean headshot, boolean armor, boolean kill) {

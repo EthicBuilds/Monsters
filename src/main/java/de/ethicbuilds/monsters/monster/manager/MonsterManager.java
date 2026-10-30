@@ -3,36 +3,49 @@ package de.ethicbuilds.monsters.monster.manager;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
+import de.ethicbuilds.monsters.gameplay.manager.PauseManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
+import de.ethicbuilds.monsters.lang.DualBar;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.monster.EliteTier;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.HealthBars;
+import de.ethicbuilds.monsters.monster.MonsterBloater;
+import de.ethicbuilds.monsters.monster.MonsterCrawler;
 import de.ethicbuilds.monsters.monster.MonsterMiniBoss;
 import de.ethicbuilds.monsters.monster.MonsterBounty;
 import de.ethicbuilds.monsters.monster.MonsterScarab;
+import de.ethicbuilds.monsters.monster.MonsterShieldbearer;
 import de.ethicbuilds.monsters.monster.MonsterSpider;
 import de.ethicbuilds.monsters.monster.MonsterSpiderBoss;
+import de.ethicbuilds.monsters.monster.MonsterSpitter;
 import de.ethicbuilds.monsters.monster.MonsterZombie;
 import de.ethicbuilds.monsters.monster.OpenGround;
 import de.ethicbuilds.monsters.monster.PlayerTrail;
 import de.ethicbuilds.monsters.monster.WaveScaling;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import io.papermc.paper.entity.TeleportFlag;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MonsterManager {
@@ -110,10 +123,10 @@ public class MonsterManager {
         double roll = Math.random();
         if (wave >= 48 && (roll -= 0.10) < 0) return new MonsterZombie(EntityType.VINDICATOR, "§7Diener");
         if (wave >= 24 && (roll -= 0.15) < 0) return new MonsterZombie(EntityType.ZOMBIE_VILLAGER, "§7Zombiedorfbewohner");
-        if (wave >= 15 && (roll -= 0.06) < 0) return new de.ethicbuilds.monsters.monster.MonsterShieldbearer();
-        if (wave >= 12 && (roll -= 0.07) < 0) return new de.ethicbuilds.monsters.monster.MonsterSpitter();
+        if (wave >= 15 && (roll -= 0.06) < 0) return new MonsterShieldbearer();
+        if (wave >= 12 && (roll -= 0.07) < 0) return new MonsterSpitter();
         if (wave >= 12 && (roll -= 0.10) < 0) return new MonsterZombie(EntityType.PARCHED, "§7Vertrockneter");
-        if (wave >= 9 && (roll -= 0.07) < 0) return new de.ethicbuilds.monsters.monster.MonsterBloater();
+        if (wave >= 9 && (roll -= 0.07) < 0) return new MonsterBloater();
         if (wave >= 6 && (roll -= 0.25) < 0) return new MonsterZombie(EntityType.HUSK, "§7Wüstenzombie");
         return new MonsterZombie();
     }
@@ -123,7 +136,7 @@ public class MonsterManager {
         int players = Math.max(1, livingPlayers().size());
         List<EnemyMonster> horde = new ArrayList<>();
         for (int i = 0; i < players * HORDE_PER_PLAYER; i++) {
-            EnemyMonster monster = new de.ethicbuilds.monsters.monster.MonsterCrawler();
+            EnemyMonster monster = new MonsterCrawler();
             monster.setTier(EliteTier.roll(wave));
             monster.setWave(wave);
             monster.setSprinter(true);
@@ -135,9 +148,9 @@ public class MonsterManager {
 
     // A bar counts the horde down, beaten it gives coins for everyone still standing
     private void trackHorde(List<EnemyMonster> horde) {
-        de.ethicbuilds.monsters.lang.DualBar bar = new de.ethicbuilds.monsters.lang.DualBar("", "", org.bukkit.boss.BarColor.RED, org.bukkit.boss.BarStyle.SEGMENTED_10);
+        DualBar bar = new DualBar("", "", BarColor.RED, BarStyle.SEGMENTED_10);
         int total = horde.size();
-        new org.bukkit.scheduler.BukkitRunnable() {
+        new BukkitRunnable() {
             @Override
             public void run() {
                 long left = horde.stream().filter(m -> initialMonsters.contains(m) || m.getMonster() != null && m.getMonster().isValid() && !m.getMonster().isDead()).count();
@@ -156,7 +169,7 @@ public class MonsterManager {
                         String bonus = Overlay.num("+" + HORDE_BONUS) + " " + Overlay.coin();
                         Overlay.medium(player, BEATEN_COLOR, Overlay.line(Overlay.HORDE, BEATEN_COLOR, "HORDE BESIEGT", bonus),
                                 Overlay.line(Overlay.HORDE, BEATEN_COLOR, "HORDE BEATEN", bonus));
-                        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.6F, 1.2F);
+                        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.6F, 1.2F);
                     }
                     return;
                 }
@@ -238,7 +251,7 @@ public class MonsterManager {
                 Location open = OpenGround.random(players, 0, 1);
                 if (open != null) {
                     location = open;
-                    open.getWorld().spawnParticle(org.bukkit.Particle.BLOCK, open.clone().add(0, 0.3, 0), 12, 0.3, 0.1, 0.3, open.clone().subtract(0, 1, 0).getBlock().getBlockData());
+                    open.getWorld().spawnParticle(Particle.BLOCK, open.clone().add(0, 0.3, 0), 12, 0.3, 0.1, 0.3, open.clone().subtract(0, 1, 0).getBlock().getBlockData());
                 }
             }
             enemyMonster.summon(players.get(spawnIndex % players.size()), location);
@@ -279,7 +292,7 @@ public class MonsterManager {
     }
 
     private static final double SHOT_NOISE = 16, GRENADE_NOISE = 28;
-    private final Map<java.util.UUID, Long> lastShotNoise = new java.util.HashMap<>();
+    private final Map<UUID, Long> lastShotNoise = new HashMap<>();
 
     /** A shot, at most once a second per player */
     public void shotNoise(Player player) {
@@ -297,7 +310,7 @@ public class MonsterManager {
     // Zombies and crawlers that have not found their player yet go there (design session)
     private void noise(Location at, double radius) {
         for (EnemyMonster enemy : monsters.values()) {
-            if (!(enemy instanceof MonsterZombie || enemy instanceof de.ethicbuilds.monsters.monster.MonsterCrawler) || enemy instanceof MonsterMiniBoss) continue;
+            if (!(enemy instanceof MonsterZombie || enemy instanceof MonsterCrawler) || enemy instanceof MonsterMiniBoss) continue;
             Monster entity = enemy.getMonster();
             if (entity == null || !entity.getWorld().equals(at.getWorld()) || entity.getLocation().distanceSquared(at) > radius * radius) continue;
             enemy.hear(at);
@@ -318,7 +331,7 @@ public class MonsterManager {
         }, 0L, 10L);
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             // Frozen monsters during a pause are not stuck
-            if (de.ethicbuilds.monsters.gameplay.manager.PauseManager.isPaused()) return;
+            if (PauseManager.isPaused()) return;
             long now = System.currentTimeMillis();
             HealthBars.tidy(plugin.getWorld());
 
@@ -344,7 +357,7 @@ public class MonsterManager {
                 // The boss weaver never stays far away from the players
                 if (enemyMonster instanceof MonsterSpiderBoss boss && nearest != null && nearest.getLocation().distanceSquared(loc) > BOSS_LEASH * BOSS_LEASH) {
                     Location open = spiderSpot(boss, livingPlayers());
-                    if (open != null) entity.teleport(open, io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_PASSENGERS);
+                    if (open != null) entity.teleport(open, TeleportFlag.EntityState.RETAIN_PASSENGERS);
                 }
 
                 // Stuck: stayed within a small spot (also wobbling back and forth) without a player next to it
@@ -356,7 +369,7 @@ public class MonsterManager {
                     if (now - lastMoved >= 10_000 && enemyMonster instanceof MonsterSpider spider) {
                         Location open = spiderSpot(spider, livingPlayers());
                         // The model parts ride on it and come along
-                        if (open != null) entity.teleport(open, io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_PASSENGERS);
+                        if (open != null) entity.teleport(open, TeleportFlag.EntityState.RETAIN_PASSENGERS);
                         lastMoveTime.put(enemyMonster, now);
                         continue;
                     }
@@ -365,7 +378,7 @@ public class MonsterManager {
                         List<Location> spawners = getActiveSpawnerLocations();
                         if (!spawners.isEmpty()) {
                             Location spawner = nearestSpawner(spawners, nearest).clone().add(0, 1, 0);
-                            entity.teleport(spawner, io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_PASSENGERS);
+                            entity.teleport(spawner, TeleportFlag.EntityState.RETAIN_PASSENGERS);
                             lastMoveTime.put(enemyMonster, now);
                             lastLocation.put(enemyMonster, spawner);
                             continue;

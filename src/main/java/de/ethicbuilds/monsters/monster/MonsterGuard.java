@@ -5,10 +5,13 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Monster;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -54,15 +57,15 @@ public class MonsterGuard implements Listener {
 
     // Monsters do not hurt each other, e.g. arrows of the parched
     @EventHandler
-    public void onMonsterHitsMonster(org.bukkit.event.entity.EntityDamageByEntityEvent event) {
+    public void onMonsterHitsMonster(EntityDamageByEntityEvent event) {
         if (!(event.getEntity() instanceof Monster)) return;
-        org.bukkit.entity.Entity damager = event.getDamager();
-        if (damager instanceof org.bukkit.entity.Projectile projectile && projectile.getShooter() instanceof Monster) event.setCancelled(true);
+        Entity damager = event.getDamager();
+        if (damager instanceof Projectile projectile && projectile.getShooter() instanceof Monster) event.setCancelled(true);
         if (damager instanceof Monster) event.setCancelled(true);
     }
 
     @EventHandler
-    public void onMonsterTargetsMonster(org.bukkit.event.entity.EntityTargetLivingEntityEvent event) {
+    public void onMonsterTargetsMonster(EntityTargetLivingEntityEvent event) {
         if (event.getEntity() instanceof Monster && event.getTarget() instanceof Monster) event.setCancelled(true);
     }
 

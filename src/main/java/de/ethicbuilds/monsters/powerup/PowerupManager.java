@@ -2,7 +2,9 @@ package de.ethicbuilds.monsters.powerup;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.event.WaveEvents;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
+import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.lang.DualBar;
@@ -29,9 +31,11 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Transformation;
+import org.bukkit.util.Vector;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -91,7 +95,7 @@ public class PowerupManager {
     @Inject private Main plugin;
     @Inject private UserManager userManager;
     @Inject private GameManager gameManager;
-    @Inject private de.ethicbuilds.monsters.gameplay.manager.WaveManager waveManager;
+    @Inject private WaveManager waveManager;
 
     private final LinkedList<Location> spots = new LinkedList<>();
     private final Map<ItemDisplay, Type> powerups = new HashMap<>();
@@ -138,7 +142,7 @@ public class PowerupManager {
     public void dropFrom(Location location) {
         if (gameManager.getCurrentPhase() != GamePhase.WAVE || powerups.size() >= MAX_DROPPED) return;
         // Gold rush: twice the chance
-        double roll = ThreadLocalRandom.current().nextDouble() / de.ethicbuilds.monsters.event.WaveEvents.powerupFactor();
+        double roll = ThreadLocalRandom.current().nextDouble() / WaveEvents.powerupFactor();
         for (Type type : Type.values()) {
             if ((roll -= type.dropChance) < 0) {
                 if (type == Type.AMMO && !ammoAllowed()) return;
@@ -170,7 +174,7 @@ public class PowerupManager {
     private void checkEmergency() {
         if (emergencyUsed) return;
         double health = 0, max = 0;
-        List<Player> living = new java.util.ArrayList<>();
+        List<Player> living = new ArrayList<>();
         for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
             Player player = gamePlayer.getPlayer();
             if (!player.isOnline() || userManager.isPlayerDead(player.getUniqueId())) continue;
@@ -186,7 +190,7 @@ public class PowerupManager {
     // Remembered spot nearest to the middle of the players, a few blocks away from everyone
     private Location emergencySpot(List<Player> living) {
         Location first = living.getFirst().getLocation();
-        org.bukkit.util.Vector center = new org.bukkit.util.Vector();
+        Vector center = new Vector();
         int count = 0;
         for (Player player : living) {
             if (!player.getWorld().equals(first.getWorld())) continue;
@@ -339,8 +343,8 @@ public class PowerupManager {
                     if (player.getInventory().getItem(ReviveManager.MEDKIT_SLOT) != null) continue;
                     ItemStack stored = GameItems.medkit(player);
                     stored.editMeta(meta -> meta.setLore(Lang.english(player)
-                            ? java.util.List.of("§7Gets you back up once", "§7per round when you are down")
-                            : java.util.List.of("§7Holt dich einmal pro Runde", "§7wieder hoch, wenn du am Boden liegst")));
+                            ? List.of("§7Gets you back up once", "§7per round when you are down")
+                            : List.of("§7Holt dich einmal pro Runde", "§7wieder hoch, wenn du am Boden liegst")));
                     player.getInventory().setItem(ReviveManager.MEDKIT_SLOT, stored);
                     Overlay.small(player, Overlay.line(Overlay.MEDKIT, MEDKIT_COLOR, "Medkit eingesteckt", "holt dich hoch, wenn du am Boden liegst"),
                             Overlay.line(Overlay.MEDKIT, MEDKIT_COLOR, "Medkit stored", "gets you back up when you are down"));

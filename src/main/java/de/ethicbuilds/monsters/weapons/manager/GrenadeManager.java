@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.weapons.manager;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.items.GameItems;
+import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.weapons.ShotDamage;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -16,13 +17,15 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
+import java.util.Set;
+
 public class GrenadeManager {
     public static final int MAX_GRENADES = 4;
 
     private static final int FUSE_TICKS = 40;
     private static final double RADIUS = 6.5;
     private static final double DAMAGE = 45.0;
-    private static final java.util.Set<Integer> TICKS = java.util.Set.of(8, 20, 28, 34, 37, 39);
+    private static final Set<Integer> TICKS = Set.of(8, 20, 28, 34, 37, 39);
 
     @Inject private Main plugin;
 
@@ -83,7 +86,7 @@ public class GrenadeManager {
     private void explode(Player thrower, Location location) {
         World world = location.getWorld();
         world.playSound(location, Sound.ENTITY_GENERIC_EXPLODE, 1.0F, 1.1F);
-        plugin.getInjector().getInstance(de.ethicbuilds.monsters.monster.manager.MonsterManager.class).grenadeNoise(location);
+        plugin.getInjector().getInstance(MonsterManager.class).grenadeNoise(location);
         world.playSound(location, Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, 0.7F, 1.0F);
         world.spawnParticle(Particle.EXPLOSION, location, 3, 0.8, 0.4, 0.8, 0);
         world.spawnParticle(Particle.FLAME, location, 25, 1.5, 0.5, 1.5, 0.05);

@@ -7,6 +7,8 @@ import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 /***
  * Every five waves a new armor tier (bronze from wave 5 up to netherite from 25): armored monsters have more health and
  * give more coins. Within a stage more and more of them wear the new tier, the others the one before.
@@ -36,7 +38,7 @@ public final class EliteTier {
         int tier = of(wave);
         if (tier == 0) return 0;
         double share = Math.min(MAX_SHARE, FIRST_SHARE + SHARE_PER_WAVE * Math.max(0, wave - tier * STAGE - 1));
-        return java.util.concurrent.ThreadLocalRandom.current().nextDouble() < share ? tier : tier - 1;
+        return ThreadLocalRandom.current().nextDouble() < share ? tier : tier - 1;
     }
 
     public static String name(int tier) {

@@ -1,5 +1,8 @@
 package de.ethicbuilds.monsters.weapons;
 
+import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.lang.Overlay;
+import de.ethicbuilds.monsters.perk.PerkManager;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -41,12 +44,12 @@ public final class AmmoHud {
     }
 
     // Owned perks as badges left of the panel (design session, font monsters:perks), as much room on the right keeps it centred
-    private static final net.kyori.adventure.key.Key PERK_FONT = net.kyori.adventure.key.Key.key("monsters", "perks");
+    private static final Key PERK_FONT = Key.key("monsters", "perks");
     private static final int PERK_WIDTH = 10, PERK_GAP = 4;
-    private static de.ethicbuilds.monsters.perk.PerkManager perkManager;
+    private static PerkManager perkManager;
 
     private static Component withPerks(Player player, Component panel) {
-        if (perkManager == null) perkManager = de.ethicbuilds.monsters.Main.getINSTANCE().getInjector().getInstance(de.ethicbuilds.monsters.perk.PerkManager.class);
+        if (perkManager == null) perkManager = Main.getINSTANCE().getInjector().getInstance(PerkManager.class);
         var perks = perkManager.perks(player);
         if (perks.isEmpty()) return panel;
         StringBuilder badges = new StringBuilder();
@@ -54,9 +57,9 @@ public final class AmmoHud {
         int width = perks.size() * PERK_WIDTH + PERK_GAP;
         return Component.text()
                 .append(Component.text(badges.toString(), NamedTextColor.WHITE).font(PERK_FONT).shadowColor(ShadowColor.none()))
-                .append(de.ethicbuilds.monsters.lang.Overlay.parse(de.ethicbuilds.monsters.lang.Overlay.space(PERK_GAP)))
+                .append(Overlay.parse(Overlay.space(PERK_GAP)))
                 .append(panel)
-                .append(de.ethicbuilds.monsters.lang.Overlay.parse(de.ethicbuilds.monsters.lang.Overlay.space(width)))
+                .append(Overlay.parse(Overlay.space(width)))
                 .build();
     }
 

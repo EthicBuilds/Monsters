@@ -5,6 +5,7 @@ import de.ethicbuilds.monsters.lang.Lang;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
@@ -40,7 +41,7 @@ public final class AcidShot {
 
     private static ItemStack ball() {
         ItemStack item = new ItemStack(Material.SLIME_BALL);
-        item.editMeta(meta -> meta.setItemModel(new org.bukkit.NamespacedKey("monsters", "saeureball/kugel")));
+        item.editMeta(meta -> meta.setItemModel(new NamespacedKey("monsters", "saeureball/kugel")));
         return item;
     }
 

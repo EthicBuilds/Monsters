@@ -12,6 +12,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +46,7 @@ public final class DailyChallenge {
     public static void announce(Player player) {
         JsonObject challenge = today;
         // A waiting server can stand overnight, then the next day's challenge is fetched
-        if (challenge == null || !challenge.get("date").getAsString().equals(java.time.LocalDate.now().toString())) load();
+        if (challenge == null || !challenge.get("date").getAsString().equals(LocalDate.now().toString())) load();
         if (challenge == null) return;
         player.sendMessage(Lang.f(player, "%s§eTagesaufgabe: §f%s §8· §6%d EthicCoins", "%s§eDaily challenge: §f%s §8· §6%d EthicCoins",
                 Main.getINSTANCE().getMonstersPrefix(), text(player, challenge), challenge.get("reward").getAsInt()));

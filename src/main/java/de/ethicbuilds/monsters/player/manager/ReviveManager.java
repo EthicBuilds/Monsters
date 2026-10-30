@@ -1,5 +1,7 @@
 package de.ethicbuilds.monsters.player.manager;
 
+import com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent;
+import com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent;
 import de.ethicbuilds.monsters.sound.Sounds;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
@@ -8,10 +10,12 @@ import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.perk.Perk;
 import de.ethicbuilds.monsters.perk.PerkManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
+import de.ethicbuilds.monsters.weapons.SniperScope;
 import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -20,23 +24,30 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Mannequin;
+import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Pose;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /***
@@ -72,14 +83,14 @@ public class ReviveManager implements Listener {
     private final Map<UUID, Integer> revives = new HashMap<>();
     private final Map<UUID, Integer> reviveProgress = new HashMap<>();
     // Self revive with a stored medkit, once per round
-    private final java.util.Set<UUID> selfRevived = new java.util.HashSet<>();
+    private final Set<UUID> selfRevived = new HashSet<>();
     // Own values of the player before going down (the attribute default of movement speed is 0.7, players walk with 0.1)
     private final Map<UUID, Map<Attribute, Double>> savedBases = new HashMap<>();
     private final Map<UUID, Player> watching = new HashMap<>();
     private final Map<UUID, ItemStack> savedWatchSlot = new HashMap<>();
     private final Map<UUID, ItemStack> savedPrevSlot = new HashMap<>();
     private final Map<UUID, Player> lastWatched = new HashMap<>();
-    private final java.util.Set<UUID> switching = new java.util.HashSet<>();
+    private final Set<UUID> switching = new HashSet<>();
     private BukkitRunnable watchCheck;
 
     /** Every revive of the same player costs 1000 more */
@@ -93,7 +104,7 @@ public class ReviveManager implements Listener {
 
     public void down(Player player) {
         // The player keeps the normal view where they fell, only the body lies on the ground
-        de.ethicbuilds.monsters.weapons.SniperScope.stop(player);
+        SniperScope.stop(player);
         perkManager.lose(player);
         Location view = player.getLocation().clone();
         Location spot = view.clone();
@@ -123,7 +134,7 @@ public class ReviveManager implements Listener {
         // Not even the downed player sees their own player body (F5) or an item in hand
         player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, PotionEffect.INFINITE_DURATION, 0, false, false, false));
         player.getInventory().setHeldItemSlot(EMPTY_SLOT);
-        player.getInventory().setArmorContents(new org.bukkit.inventory.ItemStack[4]);
+        player.getInventory().setArmorContents(new ItemStack[4]);
         Map<Attribute, Double> saved = new HashMap<>();
         for (Attribute attribute : List.of(Attribute.SCALE, Attribute.MOVEMENT_SPEED, Attribute.JUMP_STRENGTH, Attribute.GRAVITY)) {
             AttributeInstance instance = player.getAttribute(attribute);
@@ -134,10 +145,10 @@ public class ReviveManager implements Listener {
         setBase(player, Attribute.JUMP_STRENGTH, 0);
         // Without gravity the view does not fall and jump back, the camera stays still
         setBase(player, Attribute.GRAVITY, 0);
-        player.setVelocity(new org.bukkit.util.Vector());
+        player.setVelocity(new Vector());
 
         // Monsters chasing the downed player look for someone alive
-        for (org.bukkit.entity.Monster monster : spot.getWorld().getEntitiesByClass(org.bukkit.entity.Monster.class)) {
+        for (Monster monster : spot.getWorld().getEntitiesByClass(Monster.class)) {
             if (player.equals(monster.getTarget())) monster.setTarget(null);
         }
 
@@ -175,7 +186,7 @@ public class ReviveManager implements Listener {
 
     // Keys 4/5 or the mouse wheel while lying: watch the previous or next living teammate through their eyes
     @EventHandler
-    public void onDownedSlotChange(org.bukkit.event.player.PlayerItemHeldEvent event) {
+    public void onDownedSlotChange(PlayerItemHeldEvent event) {
         Player player = event.getPlayer();
         if (!isDown(player.getUniqueId())) return;
         event.setCancelled(true);
@@ -197,10 +208,10 @@ public class ReviveManager implements Listener {
 
     // The heads in the spectator hotbar (key 1) switch the teammate, nobody flies around freely.
     // First and cancelled, so UtilityCommands skips it and does not send its "not allowed" message.
-    @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
-    public void onSpectatorTeleport(org.bukkit.event.player.PlayerTeleportEvent event) {
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onSpectatorTeleport(PlayerTeleportEvent event) {
         Player player = event.getPlayer();
-        if (event.getCause() != org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.SPECTATE || !watching.containsKey(player.getUniqueId())) return;
+        if (event.getCause() != PlayerTeleportEvent.TeleportCause.SPECTATE || !watching.containsKey(player.getUniqueId())) return;
         event.setCancelled(true);
         if (switching.contains(player.getUniqueId())) return;
         Player target = mates(player).stream()
@@ -215,9 +226,9 @@ public class ReviveManager implements Listener {
 
 
     // Own camera switches: cancelled first above, so UtilityCommands stays quiet, allowed again here
-    @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST)
-    public void onOwnSwitch(org.bukkit.event.player.PlayerTeleportEvent event) {
-        if (event.getCause() == org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.SPECTATE && switching.contains(event.getPlayer().getUniqueId())) event.setCancelled(false);
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onOwnSwitch(PlayerTeleportEvent event) {
+        if (event.getCause() == PlayerTeleportEvent.TeleportCause.SPECTATE && switching.contains(event.getPlayer().getUniqueId())) event.setCancelled(false);
     }
 
     // Changes the camera; the teleport this causes belongs to us
@@ -231,7 +242,7 @@ public class ReviveManager implements Listener {
     }
 
     @EventHandler
-    public void onStartWatching(com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent event) {
+    public void onStartWatching(PlayerStartSpectatingEntityEvent event) {
         Player player = event.getPlayer();
         if (!isDown(player.getUniqueId())) return;
         if (!(event.getNewSpectatorTarget() instanceof Player mate) || !mates(player).contains(mate)) event.setCancelled(true);
@@ -239,7 +250,7 @@ public class ReviveManager implements Listener {
 
     // Sneaking leaves the teammate's view and goes back to the body, where the two items are again
     @EventHandler
-    public void onStopWatching(com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent event) {
+    public void onStopWatching(PlayerStopSpectatingEntityEvent event) {
         Player player = event.getPlayer();
         if (!watching.containsKey(player.getUniqueId()) || !event.getSpectatorTarget().isValid()) return;
         event.setCancelled(true);
@@ -263,7 +274,7 @@ public class ReviveManager implements Listener {
         }
         watching.put(player.getUniqueId(), mate);
         lastWatched.put(player.getUniqueId(), mate);
-        player.setGameMode(org.bukkit.GameMode.SPECTATOR);
+        player.setGameMode(GameMode.SPECTATOR);
         camera(player, mate);
         player.sendActionBar(Lang.t(player, "§7Du schaust §a" + mate.getName() + " §7zu §8· §7Taste 1: wechseln §8· §7Schleichen: zurück",
                 "§7Watching §a" + mate.getName() + " §8· §7Key 1: switch §8· §7Sneak: back"));
@@ -310,7 +321,7 @@ public class ReviveManager implements Listener {
         // Removed first, otherwise leaving the camera below is cancelled
         if (watching.remove(player.getUniqueId()) == null) return;
         camera(player, null);
-        player.setGameMode(org.bukkit.GameMode.ADVENTURE);
+        player.setGameMode(GameMode.ADVENTURE);
     }
 
     private static ItemStack watchItem(String name, String hint) {
@@ -401,7 +412,7 @@ public class ReviveManager implements Listener {
     private UUID downedBy(Entity entity) {
         // The invisible downed player stands at the body, a click on them counts as well, but not while they watch someone
         if (entity instanceof Player player && isDown(player.getUniqueId())
-                && player.getGameMode() != org.bukkit.GameMode.SPECTATOR) return player.getUniqueId();
+                && player.getGameMode() != GameMode.SPECTATOR) return player.getUniqueId();
         for (Map.Entry<UUID, Mannequin> entry : bodies.entrySet()) {
             if (entry.getValue().equals(entity)) return entry.getKey();
         }
@@ -420,7 +431,7 @@ public class ReviveManager implements Listener {
         GamePlayer helperPlayer = userManager.getGamePlayer(helper.getUniqueId());
         GamePlayer downedPlayer = userManager.getGamePlayer(downed);
         if (helperPlayer == null || downedPlayer == null || userManager.isPlayerDead(helper.getUniqueId())) return;
-        if (helper.getGameMode() == org.bukkit.GameMode.SPECTATOR || !nearBody(helper, downed)) return;
+        if (helper.getGameMode() == GameMode.SPECTATOR || !nearBody(helper, downed)) return;
 
         int cost = cost(downed);
         if (helperPlayer.getCoins() < cost) {
@@ -481,7 +492,7 @@ public class ReviveManager implements Listener {
     @EventHandler
     public void onDownedMove(PlayerMoveEvent event) {
         if (!isDown(event.getPlayer().getUniqueId()) || !event.hasChangedPosition()) return;
-        if (event.getPlayer().getGameMode() == org.bukkit.GameMode.SPECTATOR || watching.containsKey(event.getPlayer().getUniqueId())) return;
+        if (event.getPlayer().getGameMode() == GameMode.SPECTATOR || watching.containsKey(event.getPlayer().getUniqueId())) return;
         Location view = views.getOrDefault(event.getPlayer().getUniqueId(), spots.get(event.getPlayer().getUniqueId())).clone();
         view.setYaw(event.getTo().getYaw());
         view.setPitch(event.getTo().getPitch());

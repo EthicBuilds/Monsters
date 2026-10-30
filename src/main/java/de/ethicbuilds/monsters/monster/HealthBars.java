@@ -18,6 +18,10 @@ import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 /***
  * Health bar above the monsters like in EggBattle: pixel bar from the font monsters:healthbar
  * (21 steps from empty to full), riding on the monster as passenger
@@ -48,7 +52,7 @@ public final class HealthBars {
     }
 
     private static final long VISIBLE_MILLIS = 5000;
-    private static final java.util.Map<java.util.UUID, Long> lastHit = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<UUID, Long> lastHit = new ConcurrentHashMap<>();
 
     /** Shows the bar after a hit, it goes away again a few seconds after the last one */
     public static void show(LivingEntity mob) {

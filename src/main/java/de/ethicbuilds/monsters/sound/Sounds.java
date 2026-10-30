@@ -1,8 +1,13 @@
 package de.ethicbuilds.monsters.sound;
 
+import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /***
  * Short, soft feedback sounds used everywhere, so buying, refusing and hitting sound the same in the whole game
@@ -28,7 +33,7 @@ public final class Sounds {
         if (maxLevel) player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.MASTER, 0.3F, 1.6F);
     }
 
-    private static final java.util.Map<java.util.UUID, Long> lastArmorHit = new java.util.HashMap<>();
+    private static final Map<UUID, Long> lastArmorHit = new HashMap<>();
 
     /** Dull metal on an armored monster, at most every 3 ticks (shotgun pellets) */
     public static void armorHit(Player player) {
@@ -39,7 +44,7 @@ public final class Sounds {
     }
 
     /** A plate breaks off */
-    public static void splinter(org.bukkit.Location at) {
+    public static void splinter(Location at) {
         at.getWorld().playSound(at, Sound.BLOCK_ANVIL_LAND, SoundCategory.HOSTILE, 0.25F, 1.8F);
     }
 

@@ -1,5 +1,7 @@
 package de.ethicbuilds.monsters.weapons;
 
+import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.player.manager.UserManager;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.Equippable;
 import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
@@ -141,8 +143,8 @@ public class SniperScope implements Listener {
     }
 
     private static Weapon sniperInHand(Player player) {
-        var gamePlayer = de.ethicbuilds.monsters.Main.getINSTANCE().getInjector()
-                .getInstance(de.ethicbuilds.monsters.player.manager.UserManager.class).getGamePlayer(player.getUniqueId());
+        var gamePlayer = Main.getINSTANCE().getInjector()
+                .getInstance(UserManager.class).getGamePlayer(player.getUniqueId());
         if (gamePlayer == null) return null;
         Weapon weapon = gamePlayer.getWeapon(player.getInventory().getItemInMainHand());
         return weapon instanceof Sniper ? weapon : null;

@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.weapons.manager;
 
+import de.ethicbuilds.monsters.map.decoration.CrateManager;
 import de.ethicbuilds.monsters.sound.Sounds;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
@@ -35,6 +36,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -309,7 +311,7 @@ public class WorkbenchManager implements Listener {
         GamePlayer gamePlayer = userManager.getGamePlayer(player.getUniqueId());
         if (gamePlayer == null) return;
         int slot = event.getSlot();
-        if (java.util.Arrays.stream(SCRAP_SLOTS).anyMatch(s -> s == slot)) {
+        if (Arrays.stream(SCRAP_SLOTS).anyMatch(s -> s == slot)) {
             scrap(gamePlayer, menu);
             return;
         }
@@ -334,7 +336,7 @@ public class WorkbenchManager implements Listener {
             open(gamePlayer);
         } else if (slot == CLOSE_SLOT) {
             player.closeInventory();
-        } else if (java.util.Arrays.stream(BUTTON_SLOTS).anyMatch(s -> s == slot)) {
+        } else if (Arrays.stream(BUTTON_SLOTS).anyMatch(s -> s == slot)) {
             clickAction(gamePlayer, menu);
         }
     }
@@ -489,7 +491,7 @@ public class WorkbenchManager implements Listener {
 
     // Chance in percent that a crate gives a grenade or coins
     private static String loot(int level) {
-        return String.valueOf(de.ethicbuilds.monsters.map.decoration.CrateManager.lootPercent(Math.min(level, CrowbarLevel.MAX_LEVEL)));
+        return String.valueOf(CrateManager.lootPercent(Math.min(level, CrowbarLevel.MAX_LEVEL)));
     }
 
     private Component title(GamePlayer gamePlayer, Card card, int row, Weapon weapon) {

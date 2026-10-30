@@ -2,17 +2,21 @@ package de.ethicbuilds.monsters.player;
 
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.weapons.AmmoHud;
 import lombok.Getter;
 import lombok.Setter;
 import de.ethicbuilds.monsters.weapons.Pistol;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+
+import java.util.List;
 
 
 public class GamePlayer extends GameUser {
@@ -48,13 +52,13 @@ public class GamePlayer extends GameUser {
         ItemStack monsterTracker = new ItemStack(Material.COMPASS);
 
         ItemMeta monsterTrackerMeta = monsterTracker.getItemMeta();
-        monsterTrackerMeta.setItemModel(new org.bukkit.NamespacedKey("monsters", "tracker"));
-        monsterTrackerMeta.displayName(de.ethicbuilds.monsters.lang.Lang.mm(player, "<!italic><bold><#3CDC6E>Monster-Tracker</#3CDC6E></bold>",
+        monsterTrackerMeta.setItemModel(new NamespacedKey("monsters", "tracker"));
+        monsterTrackerMeta.displayName(Lang.mm(player, "<!italic><bold><#3CDC6E>Monster-Tracker</#3CDC6E></bold>",
                 "<!italic><bold><#3CDC6E>Monster Tracker</#3CDC6E></bold>"));
-        monsterTrackerMeta.lore(java.util.List.of(
-                de.ethicbuilds.monsters.lang.Lang.mm(player, "<!italic><#8A93A3>In der Hand:</#8A93A3> <#FF6B6B>Monster</#FF6B6B> <#8A93A3>und</#8A93A3> <#3CDC6E>Mitspieler</#3CDC6E> <#8A93A3>leuchten</#8A93A3>",
+        monsterTrackerMeta.lore(List.of(
+                Lang.mm(player, "<!italic><#8A93A3>In der Hand:</#8A93A3> <#FF6B6B>Monster</#FF6B6B> <#8A93A3>und</#8A93A3> <#3CDC6E>Mitspieler</#3CDC6E> <#8A93A3>leuchten</#8A93A3>",
                         "<!italic><#8A93A3>While held:</#8A93A3> <#FF6B6B>monsters</#FF6B6B> <#8A93A3>and</#8A93A3> <#3CDC6E>teammates</#3CDC6E> <#8A93A3>glow</#8A93A3>"),
-                de.ethicbuilds.monsters.lang.Lang.mm(player, "<!italic><#5A616E>Durch Wände sichtbar</#5A616E>", "<!italic><#5A616E>Visible through walls</#5A616E>")));
+                Lang.mm(player, "<!italic><#5A616E>Durch Wände sichtbar</#5A616E>", "<!italic><#5A616E>Visible through walls</#5A616E>")));
         monsterTracker.setItemMeta(monsterTrackerMeta);
 
         player.getInventory().setItem(0, melee);
@@ -101,7 +105,7 @@ public class GamePlayer extends GameUser {
             filled = true;
         }
         Weapon held = getWeapon(player.getInventory().getItemInMainHand());
-        if (filled && held != null) de.ethicbuilds.monsters.weapons.AmmoHud.refresh(player, held);
+        if (filled && held != null) AmmoHud.refresh(player, held);
         return filled;
     }
 

@@ -27,6 +27,7 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -39,8 +40,8 @@ import java.util.concurrent.CompletableFuture;
 public class RoundEndCard implements Listener {
     private static final long OPEN_DELAY = 60;
     private static final int SIZE = 45;
-    private static final net.kyori.adventure.text.format.TextColor TITLE_WHITE = net.kyori.adventure.text.format.TextColor.color(0xF2F5F8),
-            TITLE_GOLD = net.kyori.adventure.text.format.TextColor.color(0xFFCC2E);
+    private static final TextColor TITLE_WHITE = TextColor.color(0xF2F5F8),
+            TITLE_GOLD = TextColor.color(0xFFCC2E);
     private static final int MVP_SLOT = 4;
     private static final int WAVE_SLOT = 10, KILLS_SLOT = 12, HEADSHOTS_SLOT = 14, REVIVES_SLOT = 16;
     private static final int ROUND_SLOT = 28, KILL_COINS_SLOT = 29, RANK_SLOT = 30, FIRST_WIN_SLOT = 31, CHALLENGE_SLOT = 32, TOTAL_SLOT = 34;
@@ -216,7 +217,7 @@ public class RoundEndCard implements Listener {
         ItemStack item = new ItemStack(material);
         item.editMeta(meta -> {
             meta.displayName(text(label + ": ", GREY).append(text("+" + number(player, coins) + " EthicCoins", coins > 0 ? GREEN : LIGHT)));
-            meta.lore(java.util.Arrays.stream(lore).map(line -> text(line, GREY)).toList());
+            meta.lore(Arrays.stream(lore).map(line -> text(line, GREY)).toList());
         });
         return item;
     }

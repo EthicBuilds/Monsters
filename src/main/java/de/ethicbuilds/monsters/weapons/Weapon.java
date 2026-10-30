@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.weapons;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.perk.PerkManager;
 import lombok.Getter;
@@ -10,6 +11,7 @@ import lombok.Setter;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -108,7 +110,7 @@ public abstract class Weapon {
         player.playSound(player.getLocation(), sound, 0.5F, pitch);
         monsterManager().shotNoise(player);
 
-        Set<org.bukkit.entity.Entity> hit = new HashSet<>();
+        Set<Entity> hit = new HashSet<>();
         // With a bit of luck a normal shot goes through into a second monster
         int maxHits = pierce > 1 ? pierce : Math.random() < LUCKY_PIERCE ? 2 : 1;
         new BukkitRunnable() {
@@ -129,7 +131,7 @@ public abstract class Weapon {
                         return;
                     }
 
-                    for (org.bukkit.entity.Entity entity : current.getWorld().getNearbyEntities(current, 0.5, 0.5, 0.5)) {
+                    for (Entity entity : current.getWorld().getNearbyEntities(current, 0.5, 0.5, 0.5)) {
                         if (!(entity instanceof Monster monster) || !hit.add(entity)) continue;
                         ShotDamage.shoot(monster, damageFor(monster, hit.size() - 1), player, current);
                         if (monster.isDead() || monster.getHealth() <= 0) kills++;
@@ -161,9 +163,9 @@ public abstract class Weapon {
         }
         if (ammu <= 0) {
             AmmoHud.pause(player);
-            de.ethicbuilds.monsters.lang.Overlay.small(player,
-                    de.ethicbuilds.monsters.lang.Overlay.line(de.ethicbuilds.monsters.lang.Overlay.AMMO, de.ethicbuilds.monsters.lang.Overlay.RED, "Keine Munition", "an der Munitionskiste kaufen"),
-                    de.ethicbuilds.monsters.lang.Overlay.line(de.ethicbuilds.monsters.lang.Overlay.AMMO, de.ethicbuilds.monsters.lang.Overlay.RED, "No ammo", "buy it at the ammo crate"));
+            Overlay.small(player,
+                    Overlay.line(Overlay.AMMO, Overlay.RED, "Keine Munition", "an der Munitionskiste kaufen"),
+                    Overlay.line(Overlay.AMMO, Overlay.RED, "No ammo", "buy it at the ammo crate"));
             return;
         }
 

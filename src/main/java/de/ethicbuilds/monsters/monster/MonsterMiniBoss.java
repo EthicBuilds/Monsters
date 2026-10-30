@@ -9,6 +9,7 @@ import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
+import io.papermc.paper.entity.TeleportFlag;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -70,7 +71,7 @@ public class MonsterMiniBoss extends MonsterZombie {
 
     // Counted over the zombie waves only, every fifth wave belongs to the spiders
     private static int kindOf(int wave) {
-        return (wave - wave / de.ethicbuilds.monsters.monster.manager.MonsterManager.SPIDER_WAVE) % NAMES.length;
+        return (wave - wave / MonsterManager.SPIDER_WAVE) % NAMES.length;
     }
 
     public MonsterMiniBoss(int wave) {
@@ -429,7 +430,7 @@ public class MonsterMiniBoss extends MonsterZombie {
         burrowed = false;
         Location to = exit.clone();
         to.setYaw(monster.getLocation().getYaw());
-        monster.teleport(to, io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_PASSENGERS);
+        monster.teleport(to, TeleportFlag.EntityState.RETAIN_PASSENGERS);
         if (model() != null) model().conceal(false);
         else monster.setInvisible(false);
         if (equipment != null && armor != null) equipment.setArmorContents(armor);

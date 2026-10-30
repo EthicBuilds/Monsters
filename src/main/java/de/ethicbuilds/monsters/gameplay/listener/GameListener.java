@@ -7,6 +7,8 @@ import de.ethicbuilds.monsters.gameplay.manager.RoundLoader;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.weapons.AmmoHud;
+import de.ethicbuilds.monsters.weapons.Sniper;
+import de.ethicbuilds.monsters.weapons.SniperScope;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -56,9 +58,9 @@ public class GameListener implements Listener {
         if (weapon == null) return;
 
         // Sniper: left click fires from the hip, right click looks through the scope, reloading goes by itself
-        if (weapon instanceof de.ethicbuilds.monsters.weapons.Sniper) {
+        if (weapon instanceof Sniper) {
             if (event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK) weapon.shoot(gamePlayer.getPlayer());
-            else if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) de.ethicbuilds.monsters.weapons.SniperScope.rightClick(gamePlayer.getPlayer());
+            else if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) SniperScope.rightClick(gamePlayer.getPlayer());
             return;
         }
 

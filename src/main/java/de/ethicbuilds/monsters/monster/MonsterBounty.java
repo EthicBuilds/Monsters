@@ -6,9 +6,11 @@ import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
+import de.ethicbuilds.monsters.monster.model.AnimatedModel;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -27,11 +29,11 @@ public class MonsterBounty extends EnemyMonster {
     private static final double FLEE_DISTANCE = 30;
 
     private static final String MODEL = "kopfgeld_zombie";
-    private static final org.bukkit.Color GLOW = org.bukkit.Color.fromRGB(0xFFCC2E);
+    private static final Color GLOW = Color.fromRGB(0xFFCC2E);
 
     private final int reward;
     private int seconds;
-    private de.ethicbuilds.monsters.monster.model.AnimatedModel model;
+    private AnimatedModel model;
 
     public MonsterBounty(int wave) {
         this.health = 40;
@@ -53,7 +55,7 @@ public class MonsterBounty extends EnemyMonster {
             monster.setInvisible(true);
             monster.setCanPickupItems(false);
             if (monster.getEquipment() != null) monster.getEquipment().clear();
-            model = new de.ethicbuilds.monsters.monster.model.AnimatedModel(bones, monster, 1.0F);
+            model = new AnimatedModel(bones, monster, 1.0F);
             model.glow(GLOW);
             model.play("spawn");
         } else {

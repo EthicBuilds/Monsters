@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.items;
 
+import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.lang.Lang;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.Equippable;
@@ -71,7 +72,7 @@ public final class ArmorSet {
     // Vanilla piece for the protection, look and icon from the Monsters pack (once it has them, config custom-armor)
     private static ItemStack part(int set, int piece) {
         ItemStack item = new ItemStack(PARTS[set][piece]);
-        if (!de.ethicbuilds.monsters.Main.getINSTANCE().getConfig().getBoolean("custom-armor", false)) {
+        if (!Main.getINSTANCE().getConfig().getBoolean("custom-armor", false)) {
             item.editMeta(meta -> meta.setUnbreakable(true));
             return item;
         }

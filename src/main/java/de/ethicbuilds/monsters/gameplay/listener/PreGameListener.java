@@ -7,7 +7,11 @@ import de.ethicbuilds.monsters.gameplay.manager.RoundLoader;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.map.MapManager;
+import de.ethicbuilds.monsters.player.manager.PackStatus;
+import de.ethicbuilds.monsters.player.manager.PingManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import de.ethicbuilds.monsters.player.manager.WatcherManager;
+import de.ethicbuilds.monsters.reward.DailyChallenge;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -20,6 +24,8 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
+import java.util.HexFormat;
+
 public class PreGameListener implements Listener {
     @Inject private UserManager userManager;
     @Inject private GameManager gameManager;
@@ -27,7 +33,7 @@ public class PreGameListener implements Listener {
     @Inject private MapManager mapManager;
     @Inject private Main plugin;
     @Inject private RoundLoader roundLoader;
-    @Inject private de.ethicbuilds.monsters.player.manager.WatcherManager watcherManager;
+    @Inject private WatcherManager watcherManager;
 
 
     @EventHandler
@@ -64,7 +70,7 @@ public class PreGameListener implements Listener {
 
         player.sendMessage(String.format("%sMap: §6%s", plugin.getMonstersPrefix(), gameManager.getGameConfig().getMapName()));
         player.sendMessage(Lang.f(player, "%s§aGebaut von §2%s", "%s§aBuilt by §2%s", plugin.getMonstersPrefix(),  String.join("§7, §2", gameManager.getGameConfig().getMapBuilder())));
-        de.ethicbuilds.monsters.reward.DailyChallenge.announce(player);
+        DailyChallenge.announce(player);
         player.setHealth(20);
         player.setFlying(false);
 
@@ -82,7 +88,7 @@ public class PreGameListener implements Listener {
         setBase(player, Attribute.GRAVITY, 0.08);
         player.setCollidable(true);
         // Far enough for the team ping with the mouse wheel, doors and stations check their own distance
-        setBase(player, Attribute.BLOCK_INTERACTION_RANGE, de.ethicbuilds.monsters.player.manager.PingManager.RANGE);
+        setBase(player, Attribute.BLOCK_INTERACTION_RANGE, PingManager.RANGE);
         player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
         player.setGameMode(GameMode.ADVENTURE);
         player.setInvulnerable(false);
@@ -124,7 +130,7 @@ public class PreGameListener implements Listener {
         String packUrl = plugin.getConfig().getString("resource-pack.url");
         String packSha1 = plugin.getConfig().getString("resource-pack.sha1");
         if (packUrl != null && !packUrl.isBlank() && packSha1 != null && packSha1.length() == 40) {
-            player.addResourcePack(de.ethicbuilds.monsters.player.manager.PackStatus.PACK_ID, packUrl, java.util.HexFormat.of().parseHex(packSha1), null, false);
+            player.addResourcePack(PackStatus.PACK_ID, packUrl, HexFormat.of().parseHex(packSha1), null, false);
         }
     }
 

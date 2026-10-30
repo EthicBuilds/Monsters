@@ -5,10 +5,16 @@ import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.MonsterMiniBoss;
 import de.ethicbuilds.monsters.monster.MonsterSpiderBoss;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.SwingAnimation;
 import org.bukkit.Material;
 import org.bukkit.entity.Monster;
 import org.bukkit.Particle;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
+
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Sniper extends Weapon {
     private static final double BASE_DAMAGE = 1000, BOSS_DAMAGE = 50;
@@ -29,19 +35,19 @@ public class Sniper extends Weapon {
         this.price = 10000;
         this.upgradePrice = 30000;
         // Left click shoots, the arm does not swing forward
-        item.setData(io.papermc.paper.datacomponent.DataComponentTypes.SWING_ANIMATION,
-                io.papermc.paper.datacomponent.item.SwingAnimation.swingAnimation().type(io.papermc.paper.datacomponent.item.SwingAnimation.Animation.NONE).build());
+        item.setData(DataComponentTypes.SWING_ANIMATION,
+                SwingAnimation.swingAnimation().type(SwingAnimation.Animation.NONE).build());
 
         initialize();
     }
 
     // From the hip the shot scatters a little, through the scope it goes exactly to the crosshair
     @Override
-    protected org.bukkit.util.Vector aim(org.bukkit.entity.Player player) {
-        org.bukkit.util.Vector direction = super.aim(player);
+    protected Vector aim(Player player) {
+        Vector direction = super.aim(player);
         if (SniperScope.isAiming(player)) return direction;
-        var random = java.util.concurrent.ThreadLocalRandom.current();
-        return direction.add(new org.bukkit.util.Vector(random.nextDouble(-HIP_SPREAD, HIP_SPREAD),
+        var random = ThreadLocalRandom.current();
+        return direction.add(new Vector(random.nextDouble(-HIP_SPREAD, HIP_SPREAD),
                 random.nextDouble(-HIP_SPREAD, HIP_SPREAD), random.nextDouble(-HIP_SPREAD, HIP_SPREAD))).normalize();
     }
 

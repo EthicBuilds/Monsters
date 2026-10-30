@@ -8,6 +8,7 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
@@ -86,7 +87,7 @@ public class MonsterSpitter extends MonsterZombie {
     private void spit(Player target) {
         if (monster instanceof Mob mob) mob.lookAt(target);
         if (model() != null) model().play("spucken");
-        monster.getWorld().playSound(monster.getLocation(), org.bukkit.Sound.ENTITY_DROWNED_AMBIENT, 1.0F, 1.4F);
+        monster.getWorld().playSound(monster.getLocation(), Sound.ENTITY_DROWNED_AMBIENT, 1.0F, 1.4F);
         monster.getWorld().spawnParticle(Particle.ITEM_SLIME, monster.getEyeLocation(), 5, 0.15, 0.1, 0.15, 0);
         Bukkit.getScheduler().runTaskLater(Main.getINSTANCE(), () -> {
             if (!monster.isValid() || monster.isDead() || !LivingPlayers.waveRunning() || !LivingPlayers.alive(target)

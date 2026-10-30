@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.gameplay.manager;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.event.WaveEvents;
+import de.ethicbuilds.monsters.gameplay.LagGuard;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.decoration.CrateManager;
 import de.ethicbuilds.monsters.monster.EliteTier;
@@ -15,6 +16,7 @@ import org.bukkit.entity.Player;
 
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class WaveManager {
     private static final int SPAWNS_PER_TICK = 3;
@@ -52,7 +54,7 @@ public class WaveManager {
     }
 
     public void start() {
-        de.ethicbuilds.monsters.gameplay.LagGuard.start(plugin);
+        LagGuard.start(plugin);
         Thread waveThread = new Thread(() -> {
             try {
                 while (true) {
@@ -95,12 +97,12 @@ public class WaveManager {
         // A few monsters per tick, never more than MAX_ALIVE at once: the rest comes when others die
         // From wave 8 every second wave on average: once a good third is beaten, a quick horde storms out
         int total = monsterManager.remaining();
-        boolean horde = currentWave >= HORDE_FROM && currentWave % de.ethicbuilds.monsters.monster.manager.MonsterManager.SPIDER_WAVE != 0
-                && java.util.concurrent.ThreadLocalRandom.current().nextDouble() < HORDE_CHANCE;
+        boolean horde = currentWave >= HORDE_FROM && currentWave % MonsterManager.SPIDER_WAVE != 0
+                && ThreadLocalRandom.current().nextDouble() < HORDE_CHANCE;
         // From wave 5 now and then a bounty zombie once a fifth is beaten
-        boolean bounty = currentWave >= BOUNTY_FROM && currentWave % de.ethicbuilds.monsters.monster.manager.MonsterManager.SPIDER_WAVE != 0
-                && java.util.concurrent.ThreadLocalRandom.current().nextDouble() < BOUNTY_CHANCE;
-        int cap = currentWave % de.ethicbuilds.monsters.monster.manager.MonsterManager.SPIDER_WAVE == 0 ? MAX_SPIDERS_ALIVE : MAX_ALIVE;
+        boolean bounty = currentWave >= BOUNTY_FROM && currentWave % MonsterManager.SPIDER_WAVE != 0
+                && ThreadLocalRandom.current().nextDouble() < BOUNTY_CHANCE;
+        int cap = currentWave % MonsterManager.SPIDER_WAVE == 0 ? MAX_SPIDERS_ALIVE : MAX_ALIVE;
         while (monsterManager.hasPendingSpawns() || !monsterManager.getMonsters().isEmpty()) {
             if (PauseManager.isPaused()) {
                 Thread.sleep(200);
@@ -116,7 +118,7 @@ public class WaveManager {
                 Thread.sleep(HORDE_WARNING);
                 startOnMinecraftThread(() -> monsterManager.addHorde(currentWave));
             }
-            int room = (int) (cap * de.ethicbuilds.monsters.gameplay.LagGuard.spawnShare()) - monsterManager.getMonsters().size();
+            int room = (int) (cap * LagGuard.spawnShare()) - monsterManager.getMonsters().size();
             if (monsterManager.hasPendingSpawns() && room > 0) {
                 int count = Math.min(SPAWNS_PER_TICK, room);
                 startOnMinecraftThread(() -> monsterManager.summonBatch(count));

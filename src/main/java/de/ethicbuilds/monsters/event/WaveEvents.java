@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.event;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
+import de.ethicbuilds.monsters.gameplay.manager.PauseManager;
 import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.lang.DualBar;
@@ -93,7 +94,7 @@ public class WaveEvents {
                     cancel();
                     return;
                 }
-                if (de.ethicbuilds.monsters.gameplay.manager.PauseManager.isPaused()) return;
+                if (PauseManager.isPaused()) return;
                 checkCamping();
                 if (bloodMoon) {
                     // Red dust drifting far around the players

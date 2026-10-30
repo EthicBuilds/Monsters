@@ -7,6 +7,7 @@ import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
+import de.ethicbuilds.monsters.player.manager.PackStatus;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
@@ -16,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
 
 /***
  * Round statistics for the tab list like in CoD, layout from the design session (v5).
@@ -59,7 +61,7 @@ public class TabPlaceholders extends PlaceholderExpansion {
     public String onRequest(OfflinePlayer player, @NotNull String params) {
         boolean round = gameManager.getCurrentPhase() != GamePhase.PRE_GAME;
         // Without the Monsters pack the symbols would be boxes, those viewers get plain text
-        boolean plain = player != null && !de.ethicbuilds.monsters.player.manager.PackStatus.hasPack(player.getUniqueId());
+        boolean plain = player != null && !PackStatus.hasPack(player.getUniqueId());
         if (params.startsWith("tab_kopf_")) return !round ? "" : plain ? plainHead(number(params), english(player)) : head(number(params), english(player));
         if (params.startsWith("tab_fuss_")) return !round ? "" : plain ? plainFoot(number(params), english(player)) : foot(number(params), english(player));
         if (player == null) return "";
@@ -127,7 +129,7 @@ public class TabPlaceholders extends PlaceholderExpansion {
     }
 
     // Drawn once to measure, then again in the middle of the 355 px
-    private static String centered(java.util.function.Consumer<TabLine> draw) {
+    private static String centered(Consumer<TabLine> draw) {
         TabLine measure = new TabLine(0);
         draw.accept(measure);
         TabLine tab = new TabLine(0).moveTo((WIDTH - measure.x()) / 2);

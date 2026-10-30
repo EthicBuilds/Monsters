@@ -3,17 +3,25 @@ package de.ethicbuilds.monsters.monster;
 import com.destroystokyo.paper.entity.Pathfinder;
 import com.destroystokyo.paper.entity.ai.VanillaGoal;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.event.WaveEvents;
+import de.ethicbuilds.monsters.gameplay.manager.PauseManager;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.entity.Ageable;
+import org.bukkit.entity.Creature;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 
 public abstract class EnemyMonster {
@@ -42,12 +50,12 @@ public abstract class EnemyMonster {
     protected int coin;
     @Getter
     private Player target;
-    @Getter @lombok.Setter
+    @Getter @Setter
     private int tier;
-    @lombok.Setter
+    @Setter
     private int wave;
     // Part of a horde: quicker than the others
-    @Getter @lombok.Setter
+    @Getter @Setter
     private boolean sprinter;
     private int repath;
     private int trailCursor;
@@ -70,34 +78,34 @@ public abstract class EnemyMonster {
         if (scaled) {
             health = Math.max(1, (int) Math.round(health * WaveScaling.health(wave) * WaveScaling.groupHealth(userManager.getGamePlayers().size())));
             speed = Math.min(sprinter ? SPRINTER_MAX_SPEED : WaveScaling.MAX_SPEED, speed * WaveScaling.speed(wave) * (sprinter ? SPRINTER_SPEED : 1)
-                    * de.ethicbuilds.monsters.event.WaveEvents.speedFactor());
+                    * WaveEvents.speedFactor());
         }
         monster = (Monster) plugin.getWorld().spawnEntity(spawnLocation, type);
         if (elite) EliteTier.dress(monster, tier);
         monster.setCustomNameVisible(false);
-        if (monster instanceof org.bukkit.entity.Ageable ageable) ageable.setAdult();
-        var movement = monster.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
+        if (monster instanceof Ageable ageable) ageable.setAdult();
+        var movement = monster.getAttribute(Attribute.MOVEMENT_SPEED);
         if (movement != null) movement.setBaseValue(Math.min(movement.getBaseValue(), maxSpeed()));
         // Hits do not push them back, otherwise a player can keep them away just by firing
-        var knockback = monster.getAttribute(org.bukkit.attribute.Attribute.KNOCKBACK_RESISTANCE);
+        var knockback = monster.getAttribute(Attribute.KNOCKBACK_RESISTANCE);
         if (knockback != null) knockback.setBaseValue(KNOCKBACK_RESISTANCE);
         // Paths are searched this far, otherwise far away monsters just stand around
-        var followRange = monster.getAttribute(org.bukkit.attribute.Attribute.FOLLOW_RANGE);
+        var followRange = monster.getAttribute(Attribute.FOLLOW_RANGE);
         if (followRange != null) followRange.setBaseValue(followRange());
         MonsterGuard.mark(monster);
         // They always hunt a player, wandering and looking around only cost CPU
         var goals = Bukkit.getMobGoals();
-        goals.removeGoal((org.bukkit.entity.Creature) monster, VanillaGoal.RANDOM_STROLL);
-        goals.removeGoal((org.bukkit.entity.Creature) monster, VanillaGoal.WATER_AVOIDING_RANDOM_STROLL);
-        goals.removeGoal((org.bukkit.entity.Creature) monster, VanillaGoal.STROLL_THROUGH_VILLAGE);
-        goals.removeGoal((org.bukkit.entity.Mob) monster, VanillaGoal.LOOK_AT_PLAYER);
-        goals.removeGoal((org.bukkit.entity.Mob) monster, VanillaGoal.RANDOM_LOOK_AROUND);
-        var maxHealth = monster.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+        goals.removeGoal((Creature) monster, VanillaGoal.RANDOM_STROLL);
+        goals.removeGoal((Creature) monster, VanillaGoal.WATER_AVOIDING_RANDOM_STROLL);
+        goals.removeGoal((Creature) monster, VanillaGoal.STROLL_THROUGH_VILLAGE);
+        goals.removeGoal((Mob) monster, VanillaGoal.LOOK_AT_PLAYER);
+        goals.removeGoal((Mob) monster, VanillaGoal.RANDOM_LOOK_AROUND);
+        var maxHealth = monster.getAttribute(Attribute.MAX_HEALTH);
         if (maxHealth != null && maxHealth.getBaseValue() < health) maxHealth.setBaseValue(health);
         // The server caps max health (spigot.yml), more would fail the whole spawn
         monster.setHealth(maxHealth != null ? Math.min(health, maxHealth.getValue()) : health);
         onSpawn();
-        var attack = monster.getAttribute(org.bukkit.attribute.Attribute.ATTACK_DAMAGE);
+        var attack = monster.getAttribute(Attribute.ATTACK_DAMAGE);
         if (scaled && attack != null) attack.setBaseValue(attack.getBaseValue() * WaveScaling.damage(wave));
 
         target = player;
@@ -110,7 +118,7 @@ public abstract class EnemyMonster {
                     this.cancel();
                     return;
                 }
-                if (de.ethicbuilds.monsters.gameplay.manager.PauseManager.isPaused()) return;
+                if (PauseManager.isPaused()) return;
                 if (flee(pathfinder)) return;
 
                 // Every monster keeps its own player, a dead one hands it to the least chased living player
@@ -127,7 +135,7 @@ public abstract class EnemyMonster {
                 if (followNoise(pathfinder)) return;
                 chase(pathfinder);
             }
-        }.runTaskTimer(plugin, java.util.concurrent.ThreadLocalRandom.current().nextInt(20), 20L);
+        }.runTaskTimer(plugin, ThreadLocalRandom.current().nextInt(20), 20L);
     }
 
     /** Shot or explosion nearby: only heard while its player is out of reach or sight */

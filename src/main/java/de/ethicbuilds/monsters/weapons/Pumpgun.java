@@ -1,10 +1,14 @@
 package de.ethicbuilds.monsters.weapons;
 
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -59,7 +63,7 @@ public class Pumpgun extends Weapon {
         }
 
         player.playSound(player.getLocation(), sound, 0.5F, pitch);
-        Main.getINSTANCE().getInjector().getInstance(de.ethicbuilds.monsters.monster.manager.MonsterManager.class).shotNoise(player);
+        Main.getINSTANCE().getInjector().getInstance(MonsterManager.class).shotNoise(player);
 
         int pelletCount = 8;
         double spread = 0.7;
@@ -96,10 +100,10 @@ public class Pumpgun extends Weapon {
                         return;
                     }
 
-                    for (org.bukkit.entity.Entity entity : current.getWorld().getNearbyEntities(current, 0.5, 0.5, 0.5)) {
-                        if (!(entity instanceof org.bukkit.entity.Monster)) continue;
+                    for (Entity entity : current.getWorld().getNearbyEntities(current, 0.5, 0.5, 0.5)) {
+                        if (!(entity instanceof Monster)) continue;
                         {
-                            ShotDamage.shoot((org.bukkit.entity.LivingEntity) entity, damage, player, current);
+                            ShotDamage.shoot((LivingEntity) entity, damage, player, current);
                             this.cancel();
                             return;
                         }

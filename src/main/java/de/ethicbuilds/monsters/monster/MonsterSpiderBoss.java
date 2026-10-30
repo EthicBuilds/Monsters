@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.monster;
 
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.gameplay.manager.PauseManager;
 import de.ethicbuilds.monsters.lang.DualBar;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.lang.Overlay;
@@ -17,6 +18,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.entity.Firework;
@@ -27,6 +29,7 @@ import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 /***
@@ -117,7 +120,7 @@ public class MonsterSpiderBoss extends MonsterSpider {
                 if (rage) monster.getWorld().spawnParticle(Particle.DUST, monster.getLocation().add(0, 1.2, 0), 6, 1.2, 0.6, 1.2,
                         new Particle.DustOptions(RAGE_DUST, 1.2F));
 
-                if (!de.ethicbuilds.monsters.gameplay.manager.PauseManager.isPaused() && --nextAttack <= 0) attack();
+                if (!PauseManager.isPaused() && --nextAttack <= 0) attack();
             }
         }.runTaskTimer(Main.getINSTANCE(), 0L, 10L);
     }
@@ -163,7 +166,7 @@ public class MonsterSpiderBoss extends MonsterSpider {
     // Same models in another colour, from level 5 with glowing eyes and bigger crystals
     private void look(Color tint) {
         if (model == null) return;
-        model.restyle("weberin_getoent", tint, level >= 5 ? java.util.Map.of("head", "weberin_getoent/head_augen") : java.util.Map.of());
+        model.restyle("weberin_getoent", tint, level >= 5 ? Map.of("head", "weberin_getoent/head_augen") : Map.of());
         if (level > 4) model.scaleBones("crystal_", (float) Math.min(1.4, 1 + 0.08 * (level - 4)));
     }
 
@@ -173,9 +176,9 @@ public class MonsterSpiderBoss extends MonsterSpider {
         if (model != null) model.play("wut");
         look(RAGE);
         if (model != null) model.glow(RAGE);
-        var movement = monster.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
+        var movement = monster.getAttribute(Attribute.MOVEMENT_SPEED);
         if (movement != null) movement.setBaseValue(movement.getBaseValue() * RAGE_SPEED);
-        var attack = monster.getAttribute(org.bukkit.attribute.Attribute.ATTACK_DAMAGE);
+        var attack = monster.getAttribute(Attribute.ATTACK_DAMAGE);
         if (attack != null) attack.setBaseValue(attack.getBaseValue() * RAGE_DAMAGE);
         bar.setColor(BarColor.RED);
         bar.setTitle(barName("Amethyst-Weberin", "Stufe", "WUT"), barName("Amethyst Weaver", "Level", "RAGE"));

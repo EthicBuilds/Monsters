@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.monster;
 
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.gameplay.manager.PauseManager;
 import de.ethicbuilds.monsters.monster.model.AnimatedModel;
 import de.ethicbuilds.monsters.monster.model.BoneModel;
 import org.bukkit.attribute.Attribute;
@@ -66,7 +67,7 @@ public class MonsterSpider extends EnemyMonster {
                     cancel();
                     return;
                 }
-                if (de.ethicbuilds.monsters.gameplay.manager.PauseManager.isPaused() || --nextAttack > 0) return;
+                if (PauseManager.isPaused() || --nextAttack > 0) return;
                 if (!(monster.getTarget() instanceof Player player) || !player.isValid() || !player.getWorld().equals(monster.getWorld())) return;
                 model.face(player);
                 if (!monster.getBoundingBox().expand(0.6).overlaps(player.getBoundingBox())) return;

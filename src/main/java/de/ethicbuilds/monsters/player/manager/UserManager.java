@@ -4,6 +4,7 @@ package de.ethicbuilds.monsters.player.manager;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
+import de.ethicbuilds.monsters.items.ArmorSet;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
@@ -66,9 +67,9 @@ public class UserManager {
         player.setGameMode(GameMode.SPECTATOR);
         player.teleport(mapManager.getMapConfiguration().getSpawn());
         ChatStatus.send(player, true);
-        de.ethicbuilds.monsters.lang.Overlay.medium(player, de.ethicbuilds.monsters.lang.Overlay.GREY,
-                de.ethicbuilds.monsters.lang.Overlay.line(de.ethicbuilds.monsters.lang.Overlay.NEXT, "#3CDC6E", "Zuschauen", "ab der nächsten Welle spielst du mit"),
-                de.ethicbuilds.monsters.lang.Overlay.line(de.ethicbuilds.monsters.lang.Overlay.NEXT, "#3CDC6E", "Spectating", "you join in from the next wave"));
+        Overlay.medium(player, Overlay.GREY,
+                Overlay.line(Overlay.NEXT, "#3CDC6E", "Zuschauen", "ab der nächsten Welle spielst du mit"),
+                Overlay.line(Overlay.NEXT, "#3CDC6E", "Spectating", "you join in from the next wave"));
     }
 
     public void killPlayer(UUID uuid) {
@@ -79,12 +80,12 @@ public class UserManager {
 
             if (!allPlayersDead()) {
                 Player player = gamePlayer.getPlayer();
-                String cost = de.ethicbuilds.monsters.lang.Overlay.num(reviveManager.cost(uuid)) + " " + de.ethicbuilds.monsters.lang.Overlay.coin();
-                de.ethicbuilds.monsters.lang.Overlay.big(player, de.ethicbuilds.monsters.lang.Overlay.RED,
-                        de.ethicbuilds.monsters.lang.Overlay.line(de.ethicbuilds.monsters.lang.Overlay.REVIVE, de.ethicbuilds.monsters.lang.Overlay.RED, "AM BODEN", null),
-                        de.ethicbuilds.monsters.lang.Overlay.line(de.ethicbuilds.monsters.lang.Overlay.REVIVE, de.ethicbuilds.monsters.lang.Overlay.RED, "DOWNED", null),
-                        "<color:" + de.ethicbuilds.monsters.lang.Overlay.GREY + ">Ein Mitspieler belebt dich für </color>" + cost,
-                        "<color:" + de.ethicbuilds.monsters.lang.Overlay.GREY + ">A teammate can revive you for </color>" + cost);
+                String cost = Overlay.num(reviveManager.cost(uuid)) + " " + Overlay.coin();
+                Overlay.big(player, Overlay.RED,
+                        Overlay.line(Overlay.REVIVE, Overlay.RED, "AM BODEN", null),
+                        Overlay.line(Overlay.REVIVE, Overlay.RED, "DOWNED", null),
+                        "<color:" + Overlay.GREY + ">Ein Mitspieler belebt dich für </color>" + cost,
+                        "<color:" + Overlay.GREY + ">A teammate can revive you for </color>" + cost);
                 return;
             }
 
@@ -112,7 +113,7 @@ public class UserManager {
 
 
             player.heal(20);
-            de.ethicbuilds.monsters.items.ArmorSet.equip(player, gamePlayers.get(uuid).getArmorLevel());
+            ArmorSet.equip(player, gamePlayers.get(uuid).getArmorLevel());
             player.teleport(location);
             Overlay.medium(player, "#3CDC6E", Overlay.line(Overlay.REVIVE, "#3CDC6E", "WIEDERBELEBT", null),
                     Overlay.line(Overlay.REVIVE, "#3CDC6E", "REVIVED", null));

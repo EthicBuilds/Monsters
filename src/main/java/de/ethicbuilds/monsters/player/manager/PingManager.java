@@ -15,14 +15,20 @@ import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Color;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Display;
+import org.bukkit.entity.Interaction;
+import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
@@ -67,9 +73,9 @@ public class PingManager implements Listener {
 
     // Left or right click with the monster tracker in hand
     @EventHandler(priority = EventPriority.LOW)
-    public void onTracker(org.bukkit.event.player.PlayerInteractEvent event) {
-        if (event.getHand() != org.bukkit.inventory.EquipmentSlot.HAND || event.getAction() == org.bukkit.event.block.Action.PHYSICAL) return;
-        if (event.getPlayer().getInventory().getItemInMainHand().getType() != org.bukkit.Material.COMPASS) return;
+    public void onTracker(PlayerInteractEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND || event.getAction() == Action.PHYSICAL) return;
+        if (event.getPlayer().getInventory().getItemInMainHand().getType() != Material.COMPASS) return;
         ping(event.getPlayer());
     }
 
@@ -94,8 +100,8 @@ public class PingManager implements Listener {
 
         Location eye = player.getEyeLocation();
         RayTraceResult hit = player.getWorld().rayTrace(eye, eye.getDirection(), RANGE, FluidCollisionMode.NEVER, true, 0.3,
-                entity -> !entity.equals(player) && !(entity instanceof Display) && !(entity instanceof org.bukkit.entity.Interaction)
-                        && !(entity instanceof org.bukkit.entity.Mannequin));
+                entity -> !entity.equals(player) && !(entity instanceof Display) && !(entity instanceof Interaction)
+                        && !(entity instanceof Mannequin));
         if (hit == null) return;
         lastPing.put(player.getUniqueId(), now);
 

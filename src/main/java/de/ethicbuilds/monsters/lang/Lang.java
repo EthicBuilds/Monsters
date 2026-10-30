@@ -1,7 +1,10 @@
 package de.ethicbuilds.monsters.lang;
 
+import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.weapons.AmmoHud;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.luckperms.api.LuckPermsProvider;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -50,10 +53,10 @@ public final class Lang {
 
     /** Short note in the action bar instead of the chat, without the prefix; the ammo panel waits a moment */
     public static void note(Player player, String legacy) {
-        String prefix = de.ethicbuilds.monsters.Main.getINSTANCE().getMonstersPrefix();
+        String prefix = Main.getINSTANCE().getMonstersPrefix();
         if (legacy.startsWith(prefix)) legacy = legacy.substring(prefix.length());
-        de.ethicbuilds.monsters.weapons.AmmoHud.pause(player);
-        player.sendActionBar(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(legacy));
+        AmmoHud.pause(player);
+        player.sendActionBar(LegacyComponentSerializer.legacySection().deserialize(legacy));
     }
 
     /** Note for everyone online, the console gets the German one */

@@ -5,7 +5,9 @@ import com.google.gson.GsonBuilder;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.dto.StopServerDto;
+import de.ethicbuilds.monsters.event.WaveEvents;
 import de.ethicbuilds.monsters.gameplay.RoundEndCard;
+import de.ethicbuilds.monsters.gameplay.listener.JoinMeListener;
 import de.ethicbuilds.monsters.gameplay.model.GameConfig;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.gameplay.repository.GameStates;
@@ -17,9 +19,11 @@ import de.ethicbuilds.monsters.monster.TrackerGlow;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.perk.PerkManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
+import de.ethicbuilds.monsters.player.manager.SpectatorHud;
 import de.ethicbuilds.monsters.reward.DailyChallenge;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.powerup.PowerupManager;
+import de.ethicbuilds.monsters.reward.RoundReward;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import de.ethicbuilds.monsters.statistic.manager.StatisticManager;
 import lombok.Getter;
@@ -39,6 +43,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.function.ToIntFunction;
 
 
 public class GameManager {
@@ -120,13 +125,13 @@ public class GameManager {
 
                     gameStates.setCurrentPhase(GamePhase.WAVE);
                     powerupManager.start();
-                    plugin.getInjector().getInstance(de.ethicbuilds.monsters.event.WaveEvents.class).start();
+                    plugin.getInjector().getInstance(WaveEvents.class).start();
                     scoreboardManager.startTime();
-                    de.ethicbuilds.monsters.reward.RoundReward.start(plugin, () -> getCurrentPhase() == GamePhase.WAVE);
+                    RoundReward.start(plugin, () -> getCurrentPhase() == GamePhase.WAVE);
 
                     for (var gamePlayer : userManager.getGamePlayers()) {
                         // JoinMe only before the start, the slot stays empty for lying on the ground
-                        gamePlayer.getPlayer().getInventory().setItem(de.ethicbuilds.monsters.gameplay.listener.JoinMeListener.SLOT, null);
+                        gamePlayer.getPlayer().getInventory().setItem(JoinMeListener.SLOT, null);
                         for (var weapon : gamePlayer.getWeapons().values()) {
                             weapon.refill();
                             weapon.reload(gamePlayer.getPlayer());
@@ -137,7 +142,7 @@ public class GameManager {
                             Overlay.line(Overlay.START, START_COLOR, "GO!", "survive as long as you can"));
 
                     userManager.startMonsterTrackerTask();
-                    plugin.getInjector().getInstance(de.ethicbuilds.monsters.player.manager.SpectatorHud.class).start();
+                    plugin.getInjector().getInstance(SpectatorHud.class).start();
                     if (Bukkit.getPluginManager().isPluginEnabled("ProtocolLib")) {
                         plugin.getInjector().getInstance(TrackerGlow.class).start();
                     }
@@ -161,7 +166,7 @@ public class GameManager {
         List<GamePlayer> players = new ArrayList<>(userManager.getGamePlayers());
         players.sort(Comparator.comparingInt(GamePlayer::getKilledZombies).reversed());
         for (Player player : Bukkit.getOnlinePlayers()) summary(player, players).forEach(player::sendMessage);
-        var rewards = de.ethicbuilds.monsters.reward.RoundReward.payOut(players, waveManager.getCurrentWave(), plugin.getMonstersPrefix());
+        var rewards = RoundReward.payOut(players, waveManager.getCurrentWave(), plugin.getMonstersPrefix());
         var challenges = DailyChallenge.check(players, waveManager.getCurrentWave());
         roundEndCard.show(players, waveManager.getCurrentWave(), rewards, challenges);
     }
@@ -194,7 +199,7 @@ public class GameManager {
         return lines;
     }
 
-    private void award(List<String> lines, Player viewer, List<GamePlayer> players, String title, java.util.function.ToIntFunction<GamePlayer> value) {
+    private void award(List<String> lines, Player viewer, List<GamePlayer> players, String title, ToIntFunction<GamePlayer> value) {
         players.stream().max(Comparator.comparingInt(value)).filter(best -> value.applyAsInt(best) > 0).ifPresent(best ->
                 lines.add(Lang.f(viewer, "§7%s §8» §f%s §8(§e%,d§8)", "§7%s §8» §f%s §8(§e%,d§8)", title, best.getPlayer().getName(),
                         value.applyAsInt(best))));
