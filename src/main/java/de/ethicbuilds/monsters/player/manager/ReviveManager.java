@@ -75,6 +75,7 @@ public class ReviveManager implements Listener {
     private final Map<UUID, ItemStack> savedWatchSlot = new HashMap<>();
     private final Map<UUID, ItemStack> savedPrevSlot = new HashMap<>();
     private final Map<UUID, Player> lastWatched = new HashMap<>();
+    private final java.util.Set<UUID> switching = new java.util.HashSet<>();
     private BukkitRunnable watchCheck;
 
     /** Every revive of the same player costs 1000 more */
@@ -199,6 +200,7 @@ public class ReviveManager implements Listener {
         Player player = event.getPlayer();
         if (event.getCause() != org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.SPECTATE || !watching.containsKey(player.getUniqueId())) return;
         event.setCancelled(true);
+        if (switching.contains(player.getUniqueId())) return;
         Player target = mates(player).stream()
                 .filter(mate -> mate.getWorld().equals(event.getTo().getWorld()) && mate.getLocation().distanceSquared(event.getTo()) < 1)
                 .findFirst().orElse(null);
@@ -207,6 +209,23 @@ public class ReviveManager implements Listener {
             return;
         }
         watch(player, target);
+    }
+
+
+    // Own camera switches: cancelled first above, so UtilityCommands stays quiet, allowed again here
+    @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST)
+    public void onOwnSwitch(org.bukkit.event.player.PlayerTeleportEvent event) {
+        if (event.getCause() == org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.SPECTATE && switching.contains(event.getPlayer().getUniqueId())) event.setCancelled(false);
+    }
+
+    // Changes the camera; the teleport this causes belongs to us
+    private void camera(Player player, Player target) {
+        switching.add(player.getUniqueId());
+        try {
+            player.setSpectatorTarget(target);
+        } finally {
+            switching.remove(player.getUniqueId());
+        }
     }
 
     @EventHandler
@@ -244,7 +263,7 @@ public class ReviveManager implements Listener {
         watching.put(player.getUniqueId(), mate);
         lastWatched.put(player.getUniqueId(), mate);
         player.setGameMode(org.bukkit.GameMode.SPECTATOR);
-        player.setSpectatorTarget(mate);
+        camera(player, mate);
         player.sendActionBar(Lang.t(player, "§7Du schaust §a" + mate.getName() + " §7zu §8· §7Taste 1: wechseln §8· §7Schleichen: zurück",
                 "§7Watching §a" + mate.getName() + " §8· §7Key 1: switch §8· §7Sneak: back"));
         startWatchCheck();
@@ -289,7 +308,7 @@ public class ReviveManager implements Listener {
     private void stopWatching(Player player) {
         // Removed first, otherwise leaving the camera below is cancelled
         if (watching.remove(player.getUniqueId()) == null) return;
-        player.setSpectatorTarget(null);
+        camera(player, null);
         player.setGameMode(org.bukkit.GameMode.ADVENTURE);
     }
 

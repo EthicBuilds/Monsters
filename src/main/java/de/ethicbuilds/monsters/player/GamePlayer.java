@@ -50,7 +50,13 @@ public class GamePlayer extends GameUser {
         ItemStack monsterTracker = new ItemStack(Material.COMPASS);
 
         ItemMeta monsterTrackerMeta = monsterTracker.getItemMeta();
-        monsterTrackerMeta.setDisplayName("§cMonster Tracker");
+        monsterTrackerMeta.setItemModel(new org.bukkit.NamespacedKey("monsters", "tracker"));
+        monsterTrackerMeta.displayName(de.ethicbuilds.monsters.lang.Lang.mm(player, "<!italic><bold><#3CDC6E>Monster-Tracker</#3CDC6E></bold>",
+                "<!italic><bold><#3CDC6E>Monster Tracker</#3CDC6E></bold>"));
+        monsterTrackerMeta.lore(java.util.List.of(
+                de.ethicbuilds.monsters.lang.Lang.mm(player, "<!italic><#8A93A3>In der Hand:</#8A93A3> <#FF6B6B>Monster</#FF6B6B> <#8A93A3>und</#8A93A3> <#3CDC6E>Mitspieler</#3CDC6E> <#8A93A3>leuchten</#8A93A3>",
+                        "<!italic><#8A93A3>While held:</#8A93A3> <#FF6B6B>monsters</#FF6B6B> <#8A93A3>and</#8A93A3> <#3CDC6E>teammates</#3CDC6E> <#8A93A3>glow</#8A93A3>"),
+                de.ethicbuilds.monsters.lang.Lang.mm(player, "<!italic><#5A616E>Durch Wände sichtbar</#5A616E>", "<!italic><#5A616E>Visible through walls</#5A616E>")));
         monsterTracker.setItemMeta(monsterTrackerMeta);
 
         player.getInventory().setItem(0, melee);

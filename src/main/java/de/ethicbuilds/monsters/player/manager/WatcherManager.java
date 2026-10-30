@@ -51,6 +51,7 @@ public class WatcherManager implements Listener {
     // Watched player, null while the watcher is at the items
     private final Map<UUID, Player> watchers = new HashMap<>();
     private final Map<UUID, Player> lastWatched = new HashMap<>();
+    private final java.util.Set<UUID> switching = new java.util.HashSet<>();
     private BukkitRunnable check;
 
     public boolean isWatcher(UUID uuid) {
@@ -78,7 +79,10 @@ public class WatcherManager implements Listener {
         player.teleport(mapManager.getMapConfiguration().getSpawn());
         player.sendTitle(Lang.t(player, "§7Du schaust zu", "§7Spectating"),
                 Lang.t(player, "§aDie Runde läuft schon", "§aThe round is already running"), 10, 50, 10);
-        cycle(player, 1);
+        // A moment later, right after joining the camera does not attach yet
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline() && isWatcher(player.getUniqueId())) cycle(player, 1);
+        }, 10L);
         startCheck();
     }
 
@@ -103,7 +107,7 @@ public class WatcherManager implements Listener {
         watchers.put(player.getUniqueId(), target);
         lastWatched.put(player.getUniqueId(), target);
         player.setGameMode(GameMode.SPECTATOR);
-        player.setSpectatorTarget(target);
+        camera(player, target);
         player.sendActionBar(Lang.f(player, "§7Du schaust §a%s §7zu §8· §7Taste 1: wechseln §8· §7Schleichen: zurück",
                 "§7Watching §a%s §8· §7Key 1: switch §8· §7Sneak: back", target.getName()));
     }
@@ -111,7 +115,7 @@ public class WatcherManager implements Listener {
     private void toItems(Player player) {
         // Cleared first, otherwise leaving the camera below is cancelled
         watchers.put(player.getUniqueId(), null);
-        player.setSpectatorTarget(null);
+        camera(player, null);
         player.setGameMode(GameMode.ADVENTURE);
         player.teleport(mapManager.getMapConfiguration().getSpawn());
         player.getInventory().setHeldItemSlot(HELD_SLOT);
@@ -187,9 +191,27 @@ public class WatcherManager implements Listener {
         Player player = event.getPlayer();
         if (event.getCause() != PlayerTeleportEvent.TeleportCause.SPECTATE || !isWatcher(player.getUniqueId())) return;
         event.setCancelled(true);
+        if (switching.contains(player.getUniqueId())) return;
         living().stream().filter(p -> p.getWorld().equals(event.getTo().getWorld()) && p.getLocation().distanceSquared(event.getTo()) < 1)
                 .findFirst().ifPresentOrElse(target -> watch(player, target),
                         () -> player.sendActionBar(Lang.t(player, "§7Du kannst nur lebenden Spielern zuschauen", "§7You can only watch living players")));
+    }
+
+
+    // Own camera switches: cancelled first above, so UtilityCommands stays quiet, allowed again here
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onOwnSwitch(PlayerTeleportEvent event) {
+        if (event.getCause() == PlayerTeleportEvent.TeleportCause.SPECTATE && switching.contains(event.getPlayer().getUniqueId())) event.setCancelled(false);
+    }
+
+    // Changes the camera; the teleport this causes belongs to us
+    private void camera(Player player, Player target) {
+        switching.add(player.getUniqueId());
+        try {
+            player.setSpectatorTarget(target);
+        } finally {
+            switching.remove(player.getUniqueId());
+        }
     }
 
     @EventHandler
