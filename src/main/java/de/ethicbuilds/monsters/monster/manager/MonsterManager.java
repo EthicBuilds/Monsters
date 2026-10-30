@@ -323,100 +323,98 @@ public class MonsterManager {
 
     public void startMonsterCheck() {
         PlayerTrail.clear();
-        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
-                Player player = gamePlayer.getPlayer();
-                if (player.isOnline() && !userManager.isPlayerDead(player.getUniqueId())) PlayerTrail.record(player);
-            }
-        }, 0L, 10L);
-        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            // Frozen monsters during a pause are not stuck
-            if (PauseManager.isPaused()) return;
-            long now = System.currentTimeMillis();
-            HealthBars.tidy(plugin.getWorld());
-
-            List<EnemyMonster> toRemove = new ArrayList<>();
-
-            for (EnemyMonster enemyMonster : monsters.values()) {
-                LivingEntity entity = enemyMonster.getMonster();
-
-
-                if (entity == null || !entity.isValid()) {
-                    toRemove.add(enemyMonster);
-                    continue;
-                }
-
-                Location loc = entity.getLocation();
-
-                if (loc.getBlockY() < 0) {
-                    toRemove.add(enemyMonster);
-                    continue;
-                }
-
-                Player nearest = nearestPlayer(loc);
-                // The boss weaver never stays far away from the players
-                if (enemyMonster instanceof MonsterSpiderBoss boss && nearest != null && nearest.getLocation().distanceSquared(loc) > BOSS_LEASH * BOSS_LEASH) {
-                    Location open = spiderSpot(boss, livingPlayers());
-                    if (open != null) entity.teleport(open, TeleportFlag.EntityState.RETAIN_PASSENGERS);
-                }
-
-                // Stuck: stayed within a small spot (also wobbling back and forth) without a player next to it
-                Location anchor = lastLocation.get(enemyMonster);
-                boolean atPlayer = nearest != null && nearest.getLocation().distanceSquared(loc) < STUCK_PLAYER_DISTANCE * STUCK_PLAYER_DISTANCE;
-                if (anchor != null && anchor.getWorld().equals(loc.getWorld()) && anchor.distanceSquared(loc) < STUCK_RADIUS * STUCK_RADIUS && !atPlayer) {
-                    long lastMoved = lastMoveTime.getOrDefault(enemyMonster, now);
-                    // A stuck spider gets free ground instead of being removed, the boss ends the wave
-                    if (now - lastMoved >= 10_000 && enemyMonster instanceof MonsterSpider spider) {
-                        Location open = spiderSpot(spider, livingPlayers());
-                        // The model parts ride on it and come along
-                        if (open != null) entity.teleport(open, TeleportFlag.EntityState.RETAIN_PASSENGERS);
-                        lastMoveTime.put(enemyMonster, now);
-                        continue;
-                    }
-                    // Others come out again at the spawner nearest to the players, only if none is around
-                    if (now - lastMoved >= STUCK_MILLIS && nearest != null && !(enemyMonster instanceof MonsterSpiderBoss)) {
-                        List<Location> spawners = getActiveSpawnerLocations();
-                        if (!spawners.isEmpty()) {
-                            Location spawner = nearestSpawner(spawners, nearest).clone().add(0, 1, 0);
-                            entity.teleport(spawner, TeleportFlag.EntityState.RETAIN_PASSENGERS);
-                            lastMoveTime.put(enemyMonster, now);
-                            lastLocation.put(enemyMonster, spawner);
-                            continue;
-                        }
-                    }
-                    if (now - lastMoved >= 30_000) {
-                        toRemove.add(enemyMonster);
-                        continue;
-                    }
-                } else {
-                    lastMoveTime.put(enemyMonster, now);
-                    lastLocation.put(enemyMonster, loc.clone());
-                }
-            }
-
-            for (EnemyMonster monster : toRemove) {
-                Monster entity = monster.getMonster();
-
-                if (entity != null) {
-                    if (entity.isValid()) {
-                        HealthBars.remove(entity);
-                        entity.remove();
-                    }
-
-                    monsters.remove(entity);
-                }
-
-                lastLocation.remove(monster);
-                lastMoveTime.remove(monster);
-            }
-        }, 0L, 40L);
+        Bukkit.getScheduler().runTaskTimer(plugin, this::recordTrails, 0L, 10L);
+        Bukkit.getScheduler().runTaskTimer(plugin, this::checkMonsters, 0L, 40L);
     }
 
+    private void recordTrails() {
+        for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
+            Player player = gamePlayer.getPlayer();
+            if (player.isOnline() && !userManager.isPlayerDead(player.getUniqueId())) PlayerTrail.record(player);
+        }
+    }
+
+    private void checkMonsters() {
+        // Frozen monsters during a pause are not stuck
+        if (PauseManager.isPaused()) return;
+        long now = System.currentTimeMillis();
+        HealthBars.tidy(plugin.getWorld());
+        List<Player> living = livingPlayers();
+        List<EnemyMonster> toRemove = new ArrayList<>();
+
+        for (EnemyMonster enemyMonster : monsters.values()) {
+            LivingEntity entity = enemyMonster.getMonster();
+            if (entity == null || !entity.isValid()) {
+                toRemove.add(enemyMonster);
+                continue;
+            }
+
+            Location loc = entity.getLocation();
+            if (loc.getBlockY() < 0) {
+                toRemove.add(enemyMonster);
+                continue;
+            }
+
+            Player nearest = nearest(living, loc);
+            // The boss weaver never stays far away from the players
+            if (enemyMonster instanceof MonsterSpiderBoss boss && nearest != null && nearest.getLocation().distanceSquared(loc) > BOSS_LEASH * BOSS_LEASH) {
+                Location open = spiderSpot(boss, living);
+                if (open != null) entity.teleport(open, TeleportFlag.EntityState.RETAIN_PASSENGERS);
+            }
+
+            // Stuck: stayed within a small spot (also wobbling back and forth) without a player next to it
+            Location anchor = lastLocation.get(enemyMonster);
+            boolean atPlayer = nearest != null && nearest.getLocation().distanceSquared(loc) < STUCK_PLAYER_DISTANCE * STUCK_PLAYER_DISTANCE;
+            if (anchor != null && anchor.getWorld().equals(loc.getWorld()) && anchor.distanceSquared(loc) < STUCK_RADIUS * STUCK_RADIUS && !atPlayer) {
+                long lastMoved = lastMoveTime.getOrDefault(enemyMonster, now);
+                // A stuck spider gets free ground instead of being removed, the boss ends the wave
+                if (now - lastMoved >= 10_000 && enemyMonster instanceof MonsterSpider spider) {
+                    Location open = spiderSpot(spider, living);
+                    // The model parts ride on it and come along
+                    if (open != null) entity.teleport(open, TeleportFlag.EntityState.RETAIN_PASSENGERS);
+                    lastMoveTime.put(enemyMonster, now);
+                    continue;
+                }
+                // Others come out again at the spawner nearest to the players, only if none is around
+                if (now - lastMoved >= STUCK_MILLIS && nearest != null && !(enemyMonster instanceof MonsterSpiderBoss)) {
+                    List<Location> spawners = getActiveSpawnerLocations();
+                    if (!spawners.isEmpty()) {
+                        Location spawner = nearestSpawner(spawners, nearest).clone().add(0, 1, 0);
+                        entity.teleport(spawner, TeleportFlag.EntityState.RETAIN_PASSENGERS);
+                        lastMoveTime.put(enemyMonster, now);
+                        lastLocation.put(enemyMonster, spawner);
+                        continue;
+                    }
+                }
+                if (now - lastMoved >= 30_000) toRemove.add(enemyMonster);
+            } else {
+                lastMoveTime.put(enemyMonster, now);
+                lastLocation.put(enemyMonster, loc.clone());
+            }
+        }
+
+        for (EnemyMonster monster : toRemove) {
+            Monster entity = monster.getMonster();
+            if (entity != null) {
+                if (entity.isValid()) {
+                    HealthBars.remove(entity);
+                    entity.remove();
+                }
+                monsters.remove(entity);
+            }
+            lastLocation.remove(monster);
+            lastMoveTime.remove(monster);
+        }
+    }
 
     public Player nearestPlayer(Location location) {
+        return nearest(livingPlayers(), location);
+    }
+
+    private static Player nearest(List<Player> players, Location location) {
         Player best = null;
         double closest = Double.MAX_VALUE;
-        for (Player player : livingPlayers()) {
+        for (Player player : players) {
             if (!player.getWorld().equals(location.getWorld())) continue;
             double distance = player.getLocation().distanceSquared(location);
             if (distance < closest) {
