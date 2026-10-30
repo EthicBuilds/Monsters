@@ -74,6 +74,7 @@ public class UserManager {
         // Watches in spectator mode, so the others see the player in the tab list as spectator
         player.setGameMode(GameMode.SPECTATOR);
         player.teleport(mapManager.getMapConfiguration().getSpawn());
+        ChatStatus.send(player, true);
         player.sendTitle(Lang.t(player, "§7Du schaust zu", "§7Spectating"),
                 Lang.t(player, "§aAb der nächsten Welle spielst du mit", "§aYou'll join in from the next wave"), 10, 60, 10);
     }

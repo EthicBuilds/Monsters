@@ -77,6 +77,7 @@ public class WatcherManager implements Listener {
         setBase(player, Attribute.JUMP_STRENGTH, 0);
         setBase(player, Attribute.GRAVITY, 0);
         player.teleport(mapManager.getMapConfiguration().getSpawn());
+        ChatStatus.send(player, true);
         player.sendTitle(Lang.t(player, "§7Du schaust zu", "§7Spectating"),
                 Lang.t(player, "§aDie Runde läuft schon", "§aThe round is already running"), 10, 50, 10);
         // A moment later, right after joining the camera does not attach yet

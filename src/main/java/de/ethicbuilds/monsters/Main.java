@@ -108,6 +108,7 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(new de.ethicbuilds.monsters.weapons.SniperScope(), this);
         getServer().getMessenger().registerOutgoingPluginChannel(this, JoinMeListener.CHANNEL);
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
+        getServer().getMessenger().registerOutgoingPluginChannel(this, de.ethicbuilds.monsters.player.manager.ChatStatus.CHANNEL);
         pm.registerEvents(injector.getInstance(de.ethicbuilds.monsters.player.manager.WatcherManager.class), this);
         pm.registerEvents(injector.getInstance(de.ethicbuilds.monsters.gameplay.manager.PauseManager.class), this);
         pm.registerEvents(new de.ethicbuilds.monsters.player.manager.PackStatus(), this);

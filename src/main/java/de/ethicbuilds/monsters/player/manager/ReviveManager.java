@@ -146,6 +146,7 @@ public class ReviveManager implements Listener {
         player.getInventory().setItem(WATCH_SLOT, watchItem(Lang.t(player, "§aNächster Mitspieler »", "§aNext teammate »"),
                 Lang.t(player, "§7Taste 5 oder Mausrad runter", "§7Key 5 or mouse wheel down")));
         player.sendActionBar(watchHint(player));
+        ChatStatus.send(player, true);
         trySelfRevive(player);
     }
 
@@ -352,6 +353,7 @@ public class ReviveManager implements Listener {
     /** Ends the downed state: mannequin away, player visible and normal again */
     public void clear(Player player) {
         stopWatching(player);
+        ChatStatus.send(player, false);
         reviveProgress.remove(player.getUniqueId());
         ItemStack watchSlot = savedWatchSlot.remove(player.getUniqueId());
         if (watchSlot != null) player.getInventory().setItem(WATCH_SLOT, watchSlot);
