@@ -86,7 +86,7 @@ public class DoorManager {
                 && !userManager.isPlayerDead(player.getUniqueId())
                 && GameItems.isCrowbar(player.getInventory().getItemInMainHand())
                 && player.getWorld().equals(center.getWorld())
-                && player.getLocation().distance(center) <= MAX_DISTANCE;
+                && player.getLocation().distanceSquared(center) <= MAX_DISTANCE * MAX_DISTANCE;
     }
 
     private void stop(Door door, List<Location> blocks, Player player) {

@@ -12,9 +12,8 @@ import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.GameSpectator;
 import org.bukkit.*;
-import org.bukkit.entity.Entity;
+import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Zombie;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -172,13 +171,17 @@ public class UserManager {
         new BukkitRunnable() {
             @Override
             public void run() {
+                // One look at the monsters per world, not one per player
+                Map<World, Collection<Monster>> monsters = new HashMap<>();
                 for (GamePlayer gamePlayer : gamePlayers.values()) {
-                    org.bukkit.entity.Monster nearestZombie = null;
+                    Player player = gamePlayer.getPlayer();
+                    Monster nearestZombie = null;
                     double minDistance = Double.MAX_VALUE;
 
                     // Only monsters, the map is full of decoration displays
-                    for (org.bukkit.entity.Monster entity : gamePlayer.getPlayer().getWorld().getEntitiesByClass(org.bukkit.entity.Monster.class)) {
-                        double distance = entity.getLocation().distanceSquared(gamePlayer.getPlayer().getLocation());
+                    Location at = player.getLocation();
+                    for (Monster entity : monsters.computeIfAbsent(player.getWorld(), world -> world.getEntitiesByClass(Monster.class))) {
+                        double distance = entity.getLocation().distanceSquared(at);
                         if (distance < minDistance) {
                             minDistance = distance;
                             nearestZombie = entity;
@@ -186,9 +189,9 @@ public class UserManager {
                     }
 
                     if (nearestZombie == null) {
-                        gamePlayer.getPlayer().setCompassTarget(new Location(gamePlayer.getPlayer().getWorld(), 0, 72, 0));
+                        player.setCompassTarget(new Location(player.getWorld(), 0, 72, 0));
                     } else {
-                        gamePlayer.getPlayer().setCompassTarget(nearestZombie.getLocation());
+                        player.setCompassTarget(nearestZombie.getLocation());
                     }
                 }
             }

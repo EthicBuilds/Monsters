@@ -56,21 +56,34 @@ public class TrackerGlow {
                     cancel();
                     return;
                 }
-                for (GamePlayer gamePlayer : userManager.getGamePlayers()) update(gamePlayer.getPlayer());
+                // Monster parts are the same for every holder, gathered once when someone holds the tracker
+                List<Entity> monsters = null;
+                for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
+                    Player player = gamePlayer.getPlayer();
+                    boolean holding = player.isOnline() && player.getInventory().getItemInMainHand().getType() == Material.COMPASS;
+                    if (holding && monsters == null) monsters = monsterParts();
+                    update(player, holding ? monsters : null);
+                }
             }
         }.runTaskTimer(plugin, 0L, 10L);
     }
 
-    private void update(Player player) {
+    private List<Entity> monsterParts() {
+        List<Entity> parts = new ArrayList<>();
+        for (EnemyMonster enemyMonster : monsterManager.getMonsters().values()) {
+            if (enemyMonster.getMonster() == null || !enemyMonster.getMonster().isValid()) continue;
+            parts.addAll(glowParts(enemyMonster));
+        }
+        return parts;
+    }
+
+    // Monster parts null: the player does not hold the tracker
+    private void update(Player player, List<Entity> monsters) {
         Set<Entity> shown = glowing.computeIfAbsent(player.getUniqueId(), id -> new HashSet<>());
-        boolean holding = player.isOnline() && player.getInventory().getItemInMainHand().getType() == Material.COMPASS;
 
         Set<Entity> now = new HashSet<>();
-        if (holding) {
-            for (EnemyMonster enemyMonster : monsterManager.getMonsters().values()) {
-                if (enemyMonster.getMonster() == null || !enemyMonster.getMonster().isValid()) continue;
-                now.addAll(glowParts(enemyMonster));
-            }
+        if (monsters != null) {
+            now.addAll(monsters);
             // Teammates glow as well, so the tracker also shows where the others are
             for (GamePlayer mate : userManager.getGamePlayers()) {
                 Player other = mate.getPlayer();

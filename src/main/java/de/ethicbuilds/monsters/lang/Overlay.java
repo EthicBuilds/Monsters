@@ -95,13 +95,17 @@ public final class Overlay {
         return MM.deserialize(Lang.t(player, de, en));
     }
 
+    // Parsed once per marker look, shots hit many times a second
+    private static final java.util.Map<String, Title> HIT_TITLES = new java.util.HashMap<>();
+
     /** Hit marker in the middle, only while no other text is shown */
     public static void hit(Player player, boolean headshot, boolean armor, boolean kill) {
         Long until = titleUntil.get(player.getUniqueId());
         if (until != null && until > System.currentTimeMillis()) return;
         String color = kill ? HIT_KILL : headshot ? HIT_HEAD : armor ? HIT_ARMOR : HIT_WHITE;
         // The glyph is 12 px wide but its cross sits at 8 px (the empty right side does not count): 4 px after it centre it
-        player.showTitle(Title.title(Component.empty(), parse(glyph(headshot ? HEAD_HIT : HIT, color) + space(4)), HIT_TIMES));
+        player.showTitle(HIT_TITLES.computeIfAbsent(headshot + color, key ->
+                Title.title(Component.empty(), parse(glyph(headshot ? HEAD_HIT : HIT, color) + space(4)), HIT_TIMES)));
     }
 
     private static void shown(Player player, Title.Times times) {

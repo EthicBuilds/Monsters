@@ -333,7 +333,7 @@ public class PowerupManager {
             for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
                 Player player = gamePlayer.getPlayer();
                 if (userManager.isPlayerDead(player.getUniqueId()) || !player.getWorld().equals(powerup.getWorld())) continue;
-                if (player.getLocation().add(0, 0.8, 0).distance(powerup.getLocation()) > PICKUP_DISTANCE) continue;
+                if (player.getLocation().add(0, 0.8, 0).distanceSquared(powerup.getLocation()) > PICKUP_DISTANCE * PICKUP_DISTANCE) continue;
                 // At full health a medkit goes into the inventory (one at most), otherwise it stays for someone who is hurt
                 if (entry.getValue() == Type.MEDKIT && player.getHealth() >= player.getAttribute(Attribute.MAX_HEALTH).getValue()) {
                     if (player.getInventory().getItem(ReviveManager.MEDKIT_SLOT) != null) continue;
@@ -472,7 +472,7 @@ public class PowerupManager {
     private boolean isAwayFromPlayers(Location location) {
         for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
             Player player = gamePlayer.getPlayer();
-            if (player.getWorld().equals(location.getWorld()) && player.getLocation().distance(location) < MIN_PLAYER_DISTANCE) {
+            if (player.getWorld().equals(location.getWorld()) && player.getLocation().distanceSquared(location) < MIN_PLAYER_DISTANCE * MIN_PLAYER_DISTANCE) {
                 return false;
             }
         }

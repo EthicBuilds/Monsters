@@ -158,7 +158,7 @@ public class WaveEvents {
     private void checkCamping() {
         Location middle = teamMiddle();
         if (middle == null) return;
-        if (campAnchor == null || !campAnchor.getWorld().equals(middle.getWorld()) || campAnchor.distance(middle) > CAMP_RADIUS) {
+        if (campAnchor == null || !campAnchor.getWorld().equals(middle.getWorld()) || campAnchor.distanceSquared(middle) > CAMP_RADIUS * CAMP_RADIUS) {
             campAnchor = middle;
             campSeconds = 0;
             return;
@@ -208,7 +208,7 @@ public class WaveEvents {
                 if (active && ticks % 20 == 0) {
                     world.playSound(center, Sound.ITEM_ELYTRA_FLYING, 0.5F, 0.6F);
                     for (Player player : living()) {
-                        if (!player.getWorld().equals(world) || player.getLocation().distance(center) > STORM_RADIUS) continue;
+                        if (!player.getWorld().equals(world) || player.getLocation().distanceSquared(center) > STORM_RADIUS * STORM_RADIUS) continue;
                         player.damage(STORM_DAMAGE);
                         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 30, 0, false, false));
                     }
