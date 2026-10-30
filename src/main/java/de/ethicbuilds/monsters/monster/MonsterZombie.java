@@ -51,8 +51,13 @@ public class MonsterZombie extends EnemyMonster {
     protected void onSpawn() {
         if (!modeled()) return;
         monster.setInvisible(true);
+        // Vanilla armor would float around the model, also what it picks up or gets a tick later
+        monster.setCanPickupItems(false);
         var equipment = monster.getEquipment();
         if (equipment != null) equipment.clear();
+        Main.getINSTANCE().getServer().getScheduler().runTaskLater(Main.getINSTANCE(), () -> {
+            if (monster.isValid() && monster.getEquipment() != null) monster.getEquipment().clear();
+        }, 1L);
         model = new AnimatedModel(zombie(), monster, 1.0F);
         if (isSprinter()) model.setWalk("rennen");
         model.play("spawn");
