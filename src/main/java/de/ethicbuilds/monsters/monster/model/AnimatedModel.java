@@ -126,13 +126,13 @@ public class AnimatedModel {
         return d;
     }
 
-    /** A second item model on every bone (folder/<bone>) that follows all animations */
-    public void addLayer(String folder, java.util.Set<String> without) {
+    /** A second item model on single bones (bone -> item model) that follows all animations */
+    public void addLayer(Map<String, String> models) {
         List<BoneModel.Bone> bones = model.bones();
         layer = new ItemDisplay[bones.size()];
         for (int i = 0; i < bones.size(); i++) {
-            if (parts[i] == null || without.contains(bones.get(i).id())) continue;
-            String id = folder + "/" + bones.get(i).id();
+            String id = models.get(bones.get(i).id());
+            if (parts[i] == null || id == null) continue;
             layer[i] = spawnPart(id);
             base.addPassenger(layer[i]);
         }

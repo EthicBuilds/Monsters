@@ -16,6 +16,9 @@ public class MonsterZombie extends EnemyMonster {
     // Elite tiers wear their armor as plates on the model, the protection of the old helmet stays
     private static final String[] ARMOR = {null, "zombie_bronze", "zombie_silber", "zombie_gold", "zombie_diamant", "zombie_netherit"};
     private static final double[] ARMOR_POINTS = {0, 1, 2, 2, 3, 3};
+    // Random pieces, each with the tier of the wave or one lower: helmet, chest with sleeves, trousers
+    private static final String[][] PIECES = {{"kopf"}, {"koerper", "arm_r", "arm_l"}, {"bein_r", "bein_l"}};
+    private static final double PIECE_CHANCE = 0.65;
     private static BoneModel zombie;
 
     private AnimatedModel model;
@@ -65,10 +68,20 @@ public class MonsterZombie extends EnemyMonster {
         model = new AnimatedModel(zombie(), monster, 1.0F);
         int tier = Math.min(getTier(), ARMOR.length - 1);
         if (tier > 0) {
-            // The jaw has no armor plate
-            model.addLayer(ARMOR[tier], java.util.Set.of("kiefer"));
+            var random = java.util.concurrent.ThreadLocalRandom.current();
+            java.util.Map<String, String> plates = new java.util.HashMap<>();
+            double points = 0;
+            int first = random.nextInt(PIECES.length);
+            for (int piece = 0; piece < PIECES.length; piece++) {
+                // At least one piece, so the tier can be seen
+                if (piece != first && random.nextDouble() > PIECE_CHANCE) continue;
+                int material = Math.max(1, tier - random.nextInt(2));
+                for (String bone : PIECES[piece]) plates.put(bone, ARMOR[material] + "/" + bone);
+                points += ARMOR_POINTS[material] / (double) PIECES.length;
+            }
+            model.addLayer(plates);
             var armor = monster.getAttribute(org.bukkit.attribute.Attribute.ARMOR);
-            if (armor != null) armor.setBaseValue(armor.getBaseValue() + ARMOR_POINTS[tier]);
+            if (armor != null) armor.setBaseValue(armor.getBaseValue() + points);
         }
         if (isSprinter()) model.setWalk("rennen");
         model.play("spawn");
