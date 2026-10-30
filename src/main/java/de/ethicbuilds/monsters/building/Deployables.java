@@ -121,8 +121,8 @@ public class Deployables implements BuildPart {
         center.getWorld().playSound(center, spot.ladder() ? Sound.BLOCK_LADDER_PLACE : Sound.BLOCK_WOOD_PLACE, 1.2F, 0.9F);
         String de = spot.ladder() ? "Strickleiter angebracht" : "Brücke ausgelegt";
         String en = spot.ladder() ? "Rope ladder hung up" : "Bridge laid out";
-        Overlay.small(gamePlayer.getPlayer(), Overlay.icon(Overlay.CRATE, Parts.COLOR, "<b>" + de + "</b> <color:" + Overlay.GREY + ">· -</color>" + Parts.price(price, false)),
-                Overlay.icon(Overlay.CRATE, Parts.COLOR, "<b>" + en + "</b> <color:" + Overlay.GREY + ">· -</color>" + Parts.price(price, true)));
+        Overlay.small(gamePlayer.getPlayer(), Overlay.icon(Overlay.PARTS, Parts.COLOR, "<b>" + de + "</b> <color:" + Overlay.GREY + ">· -</color>" + Parts.price(price, false)),
+                Overlay.icon(Overlay.PARTS, Parts.COLOR, "<b>" + en + "</b> <color:" + Overlay.GREY + ">· -</color>" + Parts.price(price, true)));
     }
 
     // A bridge piece next to another one belongs to its bridge; true when it found one (then it has no own sign)

@@ -39,7 +39,8 @@ public class PowerGrid implements BuildPart {
     private static final double GENERATOR_REACH = 2.0, FENCE_REACH = 1.3;
     private static final double FENCE_DAMAGE = 4;
     private static final int HIT = 10;
-    private static final int LAMP_HEIGHT = 3;
+    // Nexo puts the light of the flood light one block above it
+    private static final int LAMP_HEIGHT = 1;
 
     @Inject private DecorationManager decorationManager;
     @Inject private MonsterManager monsterManager;

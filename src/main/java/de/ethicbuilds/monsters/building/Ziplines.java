@@ -37,10 +37,10 @@ public class Ziplines implements BuildPart {
     private static final String TOP_ID = "monsters_seilrutsche_oben", BOTTOM_ID = "monsters_seilrutsche_unten",
             ROPE_ID = "monsters_seil", STATION = "seilrutsche#";
     // Where the rope sits on the holders, above the furniture block
-    private static final double ROPE_HEIGHT = 2.2;
+    private static final double ROPE_HEIGHT = 1.78;
     private static final double MAX_LENGTH = 80, SPEED = 0.7;
     // The player hangs this far below the rope
-    private static final double HANG = 2.1;
+    private static final double HANG = 1.7;
 
     @Inject private Main plugin;
     @Inject private DecorationManager decorationManager;

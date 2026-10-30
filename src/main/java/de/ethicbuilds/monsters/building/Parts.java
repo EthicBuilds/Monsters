@@ -10,7 +10,6 @@ import org.bukkit.entity.Player;
  * Building parts: from part crates, monsters and nests, each player has their own
  */
 public final class Parts {
-    // Until the design session sends its own symbol the crate stands in
     public static final String COLOR = "#C9A26B";
 
     private Parts() {}
@@ -19,8 +18,8 @@ public final class Parts {
         gamePlayer.setParts(gamePlayer.getParts() + amount);
         Player player = gamePlayer.getPlayer();
         String found = "<b>" + Overlay.num("+" + amount) + "</b> ";
-        Overlay.small(player, Overlay.icon(Overlay.CRATE, COLOR, found + word(amount, false) + total(gamePlayer)),
-                Overlay.icon(Overlay.CRATE, COLOR, found + word(amount, true) + total(gamePlayer)));
+        Overlay.small(player, Overlay.icon(Overlay.PARTS, COLOR, found + word(amount, false) + total(gamePlayer)),
+                Overlay.icon(Overlay.PARTS, COLOR, found + word(amount, true) + total(gamePlayer)));
         player.playSound(player.getLocation(), Sound.BLOCK_CHAIN_PLACE, 0.8F, 1.4F);
     }
 
@@ -29,8 +28,8 @@ public final class Parts {
         Player player = gamePlayer.getPlayer();
         if (gamePlayer.getParts() < amount) {
             int missing = amount - gamePlayer.getParts();
-            Overlay.small(player, Overlay.icon(Overlay.CRATE, COLOR, grey("Dir fehlen ") + Overlay.num(missing) + " " + word(missing, false)),
-                    Overlay.icon(Overlay.CRATE, COLOR, grey("You need ") + Overlay.num(missing) + " " + grey("more ") + word(missing, true)));
+            Overlay.small(player, Overlay.icon(Overlay.PARTS, COLOR, grey("Dir fehlen ") + Overlay.num(missing) + " " + word(missing, false)),
+                    Overlay.icon(Overlay.PARTS, COLOR, grey("You need ") + Overlay.num(missing) + " " + grey("more ") + word(missing, true)));
             Sounds.deny(player);
             return false;
         }

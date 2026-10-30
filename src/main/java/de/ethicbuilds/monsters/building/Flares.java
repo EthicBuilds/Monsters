@@ -37,7 +37,7 @@ import org.bukkit.util.Vector;
  * Signal flare crate: flares in slot 8, thrown with right-click they burn a few seconds and draw the monsters nearby
  */
 public class Flares implements BuildPart, Listener {
-    private static final String ID = "monsters_fackelkiste", STATION = "fackeln";
+    private static final String ID = "monsters_fackelkiste", STATION = "fackeln", BURNING_ID = "monsters_signalfackel_an";
     private static final int SLOT = 8, MAX = 2, PRICE = 250;
     private static final int FLIGHT_TICKS = 40, BURN_TICKS = 160;
     private static final double RADIUS = 25;
@@ -101,7 +101,9 @@ public class Flares implements BuildPart, Listener {
         held.setAmount(held.getAmount() - 1);
         player.getInventory().setItemInMainHand(held.getAmount() > 0 ? held : null);
         Location start = player.getEyeLocation();
-        Item flare = player.getWorld().dropItem(start, GameItems.flare(player, 1), item -> {
+        ItemStack burning = GameItems.flare(player, 1);
+        GameItems.setModel(burning, BURNING_ID);
+        Item flare = player.getWorld().dropItem(start, burning, item -> {
             item.setPickupDelay(Integer.MAX_VALUE);
             item.setCanMobPickup(false);
             item.setUnlimitedLifetime(true);

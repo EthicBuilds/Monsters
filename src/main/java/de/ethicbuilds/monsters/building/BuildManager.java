@@ -203,15 +203,15 @@ public class BuildManager {
                     barricade.level == 2 ? "Corrugated iron barricade" : "Steel barricade", price);
             sound(barricade, Sound.BLOCK_ANVIL_PLACE);
         } else {
-            Overlay.small(player, Overlay.icon(Overlay.CRATE, Parts.COLOR, grey("Die Barrikade ist voll ausgebaut")),
-                    Overlay.icon(Overlay.CRATE, Parts.COLOR, grey("The barricade is fully upgraded")));
+            Overlay.small(player, Overlay.icon(Overlay.PARTS, Parts.COLOR, grey("Die Barrikade ist voll ausgebaut")),
+                    Overlay.icon(Overlay.PARTS, Parts.COLOR, grey("The barricade is fully upgraded")));
             Sounds.deny(player);
         }
     }
 
     private static void note(Player player, String de, String en, int price) {
-        Overlay.small(player, Overlay.icon(Overlay.CRATE, Parts.COLOR, "<b>" + de + "</b> " + grey("· -") + Parts.price(price, false)),
-                Overlay.icon(Overlay.CRATE, Parts.COLOR, "<b>" + en + "</b> " + grey("· -") + Parts.price(price, true)));
+        Overlay.small(player, Overlay.icon(Overlay.PARTS, Parts.COLOR, "<b>" + de + "</b> " + grey("· -") + Parts.price(price, false)),
+                Overlay.icon(Overlay.PARTS, Parts.COLOR, "<b>" + en + "</b> " + grey("· -") + Parts.price(price, true)));
         Sounds.buy(player);
     }
 
@@ -256,7 +256,7 @@ public class BuildManager {
         center.getWorld().spawnParticle(Particle.POOF, center, 12, 0.5, 0.6, 0.5, 0.02);
         barricade.barriers.forEach(block -> block.setType(Material.AIR, false));
         barricade.display.setItemStack(null);
-        Overlay.smallAll(Overlay.icon(Overlay.CRATE, Parts.COLOR, "<b>Barrikade zerstört</b> " + grey("· mit Bauteilen neu aufbauen")),
-                Overlay.icon(Overlay.CRATE, Parts.COLOR, "<b>Barricade destroyed</b> " + grey("· rebuild it with parts")));
+        Overlay.smallAll(Overlay.icon(Overlay.PARTS, Parts.COLOR, "<b>Barrikade zerstört</b> " + grey("· mit Bauteilen neu aufbauen")),
+                Overlay.icon(Overlay.PARTS, Parts.COLOR, "<b>Barricade destroyed</b> " + grey("· rebuild it with parts")));
     }
 }
