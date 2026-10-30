@@ -19,6 +19,8 @@ import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.HealthBars;
 import de.ethicbuilds.monsters.monster.MonsterGuard;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
+import de.ethicbuilds.monsters.perk.Perk;
+import de.ethicbuilds.monsters.perk.PerkManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.gameplay.CoinPopups;
@@ -63,6 +65,7 @@ public class WaveListener implements Listener {
     @Inject private GrenadeManager grenadeManager;
     @Inject private WorkbenchManager workbenchManager;
     @Inject private PowerupManager powerupManager;
+    @Inject private PerkManager perkManager;
     @Inject private Main plugin;
 
     public static final int AMMO_PRICE = 500;
@@ -257,6 +260,8 @@ public class WaveListener implements Listener {
             refillHeldWeapon(gamePlayer);
         } else if (station.equals(DecorationManager.WORKBENCH_STATION)) {
             workbenchManager.use(gamePlayer);
+        } else if (Perk.byFurniture(station) != null) {
+            perkManager.buy(gamePlayer, Perk.byFurniture(station));
         } else {
             buyOrReloadWeapon(gamePlayer, station);
         }
@@ -277,6 +282,8 @@ public class WaveListener implements Listener {
             refillHeldWeapon(gamePlayer);
         } else if (station.equals(DecorationManager.WORKBENCH_STATION)) {
             workbenchManager.use(gamePlayer);
+        } else if (Perk.byFurniture(station) != null) {
+            perkManager.buy(gamePlayer, Perk.byFurniture(station));
         } else {
             buyOrReloadWeapon(gamePlayer, station);
         }

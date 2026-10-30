@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.perk.Perk;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.gameplay.listener.WaveListener;
 import de.ethicbuilds.monsters.weapons.manager.WorkbenchManager;
@@ -160,6 +161,10 @@ public class DecorationManager implements Listener {
             open.de().setVisibleByDefault(false);
             workbenchOpen.add(open);
             Bukkit.getOnlinePlayers().forEach(player -> show(player, open));
+        } else if (Perk.byFurniture(id) != null) {
+            Perk perk = Perk.byFurniture(id);
+            createStation(block, perk.getFurniture(), perk.getNameDe(), perk.getNameEn(),
+                    price(perk.getPrice()) + "\n<#9AA6B8>" + perk.getEffectDe(), price(perk.getPrice()) + "\n<#9AA6B8>" + perk.getEffectEn());
         } else if (AMMO_CRATE.equals(id)) {
             createStation(block, AMMO_STATION, "Munition", "Ammo", price(WaveListener.AMMO_PRICE) + "\n<#9AA6B8>für die Waffe in der Hand",
                     price(WaveListener.AMMO_PRICE) + "\n<#9AA6B8>for the weapon in your hand");

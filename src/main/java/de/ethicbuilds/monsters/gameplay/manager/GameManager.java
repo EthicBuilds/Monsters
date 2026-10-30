@@ -13,6 +13,7 @@ import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.adapter.LocationAdapter;
 import de.ethicbuilds.monsters.monster.TrackerGlow;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
+import de.ethicbuilds.monsters.perk.PerkManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.reward.DailyChallenge;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -48,6 +49,7 @@ public class GameManager {
     @Inject private MonsterManager monsterManager;
     @Inject private StatisticManager statisticManager;
     @Inject private PowerupManager powerupManager;
+    @Inject private PerkManager perkManager;
 
     private final Gson gson;
 
@@ -197,6 +199,7 @@ public class GameManager {
 
     public void gameEnd() {
         gameStates.setCurrentPhase(GamePhase.AFTER_GAME);
+        perkManager.clear();
         for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
             statisticManager.saveStats(gamePlayer);
         }

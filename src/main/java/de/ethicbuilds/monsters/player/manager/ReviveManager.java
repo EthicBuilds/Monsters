@@ -5,6 +5,8 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.lang.Overlay;
+import de.ethicbuilds.monsters.perk.Perk;
+import de.ethicbuilds.monsters.perk.PerkManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
@@ -61,6 +63,7 @@ public class ReviveManager implements Listener {
 
     @Inject private Main plugin;
     @Inject private UserManager userManager;
+    @Inject private PerkManager perkManager;
 
     private final Map<UUID, Mannequin> bodies = new HashMap<>();
     private final Map<UUID, Location> spots = new HashMap<>();
@@ -92,6 +95,7 @@ public class ReviveManager implements Listener {
     public void down(Player player) {
         // The player keeps the normal view where they fell, only the body lies on the ground
         de.ethicbuilds.monsters.weapons.SniperScope.stop(player);
+        perkManager.lose(player);
         Location view = player.getLocation().clone();
         Location spot = view.clone();
         spot.setYaw(freeYaw(spot));
@@ -434,7 +438,8 @@ public class ReviveManager implements Listener {
             if (reviveProgress.putIfAbsent(downed, 0) == null) Sounds.deny(helper);
             return;
         }
-        int progress = reviveProgress.merge(downed, STEP_MILLIS, Integer::sum);
+        int step = perkManager.has(helper, Perk.QUICK_REVIVE) ? STEP_MILLIS * 2 : STEP_MILLIS;
+        int progress = reviveProgress.merge(downed, step, Integer::sum);
         if (progress < REVIVE_MILLIS) {
             String bar = progressBar(progress / (double) REVIVE_MILLIS);
             Overlay.small(helper, Overlay.icon(Overlay.REVIVE, GREEN, green("Wiederbeleben") + " " + bar + grey(" · Klick halten")),
