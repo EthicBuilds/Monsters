@@ -454,6 +454,8 @@ public class MonsterMiniBoss extends MonsterZombie {
 
     @Override
     public void onDeath() {
+        // Model falls away from the killer, with the boss voice
+        super.onDeath();
         if (bar != null) bar.removeAll();
         Player killer = monster.getKiller();
         if (killer == null) return;

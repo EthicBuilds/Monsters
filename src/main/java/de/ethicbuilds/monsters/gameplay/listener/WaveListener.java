@@ -48,7 +48,6 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import de.ethicbuilds.monsters.powerup.PowerupManager;
 
@@ -72,7 +71,9 @@ public class WaveListener implements Listener {
     private static final long AMMO_COOLDOWN = 1500;
     private final java.util.Map<java.util.UUID, Long> ammoCooldowns = new java.util.HashMap<>();
 
-    private boolean isAxeCooldDown;
+    // Knife coins at most every 2 seconds, for each player on their own
+    private static final long KNIFE_COOLDOWN = 2000;
+    private final java.util.Map<java.util.UUID, Long> knifeCoins = new java.util.HashMap<>();
 
     private static final int DOOR_PRICE = 2500;
     private static final double DOOR_REACH = 5;
@@ -121,10 +122,10 @@ public class WaveListener implements Listener {
         boolean knife = player.getInventory().getItemInMainHand().getType() == GameItems.KNIFE;
         if (!ShotDamage.isActive() && !knife) return;
 
-        if (!ShotDamage.isActive() && knife && isAxeCooldDown) return;
-
         if (!ShotDamage.isActive() && knife) {
-            startAxeCoolDown();
+            long now = System.currentTimeMillis();
+            if (now - knifeCoins.getOrDefault(player.getUniqueId(), 0L) < KNIFE_COOLDOWN) return;
+            knifeCoins.put(player.getUniqueId(), now);
         }
 
         boolean kill = event.getFinalDamage() >= monster.getHealth();
@@ -479,7 +480,8 @@ public class WaveListener implements Listener {
             }
 
             for (int i : gamePlayer.getWeaponSlots()) {
-                if (player.getInventory().getItem(i).getType().equals(Material.LIGHT_GRAY_DYE)) {
+                ItemStack slot = player.getInventory().getItem(i);
+                if (slot != null && slot.getType() == Material.LIGHT_GRAY_DYE) {
                     player.getInventory().setItem(i, weaponPointWeapon.getItem());
 
                     gamePlayer.addWeapon(weaponPointWeapon);
@@ -507,15 +509,5 @@ public class WaveListener implements Listener {
             player.sendActionBar(Lang.t(player, "§7Du hast diese Waffe schon! Munition gibt es an der §aMunitionskiste", "§7You already have this weapon! Get ammo at the §aAmmo crate"));
             Sounds.deny(player);
         }
-    }
-
-    private void startAxeCoolDown() {
-        isAxeCooldDown = true;
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                isAxeCooldDown = false;
-            }
-        }.runTaskLater(Main.getINSTANCE(), 40);
     }
 }

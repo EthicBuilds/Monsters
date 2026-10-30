@@ -77,7 +77,10 @@ public class GameManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (getCurrentPhase() != GamePhase.PRE_GAME) this.cancel();
+                if (getCurrentPhase() != GamePhase.PRE_GAME) {
+                    this.cancel();
+                    return;
+                }
                 if (Bukkit.getOnlinePlayers().isEmpty()) {
                     if (System.currentTimeMillis() - lastPlayerOnlineTime >= 30_000) {
                         HttpClient client = HttpClient.newHttpClient();
@@ -111,7 +114,10 @@ public class GameManager {
             int i = 10;
             @Override
             public void run() {
-                if(!userManager.isFull()) this.cancel();
+                if (!userManager.isFull()) {
+                    this.cancel();
+                    return;
+                }
 
                 if (i <= 5) {
                     String count = Overlay.num(i);

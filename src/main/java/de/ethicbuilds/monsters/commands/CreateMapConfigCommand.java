@@ -20,7 +20,6 @@ public class CreateMapConfigCommand implements CommandExecutor {
         if (!sender.hasPermission("*")) return true;
 
         mapManager.createMapConfig();
-
-        return false;
+        return true;
     }
 }

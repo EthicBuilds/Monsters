@@ -56,9 +56,9 @@ public class GameListener implements Listener {
     public void onPlayerInteract(PlayerInteractEvent event) {
         event.setCancelled(true);
 
+        // Watchers of a running round are no game players
         var gamePlayer = userManager.getGamePlayer(event.getPlayer().getUniqueId());
-
-        if (userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) return;
+        if (gamePlayer == null || userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) return;
 
 
         ItemStack item = event.getItem();
