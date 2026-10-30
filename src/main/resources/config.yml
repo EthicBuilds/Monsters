@@ -5,10 +5,13 @@ health-bars: true
 # Statistik-Zeile je Spieler in der Tab-Liste, setzt Monsters selbst (nur dieser Server sieht sie)
 tab-player-lines: false
 
+# Eigenes Zombie-Modell der Design-Session (vorerst nur normale Zombies ohne Elite-Stufe), bei Leistungsproblemen auf false
+zombie-model: true
+
 # Monsters-Paket (Werkbank, Lebensanzeige, Munition, Scoreboard-Icons), wird beim Betreten zusaetzlich zum Lobby-Paket geschickt
 resource-pack:
-  url: "http://136.243.146.245:25567/Monsters-pack-16.zip"
-  sha1: "b15a0ea4c30067e707b8625c70162fe94850ec8b"
+  url: "http://136.243.146.245:25567/Monsters-pack-17.zip"
+  sha1: "3def628ac39b959a4bc6e4f05ba49fcaf8f9a0cf"
 
 # Nexo-Items des Bauservers: daraus kommt, wie die Moebel gedreht und verschoben angezeigt werden (Nexo speichert das nicht in der Welt)
 nexo-items: "../monsters-bau/plugins/Nexo/items"

@@ -23,6 +23,8 @@ public class AnimatedModel {
     private static final double DETAIL_DISTANCE = 24;
     private static final int FAR_EVERY = 4;
     private static final String IDLE = "stehen", WALK = "laufen", DEATH = "tod";
+    // Walk animation, quicker monsters run instead
+    private String walk = WALK;
 
     private final BoneModel model;
     private final LivingEntity base;
@@ -60,6 +62,10 @@ public class AnimatedModel {
         yaw = base.getBodyYaw();
         lastPosition = base.getLocation();
         task = base.getServer().getScheduler().runTaskTimer(Main.getINSTANCE(), this::tick, 1L, TICKS);
+    }
+
+    public void setWalk(String animation) {
+        if (model.animation(animation) != null) walk = animation;
     }
 
     /** One-shot animation, e.g. the bite */
@@ -142,7 +148,7 @@ public class AnimatedModel {
             yaw = base.getBodyYaw();
             boolean moving = now.getWorld().equals(lastPosition.getWorld()) && now.distanceSquared(lastPosition) > 0.0004;
             lastPosition = now;
-            render(model.animation(moving ? WALK : IDLE), one);
+            render(model.animation(moving ? walk : IDLE), one);
         } else {
             setInterpolation(TICKS);
             render(null, one);

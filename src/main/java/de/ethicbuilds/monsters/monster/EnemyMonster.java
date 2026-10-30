@@ -42,7 +42,7 @@ public abstract class EnemyMonster {
     @lombok.Setter
     private int wave;
     // Part of a horde: quicker than the others
-    @lombok.Setter
+    @Getter @lombok.Setter
     private boolean sprinter;
     private int repath;
     private int trailCursor;
@@ -180,6 +180,9 @@ public abstract class EnemyMonster {
 
     /** The monster hits a player */
     public void onAttack() {}
+
+    /** A player hit it */
+    public void onHit() {}
 
     /** Movement speed limit, always below the players' walking speed */
     protected double maxSpeed() {
