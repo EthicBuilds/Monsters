@@ -96,15 +96,13 @@ public class MapManager {
         mapConfiguration.setDoors(doors);
         mapConfiguration.setWeaponPoints(weaponPoints);
 
-        System.out.println(String.format("Found %d Target Blocks", targetBlocks.size()));
-        System.out.println(String.format("Found %d Spawner", spawners.size()));
-        System.out.println(String.format("Found %d Doors", doors.size()));
-        System.out.println(String.format("Found %d Weapon Points", weaponPoints.size()));
+        plugin.getLogger().info(String.format("Found %d Target Blocks, %d Spawner, %d Doors, %d Weapon Points",
+                targetBlocks.size(), spawners.size(), doors.size(), weaponPoints.size()));
 
         try (FileWriter writer = new FileWriter("mapConfig.json")) {
             gson.toJson(mapConfiguration, writer);
         } catch (IOException e) {
-            e.printStackTrace();
+            plugin.getLogger().warning("mapConfig.json not written: " + e.getMessage());
         }
     }
 

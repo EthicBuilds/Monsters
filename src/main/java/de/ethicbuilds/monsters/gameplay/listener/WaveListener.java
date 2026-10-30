@@ -24,6 +24,7 @@ import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.perk.Perk;
 import de.ethicbuilds.monsters.perk.PerkManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
+import de.ethicbuilds.monsters.powerup.PowerupManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.gameplay.CoinPopups;
 import de.ethicbuilds.monsters.monster.EliteTier;
@@ -50,8 +51,6 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-
-import de.ethicbuilds.monsters.powerup.PowerupManager;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
