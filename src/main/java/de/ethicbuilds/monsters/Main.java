@@ -5,6 +5,7 @@ import com.google.inject.Injector;
 import de.ethicbuilds.monsters.commands.RoundEndCommand;
 import de.ethicbuilds.monsters.commands.SurrenderCommand;
 import de.ethicbuilds.monsters.di.DiModule;
+import de.ethicbuilds.monsters.gameplay.EffectLimit;
 import de.ethicbuilds.monsters.gameplay.RoundEndCard;
 import de.ethicbuilds.monsters.gameplay.listener.CommandBlocker;
 import de.ethicbuilds.monsters.gameplay.listener.GameListener;
@@ -69,6 +70,7 @@ public final class Main extends JavaPlugin {
 
         registerCommandsAndListeners();
         startAmmoHud();
+        EffectLimit.start(this);
         // Waits for the GameManager to hand over a round, then loads its map
         injector.getInstance(RoundLoader.class).start();
     }

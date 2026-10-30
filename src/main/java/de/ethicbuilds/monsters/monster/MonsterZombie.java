@@ -48,7 +48,7 @@ public class MonsterZombie extends EnemyMonster {
             Material.GOLD_INGOT, Material.DIAMOND, Material.NETHERITE_INGOT};
     // Limb loss (design session): under half health a small chance per hit, once per zombie; from gold on never
     private static final double LIMB_CHANCE = 0.04, LIMB_HEALTH = 0.5, ARM_DAMAGE = 0.8, CRAWL_SPEED = 0.45, CRAWL_SCALE = 0.35;
-    private static final int LIMB_SAFE_TIER = 3, LIMB_LIFETIME = 60;
+    private static final int LIMB_SAFE_TIER = 3, LIMB_LIFETIME = 40;
     // Recoil in degrees: body and head, a headshot throws the head back harder
     private static final float RECOIL_BODY = 12, RECOIL_HEAD = 8, HEADSHOT_BODY = 6, HEADSHOT_HEAD = 28;
     // Model per kind (design session), a kind without its model in the plugin stays the vanilla mob
@@ -240,7 +240,7 @@ public class MonsterZombie extends EnemyMonster {
         model.measureAgain();
     }
 
-    // The limb falls off, rolls a bit and fades after 3 seconds
+    // The limb falls off, rolls a bit and fades after 2 seconds
     private void dropLimb(String limb, Location at) {
         ItemStack item = new ItemStack(Material.PAPER);
         item.editMeta(meta -> meta.setItemModel(new NamespacedKey("monsters", bones.id() + "/" + limb)));

@@ -34,6 +34,9 @@ public abstract class EnemyMonster {
     private static final long NOISE_MILLIS = 6000;
     private static final double NOISE_REACHED = 4, NOISE_MOVED = 16, NOISE_SPEED = 0.6;
     private static final int REPATH_SECONDS = 3;
+    // Far from its player the way is searched less often, it changes little there anyway
+    private static final int REPATH_FAR_SECONDS = 8;
+    private static final double FAR = 40;
     private static final double SWITCH_MARGIN = 3;
     private static final double KNOCKBACK_RESISTANCE = 1.0;
     // Horde: clearly quicker, also above the normal speed limit
@@ -192,7 +195,7 @@ public abstract class EnemyMonster {
             return;
         }
         if (--repath > 0 && pathfinder.hasPath()) return;
-        repath = REPATH_SECONDS;
+        repath = distance(target) > FAR ? REPATH_FAR_SECONDS : REPATH_SECONDS;
 
         Pathfinder.PathResult direct = pathfinder.findPath(target);
         if (direct != null && direct.canReachFinalPoint()) {
