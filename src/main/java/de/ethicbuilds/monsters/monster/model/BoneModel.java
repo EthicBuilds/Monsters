@@ -62,17 +62,37 @@ public final class BoneModel {
         }
     }
 
+    /** Channels of a bone track */
+    public static final int ROTATION = 0, POSITION = 1, SCALE = 2;
+    private static final List<String> CHANNELS = List.of("rotation", "position", "scale");
+
+    /** Keyframes of one bone in one animation */
+    public static final class Track {
+        private final Channel[] channels = new Channel[CHANNELS.size()];
+
+        /** @return false if the animation does not move this channel of the bone, out stays as it was */
+        public boolean sample(int channel, float time, Vector3f out) {
+            Channel keys = channels[channel];
+            if (keys == null) return false;
+            keys.sample(time, out);
+            return true;
+        }
+    }
+
     public static final class Animation {
         private final float length;
-        private final boolean loop;
-        private final Map<String, Map<String, Channel>> bones = new HashMap<>();
+        // By bone index, null for bones the animation does not move
+        private final Track[] tracks;
 
-        private Animation(JsonObject json) {
+        private Animation(JsonObject json, List<Bone> bones) {
             length = json.get("length").getAsFloat();
-            loop = json.has("loop") && json.get("loop").getAsBoolean();
+            boolean loop = json.has("loop") && json.get("loop").getAsBoolean();
+            tracks = new Track[bones.size()];
             for (Map.Entry<String, JsonElement> bone : json.getAsJsonObject("bones").entrySet()) {
-                Map<String, Channel> channels = new HashMap<>();
+                Track track = new Track();
                 for (Map.Entry<String, JsonElement> channel : bone.getValue().getAsJsonObject().entrySet()) {
+                    int index = CHANNELS.indexOf(channel.getKey());
+                    if (index < 0) continue;
                     JsonArray keys = channel.getValue().getAsJsonArray();
                     float[] times = new float[keys.size()];
                     float[][] values = new float[keys.size()][];
@@ -83,9 +103,11 @@ public final class BoneModel {
                         values[i] = new float[]{key.get(1).getAsFloat(), key.get(2).getAsFloat(), key.get(3).getAsFloat()};
                         smooth[i] = key.size() > 4 && "catmullrom".equals(key.get(4).getAsString());
                     }
-                    channels.put(channel.getKey(), new Channel(times, values, smooth, loop));
+                    track.channels[index] = new Channel(times, values, smooth, loop);
                 }
-                bones.put(bone.getKey(), channels);
+                for (int i = 0; i < bones.size(); i++) {
+                    if (bones.get(i).id().equals(bone.getKey())) tracks[i] = track;
+                }
             }
         }
 
@@ -93,17 +115,9 @@ public final class BoneModel {
             return length;
         }
 
-        public boolean loops() {
-            return loop;
-        }
-
-        /** @return false if the animation does not move this channel of the bone */
-        public boolean sample(String bone, String channel, float time, Vector3f out) {
-            Map<String, Channel> channels = bones.get(bone);
-            Channel keys = channels != null ? channels.get(channel) : null;
-            if (keys == null) return false;
-            keys.sample(time, out);
-            return true;
+        /** Keyframes of the bone with this index, null if the animation does not move it */
+        public Track track(int bone) {
+            return tracks[bone];
         }
     }
 
@@ -128,7 +142,7 @@ public final class BoneModel {
             bones.add(new Bone(bone.get("id").getAsString(), parent, vector(bone.getAsJsonArray("pivot")), vector(bone.getAsJsonArray("rest")), hasModel));
         }
         for (Map.Entry<String, JsonElement> animation : json.getAsJsonObject("animations").entrySet()) {
-            animations.put(animation.getKey(), new Animation(animation.getValue().getAsJsonObject()));
+            animations.put(animation.getKey(), new Animation(animation.getValue().getAsJsonObject(), bones));
         }
     }
 

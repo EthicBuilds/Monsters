@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.monster.model;
 
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.gameplay.LagGuard;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -42,6 +43,11 @@ public class AnimatedModel implements Corpses.Corpse {
     private String idle = IDLE;
     private boolean noStroll;
     private Matrix4f[] lastWorld;
+    // Reused every frame: bone matrices in model space and the pose values of the current bone
+    private final Matrix4f[] world;
+    private final Matrix4f root = new Matrix4f();
+    private final Vector3f rotation = new Vector3f(), position = new Vector3f(), scale = new Vector3f();
+    private static final Vector3f NO_PIVOT = new Vector3f();
 
     private final BoneModel model;
     private final LivingEntity base;
@@ -90,7 +96,9 @@ public class AnimatedModel implements Corpses.Corpse {
         List<BoneModel.Bone> bones = model.bones();
         parts = new ItemDisplay[bones.size()];
         parents = new int[bones.size()];
+        world = new Matrix4f[bones.size()];
         for (int i = 0; i < bones.size(); i++) {
+            world[i] = new Matrix4f();
             parents[i] = indexOf(bones.get(i).parent());
             if (!bones.get(i).hasModel()) continue;
             parts[i] = spawnPart(bones.get(i));
@@ -383,7 +391,7 @@ public class AnimatedModel implements Corpses.Corpse {
             switchLod(nearest);
             boolean near = nearest < DETAIL_DISTANCE * DETAIL_DISTANCE;
             int every = (far || !near ? FAR_EVERY : nearest < NEAR_DISTANCE * NEAR_DISTANCE ? 1 : MID_EVERY)
-                    * de.ethicbuilds.monsters.gameplay.LagGuard.slowdown();
+                    * LagGuard.slowdown();
             if (++skipped < every) return;
             skipped = 0;
             int elapsed = TICKS * every;
@@ -407,11 +415,8 @@ public class AnimatedModel implements Corpses.Corpse {
             rigActive = rig != null && near && !far;
             if (rigActive) rig.update(now, yaw, elapsed);
             else if (rig != null) rig.reset();
-            if (moving) {
-                double perTick = now.distance(lastPosition) / elapsed;
-                walkTime += step * (float) Math.max(MIN_RATE, Math.min(MAX_RATE, perTick / WALK_SPEED)) * every;
-            }
             double speed = moving ? now.distance(lastPosition) / elapsed : 0;
+            if (moving) walkTime += step * (float) Math.max(MIN_RATE, Math.min(MAX_RATE, speed / WALK_SPEED)) * every;
             lastPosition = now;
             String loop = !moving ? idle : (stroll || !noStroll && speed < STROLL_SPEED) && walk.equals(WALK) && model.animation(STROLL) != null ? STROLL : walk;
             if (far && model.lod() != null) renderLod();
@@ -497,27 +502,23 @@ public class AnimatedModel implements Corpses.Corpse {
 
     private void render(BoneModel.Animation loop, BoneModel.Animation one) {
         List<BoneModel.Bone> bones = model.bones();
-        Matrix4f[] world = new Matrix4f[bones.size()];
         lastWorld = world;
         // Passengers sit higher than the feet of the monster, the model stands on the ground; the front is -Z
         float lift = (dying || Float.isNaN(offsetY) ? 0 : offsetY) + sunk;
-        Matrix4f root = new Matrix4f().translate(0, -lift, 0).rotateY((float) Math.toRadians(180 - yaw)).scale(size / 16f);
-        Vector3f rotation = new Vector3f(), position = new Vector3f(), scale = new Vector3f();
-        Vector3f value = new Vector3f();
+        root.identity().translate(0, -lift, 0).rotateY((float) Math.toRadians(180 - yaw)).scale(size / 16f);
         float clock = loop != null && model.animation(walk) == loop ? walkTime : time;
         float loopTime = loop != null && loop.length() > 0 ? clock % loop.length() : 0;
 
         for (int i = 0; i < bones.size(); i++) {
             BoneModel.Bone bone = bones.get(i);
+            BoneModel.Track oneTrack = one != null ? one.track(i) : null;
+            BoneModel.Track loopTrack = loop != null ? loop.track(i) : null;
             rotation.set(0);
             position.set(0);
             scale.set(1);
-            // The one-shot animation wins for every bone it moves
-            for (String channel : new String[]{"rotation", "position", "scale"}) {
-                Vector3f out = channel.equals("rotation") ? rotation : channel.equals("position") ? position : scale;
-                if (one != null && one.sample(bone.id(), channel, actionTime, value)) out.set(value);
-                else if (loop != null && loop.sample(bone.id(), channel, loopTime, value)) out.set(value);
-            }
+            pose(oneTrack, loopTrack, BoneModel.ROTATION, loopTime, rotation);
+            pose(oneTrack, loopTrack, BoneModel.POSITION, loopTime, position);
+            pose(oneTrack, loopTrack, BoneModel.SCALE, loopTime, scale);
             rotation.add(bone.rest());
             if (!Float.isNaN(recoilTime) && !dying) {
                 float k = recoilTime < RECOIL_RISE ? recoilTime / RECOIL_RISE : (float) Math.pow(Math.max(0, 1 - (recoilTime - RECOIL_RISE) / RECOIL_BACK), 2);
@@ -536,8 +537,8 @@ public class AnimatedModel implements Corpses.Corpse {
                 }
             }
             int parent = parents[i];
-            Vector3f origin = parent < 0 ? new Vector3f() : bones.get(parent).pivot();
-            world[i] = new Matrix4f(parent < 0 ? root : world[parent])
+            Vector3f origin = parent < 0 ? NO_PIVOT : bones.get(parent).pivot();
+            world[i].set(parent < 0 ? root : world[parent])
                     .translate(bone.pivot().x - origin.x + position.x, bone.pivot().y - origin.y + position.y, bone.pivot().z - origin.z + position.z)
                     .rotateZ((float) Math.toRadians(rotation.z))
                     .rotateY((float) Math.toRadians(rotation.y))
@@ -557,6 +558,12 @@ public class AnimatedModel implements Corpses.Corpse {
                 layer[i].setTransformationMatrix(matrix);
             }
         }
+    }
+
+    // The one-shot animation wins for every channel it moves
+    private void pose(BoneModel.Track one, BoneModel.Track loop, int channel, float loopTime, Vector3f out) {
+        if (one != null && one.sample(channel, actionTime, out)) return;
+        if (loop != null) loop.sample(channel, loopTime, out);
     }
 
     private ItemDisplay spawnPart(BoneModel.Bone bone) {
