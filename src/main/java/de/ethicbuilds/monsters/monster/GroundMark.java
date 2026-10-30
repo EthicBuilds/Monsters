@@ -64,6 +64,15 @@ public final class GroundMark {
         return mark;
     }
 
+    /** Only the resting circle, no growing ring (cheaper when there are many), "soon" at the end */
+    public static void still(Location at, char kind, double radius, int ticks) {
+        TextDisplay circle = decal(at, kind, scaleFor(radius), 0.02);
+        Main.getINSTANCE().getServer().getScheduler().runTaskLater(Main.getINSTANCE(), () -> {
+            if (circle.isValid()) circle.text(mark((char) (kind + 1)));
+        }, Math.max(1, ticks - SOON_TICKS));
+        Main.getINSTANCE().getServer().getScheduler().runTaskLater(Main.getINSTANCE(), circle::remove, ticks);
+    }
+
     public void clear() {
         circle.remove();
         ring.remove();

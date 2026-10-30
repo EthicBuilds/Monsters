@@ -33,8 +33,9 @@ import java.util.concurrent.ThreadLocalRandom;
 /***
  * Boss of every tenth wave: the big amethyst weaver with a lot of health and a boss bar for everyone.
  * Every ten waves it comes back one level stronger with more attacks (animations and ground markers from the design
- * session): level 1 the crystal volley, from level 2 web shot and stomp, from level 3 its brood, from level 4 the leap.
- * Never the same attack twice in a row. Defeated, it ends with a victory show and coins for everyone.
+ * session): level 1 the crystal volley, from level 2 web shot and stomp, from level 3 its brood, from level 4 the leap,
+ * from level 5 the cocoon trap, from level 6 the silk pull, from level 7 the crystal rain. From level 5 it looks darker
+ * with glowing eyes and bigger crystals, under a quarter of its health it rages. Never the same attack twice in a row. Defeated, it ends with a victory show and coins for everyone.
  */
 public class MonsterSpiderBoss extends MonsterSpider {
     // An attack every 6 to 9 seconds (checked every half second), each level a bit more often
@@ -43,19 +44,25 @@ public class MonsterSpiderBoss extends MonsterSpider {
     private static final double LEAP_RANGE = 20, SHOCK_RADIUS = 4, SHOCK_DAMAGE = 8;
     private static final double STOMP_RADIUS = 7, STOMP_DAMAGE = 8;
     // Moments in the animations (ticks)
-    private static final int WEB_SHOT = 17, STOMP_HIT = 17, LEAP_PUSH = 11;
+    private static final int WEB_SHOT = 17, STOMP_HIT = 17, LEAP_PUSH = 11, COCOON_SHOT = 20, SILK_TICKS = 6, RAIN_START = 24, RAGE_ROAR = 6;
+    private static final double RAGE_AT = 0.25, RAGE_SPEED = 1.3, RAGE_DAMAGE = 1.25, RAGE_GAP = 0.6;
+    private static final double PULL_RANGE = 40, PULL_MIN = 8, PULL_DAMAGE = 4;
+    private static final Color RAGE = Color.fromRGB(0xFF5A4A), RAGE_DUST = Color.fromRGB(0xFF3B30), SILK = Color.fromRGB(0xECE8F0);
+    // Darker the higher the level, from level 5 (design session)
+    private static final int[] LEVEL_TINTS = {0xD8CCE8, 0xC8B8E0, 0xB8A4D8, 0xA890CC};
     private static final int[] BROOD_PULSES = {9, 17, 25};
     private static final int REWARD_PER_LEVEL = 500;
     public static final NamespacedKey SHOW_FIREWORK = new NamespacedKey("monsters", "boss_feuerwerk");
     private static final Color AMETHYST = Color.fromRGB(0xA970FF), GOLD = Color.fromRGB(0xFFCC2E), ORANGE = Color.fromRGB(0xF9A11E);
 
-    private enum Attack { VOLLEY, WEB, STOMP, BROOD, LEAP }
+    private enum Attack { VOLLEY, WEB, STOMP, BROOD, LEAP, COCOON, PULL, RAIN }
 
     private final int level;
     private final int players;
     private DualBar bar;
     private boolean defeated;
     private boolean stompShown;
+    private boolean rage;
     private Attack last;
     private int nextAttack = MIN_GAP;
 
@@ -93,6 +100,7 @@ public class MonsterSpiderBoss extends MonsterSpider {
     @Override
     protected void onSpawn() {
         super.onSpawn();
+        if (level >= 5) look(Color.fromRGB(LEVEL_TINTS[Math.min(level - 5, LEVEL_TINTS.length - 1)]));
         bar = new DualBar("§5§lAmethyst-Weberin §8· §dStufe " + level, "§5§lAmethyst Weaver §8· §dLevel " + level, BarColor.PURPLE, BarStyle.SEGMENTED_10);
         new BukkitRunnable() {
             @Override
@@ -105,6 +113,9 @@ public class MonsterSpiderBoss extends MonsterSpider {
                 }
                 Bukkit.getOnlinePlayers().forEach(bar::addPlayer);
                 bar.setProgress(Math.max(0, Math.min(1, monster.getHealth() / health)));
+                if (!rage && monster.getHealth() < health * RAGE_AT) rage();
+                if (rage) monster.getWorld().spawnParticle(Particle.DUST, monster.getLocation().add(0, 1.2, 0), 6, 1.2, 0.6, 1.2,
+                        new Particle.DustOptions(RAGE_DUST, 1.2F));
 
                 if (!de.ethicbuilds.monsters.gameplay.manager.PauseManager.isPaused() && --nextAttack <= 0) attack();
             }
@@ -115,6 +126,7 @@ public class MonsterSpiderBoss extends MonsterSpider {
         ThreadLocalRandom random = ThreadLocalRandom.current();
         int faster = 2 * (level - 1);
         nextAttack = random.nextInt(Math.max(6, MIN_GAP - faster), Math.max(7, MAX_GAP - faster) + 1);
+        if (rage) nextAttack = Math.max(3, (int) Math.round(nextAttack * RAGE_GAP));
 
         Player target = nearest();
         List<Attack> choices = new ArrayList<>(List.of(Attack.VOLLEY));
@@ -122,6 +134,10 @@ public class MonsterSpiderBoss extends MonsterSpider {
         if (level >= 2) choices.add(Attack.STOMP);
         if (level >= 3) choices.add(Attack.BROOD);
         if (level >= 4 && target != null && target.getLocation().distance(monster.getLocation()) < LEAP_RANGE) choices.add(Attack.LEAP);
+        if (level >= 5 && !living().isEmpty()) choices.add(Attack.COCOON);
+        Player far = farthest();
+        if (level >= 6 && far != null) choices.add(Attack.PULL);
+        if (level >= 7) choices.add(Attack.RAIN);
         if (choices.size() > 1) choices.remove(last);
         last = choices.get(random.nextInt(choices.size()));
 
@@ -135,7 +151,136 @@ public class MonsterSpiderBoss extends MonsterSpider {
             case STOMP -> stomp();
             case BROOD -> brood();
             case LEAP -> leap(target);
+            case COCOON -> cocoon(living().get(random.nextInt(living().size())));
+            case PULL -> pull(far);
+            case RAIN -> {
+                if (model != null) model.play("regen");
+                later(RAIN_START, () -> CrystalRain.fall(monster));
+            }
         }
+    }
+
+    // Same models in another colour, from level 5 with glowing eyes and bigger crystals
+    private void look(Color tint) {
+        if (model == null) return;
+        model.restyle("weberin_getoent", tint, level >= 5 ? java.util.Map.of("head", "weberin_getoent/head_augen") : java.util.Map.of());
+        if (level > 4) model.scaleBones("crystal_", (float) Math.min(1.4, 1 + 0.08 * (level - 4)));
+    }
+
+    // Under a quarter of its health: red, quicker and attacks more often
+    private void rage() {
+        rage = true;
+        if (model != null) model.play("wut");
+        look(RAGE);
+        if (model != null) model.glow(RAGE);
+        var movement = monster.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
+        if (movement != null) movement.setBaseValue(movement.getBaseValue() * RAGE_SPEED);
+        var attack = monster.getAttribute(org.bukkit.attribute.Attribute.ATTACK_DAMAGE);
+        if (attack != null) attack.setBaseValue(attack.getBaseValue() * RAGE_DAMAGE);
+        bar.setColor(BarColor.RED);
+        bar.setTitle("§5§lAmethyst-Weberin §8· §dStufe " + level + " §8· §c§lWUT", "§5§lAmethyst Weaver §8· §dLevel " + level + " §8· §c§lRAGE");
+        Location at = monster.getLocation();
+        Particle.DustOptions dust = new Particle.DustOptions(RAGE_DUST, 1.5F);
+        for (int i = 0; i < 32; i++) {
+            double a = Math.PI * 2 * i / 32;
+            at.getWorld().spawnParticle(Particle.DUST, at.clone().add(Math.cos(a) * 3, 0.3, Math.sin(a) * 3), 1, dust);
+        }
+        at.getWorld().spawnParticle(Particle.ANGRY_VILLAGER, at.clone().add(0, monster.getHeight() + 0.5, 0), 5, 0.6, 0.3, 0.6);
+        later(RAGE_ROAR, () -> {
+            monster.getWorld().playSound(monster.getLocation(), Sound.ENTITY_RAVAGER_ROAR, 1.0F, 0.7F);
+            monster.getWorld().playSound(monster.getLocation(), Sound.ENTITY_WITHER_AMBIENT, 0.5F, 0.6F);
+        });
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.showTitle(Title.title(Lang.mm(player, "<bold><#FF4838>DIE WEBERIN TOBT!</#FF4838></bold>", "<bold><#FF4838>THE WEAVER RAGES!</#FF4838></bold>"),
+                    Lang.mm(player, "<#8A93A3>schneller · stärker · häufiger</#8A93A3>", "<#8A93A3>faster · stronger · more often</#8A93A3>"),
+                    Title.Times.times(Duration.ofMillis(250), Duration.ofSeconds(2), Duration.ofMillis(500))));
+        }
+    }
+
+    private Player farthest() {
+        Player far = null;
+        double best = PULL_MIN;
+        for (Player player : living()) {
+            double distance = player.getLocation().distance(monster.getLocation());
+            if (distance <= PULL_RANGE && distance > best) {
+                best = distance;
+                far = player;
+            }
+        }
+        return far;
+    }
+
+    // Silk thread from the abdomen to the player, drawn a bit further every tick
+    private void silk(Player target, int ticks) {
+        new BukkitRunnable() {
+            int tick = 0;
+
+            @Override
+            public void run() {
+                if (++tick > ticks || !monster.isValid() || !target.isOnline()) {
+                    cancel();
+                    return;
+                }
+                Location from = monster.getLocation().add(0, 1, 0);
+                Vector way = target.getLocation().add(0, 1, 0).toVector().subtract(from.toVector());
+                double length = way.length() * tick / ticks;
+                way.normalize();
+                Particle.DustOptions dust = new Particle.DustOptions(SILK, 1.0F);
+                for (double d = 0; d < length; d += 0.5) {
+                    monster.getWorld().spawnParticle(Particle.DUST, from.clone().add(way.clone().multiply(d)), 1, dust);
+                }
+            }
+        }.runTaskTimer(Main.getINSTANCE(), 0L, 1L);
+    }
+
+    // Spins the player in where they stand, the circle warns from the start of the animation
+    private void cocoon(Player target) {
+        Location spot = GroundMark.ground(target.getLocation());
+        if (spot == null) spot = target.getLocation();
+        if (model != null) model.play("kokon");
+        GroundMark.warn(spot, GroundMark.WEB, 1.5, COCOON_SHOT + SILK_TICKS);
+        Location mark = spot;
+        later(COCOON_SHOT, () -> {
+            monster.getWorld().playSound(monster.getLocation(), Sound.ENTITY_SPIDER_AMBIENT, 1.0F, 0.6F);
+            silk(target, SILK_TICKS);
+        });
+        later(COCOON_SHOT + SILK_TICKS, () -> {
+            UserManager users = Main.getINSTANCE().getInjector().getInstance(UserManager.class);
+            if (!target.isOnline() || users.isPlayerDead(target.getUniqueId()) || !target.getWorld().equals(mark.getWorld())
+                    || target.getLocation().distanceSquared(mark) > 2.5 * 2.5) return;
+            Cocoon.trap(target, monster);
+        });
+    }
+
+    // Silk pull: the farthest player is pulled close and bitten right after
+    private void pull(Player target) {
+        if (model != null) model.play("netz");
+        later(WEB_SHOT, () -> {
+            if (!target.isOnline()) return;
+            monster.getWorld().playSound(monster.getLocation(), Sound.ENTITY_SPIDER_AMBIENT, 1.0F, 0.6F);
+            target.playSound(target.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE, 1.0F, 0.6F);
+            target.sendActionBar(Lang.mm(target, "<#ECE8F0>Seidenzug!</#ECE8F0>", "<#ECE8F0>Silk pull!</#ECE8F0>"));
+            silk(target, 4);
+            new BukkitRunnable() {
+                int tick = 0;
+
+                @Override
+                public void run() {
+                    if (++tick > 20 || !monster.isValid() || !target.isOnline()) {
+                        cancel();
+                        return;
+                    }
+                    Vector way = monster.getLocation().toVector().subtract(target.getLocation().toVector());
+                    if (way.length() < 3) {
+                        cancel();
+                        if (model != null) model.play("beissen");
+                        target.damage(PULL_DAMAGE, monster);
+                        return;
+                    }
+                    target.setVelocity(way.normalize().multiply(1.1).setY(0.25));
+                }
+            }.runTaskTimer(Main.getINSTANCE(), 4L, 1L);
+        });
     }
 
     private Player nearest() {

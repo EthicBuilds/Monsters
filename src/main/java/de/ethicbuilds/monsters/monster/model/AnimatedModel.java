@@ -11,7 +11,9 @@ import org.bukkit.scheduler.BukkitTask;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /***
  * Blockbench model on an invisible monster: one ItemDisplay per bone rides on the monster, the bones are posed
@@ -42,6 +44,8 @@ public class AnimatedModel {
     private Location lastPosition;
     private int skipped;
     private int interpolation = TICKS;
+    // Bones drawn bigger than designed, e.g. the crystals of a stronger boss
+    private final Map<Integer, Float> extraScale = new HashMap<>();
 
     /**
      * @param size model size, 1 = as designed in Blockbench
@@ -62,6 +66,38 @@ public class AnimatedModel {
         yaw = base.getBodyYaw();
         lastPosition = base.getLocation();
         task = base.getServer().getScheduler().runTaskTimer(Main.getINSTANCE(), this::tick, 1L, TICKS);
+    }
+
+    /**
+     * Other item models for all bones (same shapes, e.g. the tinted ones of the design session) in one colour,
+     * single bones can get their own model (e.g. glowing eyes)
+     */
+    public void restyle(String folder, org.bukkit.Color tint, Map<String, String> overrides) {
+        List<BoneModel.Bone> bones = model.bones();
+        for (int i = 0; i < bones.size(); i++) {
+            if (parts[i] == null || !parts[i].isValid()) continue;
+            String id = overrides.getOrDefault(bones.get(i).id(), folder + "/" + bones.get(i).id());
+            ItemStack item = new ItemStack(Material.PAPER);
+            item.editMeta(meta -> meta.setItemModel(new NamespacedKey("monsters", id)));
+            item.setData(io.papermc.paper.datacomponent.DataComponentTypes.CUSTOM_MODEL_DATA,
+                    io.papermc.paper.datacomponent.item.CustomModelData.customModelData().addColor(tint).build());
+            parts[i].setItemStack(item);
+        }
+    }
+
+    /** All bones whose name starts like this are drawn bigger */
+    public void scaleBones(String prefix, float scale) {
+        List<BoneModel.Bone> bones = model.bones();
+        for (int i = 0; i < bones.size(); i++) if (bones.get(i).id().startsWith(prefix)) extraScale.put(i, scale);
+    }
+
+    /** Outline in one colour, null switches it off */
+    public void glow(org.bukkit.Color color) {
+        for (ItemDisplay part : parts) {
+            if (part == null || !part.isValid()) continue;
+            part.setGlowing(color != null);
+            part.setGlowColorOverride(color);
+        }
     }
 
     public void setWalk(String animation) {
@@ -205,7 +241,10 @@ public class AnimatedModel {
             if (part == null || !part.isValid()) continue;
             // Item models measure in pixels with the pivot in the middle; displays turn their item by 180 degrees
             part.setInterpolationDelay(0);
-            part.setTransformationMatrix(new Matrix4f(world[i]).scale(16 * model.modelScale()).rotateY((float) Math.PI));
+            Matrix4f matrix = new Matrix4f(world[i]).scale(16 * model.modelScale()).rotateY((float) Math.PI);
+            Float extra = extraScale.get(i);
+            if (extra != null) matrix.scale(extra);
+            part.setTransformationMatrix(matrix);
         }
     }
 
