@@ -65,8 +65,7 @@ public class TabPlaceholders extends PlaceholderExpansion {
         if (params.startsWith("tab_kopf_")) return !round ? "" : plain ? plainHead(number(params), english(player)) : head(number(params), english(player));
         if (params.startsWith("tab_fuss_")) return !round ? "" : plain ? plainFoot(number(params), english(player)) : foot(number(params), english(player));
         if (player == null) return "";
-        GamePlayer gamePlayer = userManager.isGamePlayer(player.getUniqueId()) ? userManager.getGamePlayers().stream()
-                .filter(p -> p.getPlayer().getUniqueId().equals(player.getUniqueId())).findFirst().orElse(null) : null;
+        GamePlayer gamePlayer = userManager.getGamePlayer(player.getUniqueId());
         return switch (params) {
             case "tab_zeile" -> round && gamePlayer != null ? row(gamePlayer) : "<color:" + TEXT + ">" + player.getName();
             case "sortierung" -> gamePlayer == null ? "0" : String.valueOf(gone(gamePlayer) ? -1 : gamePlayer.getEarnedCoins());

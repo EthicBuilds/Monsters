@@ -9,7 +9,7 @@ public class GameSpectator extends GameUser {
     }
 
     @Override
-    public void intialize() {
+    public void initialize() {
         // Lies on the ground as mannequin (ReviveManager), untouchable until revived
         player.setInvulnerable(true);
 

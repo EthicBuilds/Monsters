@@ -34,7 +34,7 @@ public class GamePlayer extends GameUser {
     }
 
     @Override
-    public void intialize() {
+    public void initialize() {
         player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
         player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, Integer.MAX_VALUE, 3));
 

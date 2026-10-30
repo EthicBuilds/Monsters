@@ -30,10 +30,10 @@ public abstract class GameUser {
         this.mode = mode;
         player.setGameMode(mode);
 
-        intialize();
+        initialize();
     }
 
-    public abstract void intialize();
+    public abstract void initialize();
 
     protected abstract void initInventory();
 }
