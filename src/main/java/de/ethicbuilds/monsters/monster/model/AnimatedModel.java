@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.monster.model;
 
+import com.destroystokyo.paper.entity.Pathfinder;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.LagGuard;
 import io.papermc.paper.datacomponent.DataComponentTypes;
@@ -82,6 +83,10 @@ public class AnimatedModel implements Corpses.Corpse {
     private Entity faceTarget;
     // Turning speed of a steered model, degrees per tick
     private static final float TURN_PER_TICK = 12;
+    // Closer than this to its target it looks at it; path points closer than this are reached already
+    private static final double FACE_TARGET_DISTANCE = 3, PATH_POINT_MIN = 0.4;
+    // Without a path only real walking turns it (blocks per tick), being pushed a little does not
+    private static final double TURN_SPEED = 0.03;
     private final int[] parents;
     private final BukkitTask task;
 
@@ -155,6 +160,19 @@ public class AnimatedModel implements Corpses.Corpse {
         double dx = at.getX() - base.getLocation().getX(), dz = at.getZ() - base.getLocation().getZ();
         if (dx * dx + dz * dz < 0.01) return true;
         return Math.abs(angleTo(yaw, yawOf(dx, dz))) <= maxDegrees;
+    }
+
+    private static double horizontal(Location from, Location to) {
+        double dx = to.getX() - from.getX(), dz = to.getZ() - from.getZ();
+        return dx * dx + dz * dz;
+    }
+
+    // Where the path finder walks next, null without a path
+    private static Location nextPathPoint(Mob mob) {
+        Pathfinder.PathResult path = mob.getPathfinder().getCurrentPath();
+        Location next = path == null ? null : path.getNextPoint();
+        // Path points are block corners, the mob walks to the middle
+        return next == null ? null : next.clone().add(0.5, 0, 0.5);
     }
 
     private static float yawOf(double dx, double dz) {
@@ -401,14 +419,21 @@ public class AnimatedModel implements Corpses.Corpse {
             if (!steering) {
                 yaw = base.getBodyYaw();
             } else {
-                // Head first in walking direction, standing it turns to its target, at most 12 degrees per tick
+                // Close to its target it looks at it, otherwise towards the next point of its path (pushes by other
+                // monsters or walls do not turn it), without a path where it really moves; at most 12 degrees per tick
                 Float want = null;
-                if (moving) want = yawOf(now.getX() - lastPosition.getX(), now.getZ() - lastPosition.getZ());
-                else {
-                    Entity look = faceTarget != null ? faceTarget : base instanceof Mob mob ? mob.getTarget() : null;
-                    if (look != null && look.isValid() && look.getWorld().equals(now.getWorld())) {
-                        want = yawOf(look.getLocation().getX() - now.getX(), look.getLocation().getZ() - now.getZ());
-                    }
+                Entity look = faceTarget != null ? faceTarget : base instanceof Mob mob ? mob.getTarget() : null;
+                if (look != null && (!look.isValid() || !look.getWorld().equals(now.getWorld()))) look = null;
+                double toLook = look == null ? Double.MAX_VALUE : horizontal(now, look.getLocation());
+                Location next = base instanceof Mob mob ? nextPathPoint(mob) : null;
+                if (look != null && toLook < FACE_TARGET_DISTANCE * FACE_TARGET_DISTANCE) {
+                    want = yawOf(look.getLocation().getX() - now.getX(), look.getLocation().getZ() - now.getZ());
+                } else if (next != null && horizontal(now, next) > PATH_POINT_MIN * PATH_POINT_MIN) {
+                    want = yawOf(next.getX() - now.getX(), next.getZ() - now.getZ());
+                } else if (moving && now.distanceSquared(lastPosition) > Math.pow(TURN_SPEED * elapsed, 2)) {
+                    want = yawOf(now.getX() - lastPosition.getX(), now.getZ() - lastPosition.getZ());
+                } else if (look != null) {
+                    want = yawOf(look.getLocation().getX() - now.getX(), look.getLocation().getZ() - now.getZ());
                 }
                 if (want != null) {
                     float turn = angleTo(yaw, want), max = TURN_PER_TICK * elapsed;
