@@ -6,7 +6,7 @@
 
     <groupId>de.ethicbuilds</groupId>
     <artifactId>Monsters</artifactId>
-    <version>1.49.3</version>
+    <version>1.49.4</version>
     <packaging>jar</packaging>
 
     <name>Monsters</name>

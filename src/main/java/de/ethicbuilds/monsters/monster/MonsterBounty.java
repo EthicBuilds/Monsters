@@ -56,6 +56,7 @@ public class MonsterBounty extends EnemyMonster {
             monster.setCanPickupItems(false);
             if (monster.getEquipment() != null) monster.getEquipment().clear();
             model = new AnimatedModel(bones, monster, 1.0F);
+            model.enableSteering(false);
             model.glow(GLOW);
             model.play("spawn");
         } else {

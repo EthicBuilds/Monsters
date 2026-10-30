@@ -11,6 +11,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
@@ -139,7 +140,7 @@ public class AnimatedModel implements Corpses.Corpse {
         steering = true;
     }
 
-    /** Whom the model looks at while it stands */
+    /** Whom the model looks at while it stands, otherwise the target of the mob */
     public void face(Entity target) {
         faceTarget = target;
     }
@@ -411,8 +412,11 @@ public class AnimatedModel implements Corpses.Corpse {
                 // Head first in walking direction, standing it turns to its target, at most 12 degrees per tick
                 Float want = null;
                 if (moving) want = yawOf(now.getX() - lastPosition.getX(), now.getZ() - lastPosition.getZ());
-                else if (faceTarget != null && faceTarget.isValid() && faceTarget.getWorld().equals(now.getWorld())) {
-                    want = yawOf(faceTarget.getLocation().getX() - now.getX(), faceTarget.getLocation().getZ() - now.getZ());
+                else {
+                    Entity look = faceTarget != null ? faceTarget : base instanceof Mob mob ? mob.getTarget() : null;
+                    if (look != null && look.isValid() && look.getWorld().equals(now.getWorld())) {
+                        want = yawOf(look.getLocation().getX() - now.getX(), look.getLocation().getZ() - now.getZ());
+                    }
                 }
                 if (want != null) {
                     float turn = angleTo(yaw, want), max = TURN_PER_TICK * elapsed;

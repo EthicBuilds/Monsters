@@ -54,6 +54,7 @@ public class MonsterCrawler extends EnemyMonster {
             if (monster.isValid() && monster.getEquipment() != null) monster.getEquipment().clear();
         }, 1L);
         model = new AnimatedModel(crawler(), monster, 1.0F);
+        model.enableSteering(false);
         model.play("spawn");
         // Own sounds: the hiss together with the open mouth
         monster.setSilent(true);

@@ -138,6 +138,8 @@ public class MonsterZombie extends EnemyMonster {
             if (monster.isValid() && monster.getEquipment() != null) monster.getEquipment().clear();
         }, 1L);
         model = new AnimatedModel(bones, monster, modelSize());
+        // Front in walking direction: the body yaw of the mob lags behind and points sideways in a crowd
+        model.enableSteering(false);
         voice = voice();
         if (bones.id().equals(TORCH_MODEL)) TorchLight.follow(monster);
         int tier = bones.id().startsWith("zombie") ? Math.min(getTier(), ARMOR.length - 1) : 0;
