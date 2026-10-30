@@ -58,8 +58,10 @@ public class TabPlaceholders extends PlaceholderExpansion {
     @Override
     public String onRequest(OfflinePlayer player, @NotNull String params) {
         boolean round = gameManager.getCurrentPhase() != GamePhase.PRE_GAME;
-        if (params.startsWith("tab_kopf_")) return round ? head(number(params), english(player)) : "";
-        if (params.startsWith("tab_fuss_")) return round ? foot(number(params), english(player)) : "";
+        // Without the Monsters pack the symbols would be boxes, those viewers get plain text
+        boolean plain = player != null && !de.ethicbuilds.monsters.player.manager.PackStatus.hasPack(player.getUniqueId());
+        if (params.startsWith("tab_kopf_")) return !round ? "" : plain ? plainHead(number(params), english(player)) : head(number(params), english(player));
+        if (params.startsWith("tab_fuss_")) return !round ? "" : plain ? plainFoot(number(params), english(player)) : foot(number(params), english(player));
         if (player == null) return "";
         GamePlayer gamePlayer = userManager.isGamePlayer(player.getUniqueId()) ? userManager.getGamePlayers().stream()
                 .filter(p -> p.getPlayer().getUniqueId().equals(player.getUniqueId())).findFirst().orElse(null) : null;
@@ -116,6 +118,28 @@ public class TabPlaceholders extends PlaceholderExpansion {
                 centered(tab, 283, 318, english ? "REVIVES" : "RETTUNGEN");
                 yield tab.end(WIDTH);
             }
+            default -> "";
+        };
+    }
+
+    private String plainHead(int line, boolean english) {
+        String map = gameManager.getGameConfig() != null ? gameManager.getGameConfig().getMapName() : "";
+        int time = scoreboardManager.getTime();
+        return switch (line) {
+            case 2 -> "<bold><gradient:#F9A11E:#8B4BD8>MONSTERS</gradient></bold>";
+            case 4 -> String.format("<color:%s>%s</color> <color:%s>%s</color> <color:%s>·</color> <color:%s>%s</color> <color:%s>%d</color> <color:%s>·</color> <color:%s>%d</color> <color:%s>%s</color> <color:%s>·</color> <color:%s>%02d:%02d</color>",
+                    LABEL, english ? "Map" : "Karte", TEXT, map.replace("<", ""), LABEL, LABEL, english ? "Wave" : "Welle", TEXT, waveManager.getCurrentWave(),
+                    LABEL, TEXT, monsterManager.remaining(), LABEL, english ? "left" : "übrig", LABEL, TEXT, time / 60, time % 60);
+            default -> "";
+        };
+    }
+
+    private String plainFoot(int line, boolean english) {
+        List<GamePlayer> ranked = ranked();
+        return switch (line) {
+            case 2 -> ranked.isEmpty() ? "" : String.format("<color:%s><bold>MVP</bold></color> <color:%s>%s</color> <color:%s>%s</color>",
+                    GOLD, TEXT, ranked.getFirst().getPlayer().getName(), POINTS, points(ranked.getFirst().getEarnedCoins()));
+            case 6 -> "<color:" + WEBSITE + ">EthicBuilds.de</color>";
             default -> "";
         };
     }

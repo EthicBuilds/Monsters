@@ -20,4 +20,18 @@ public class Rifle extends Weapon {
 
         initialize();
     }
+
+    // Stronger than the other weapons per level, so at level V it keeps up with the sniper
+    private static final double[] BOOST = {1, 1.3, 1.75, 2.75, 4.5, 7};
+
+    @Override
+    protected double boost(int level) {
+        return BOOST[Math.min(level, BOOST.length - 1)];
+    }
+
+    // From level 3 through 2 monsters, at level V through 3
+    @Override
+    protected void onUpgrade() {
+        pierce = level >= MAX_LEVEL ? 3 : level >= 3 ? 2 : 1;
+    }
 }

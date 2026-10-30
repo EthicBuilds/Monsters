@@ -16,7 +16,7 @@ public class Pumpgun extends Weapon {
         this.name = "§6Schrotflinte";
         this.nameEn = "§6Shotgun";
         this.damage = 10.0;
-        this.fireRate = 20;
+        this.fireRate = BASE_FIRE_RATE;
         this.maxAmmu = 300;
         this.maxMagazine = 5;
         this.particle = Particle.SQUID_INK;
@@ -27,9 +27,18 @@ public class Pumpgun extends Weapon {
         this.sound = Sound.ENTITY_FIREWORK_ROCKET_BLAST;
         this.pitch = 0.6F;
 
-        this.maxDistance = 7;
+        this.maxDistance = BASE_DISTANCE;
 
         initialize();
+    }
+
+    private static final int BASE_FIRE_RATE = 20, BASE_DISTANCE = 7;
+
+    // Each level fires 10 % quicker and reaches one block further
+    @Override
+    protected void onUpgrade() {
+        fireRate = Math.max(1, (int) Math.round(BASE_FIRE_RATE * Math.pow(0.9, level)));
+        maxDistance = BASE_DISTANCE + level;
     }
 
     @Override

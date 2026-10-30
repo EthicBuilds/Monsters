@@ -29,7 +29,6 @@ public class PreGameListener implements Listener {
     @Inject private RoundLoader roundLoader;
     @Inject private de.ethicbuilds.monsters.player.manager.WatcherManager watcherManager;
 
-    private static final java.util.UUID PACK_ID = java.util.UUID.nameUUIDFromBytes("monsters-pack".getBytes());
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
@@ -125,7 +124,7 @@ public class PreGameListener implements Listener {
         String packUrl = plugin.getConfig().getString("resource-pack.url");
         String packSha1 = plugin.getConfig().getString("resource-pack.sha1");
         if (packUrl != null && !packUrl.isBlank() && packSha1 != null && packSha1.length() == 40) {
-            player.addResourcePack(PACK_ID, packUrl, java.util.HexFormat.of().parseHex(packSha1), null, false);
+            player.addResourcePack(de.ethicbuilds.monsters.player.manager.PackStatus.PACK_ID, packUrl, java.util.HexFormat.of().parseHex(packSha1), null, false);
         }
     }
 

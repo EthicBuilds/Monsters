@@ -193,10 +193,14 @@ public abstract class Weapon {
         }
         damage = baseDamage * boost(level);
         maxMagazine = (int) Math.round(baseMagazine * (1 + 0.25 * level));
+        onUpgrade();
     }
 
+    /** Extras of a weapon per level, after damage and magazine */
+    protected void onUpgrade() {}
+
     // +25 % for the first two levels, the others each give 1.5 times as much
-    private static double boost(int level) {
+    protected double boost(int level) {
         return level <= 2 ? 1 + 0.25 * level : 1.5 * boost(level - 1);
     }
 
