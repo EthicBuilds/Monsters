@@ -6,5 +6,6 @@ import lombok.Setter;
 
 public class GameStates {
     @Getter @Setter
-    private GamePhase currentPhase = GamePhase.PRE_GAME;
+    // Read by the wave thread as well
+    private volatile GamePhase currentPhase = GamePhase.PRE_GAME;
 }

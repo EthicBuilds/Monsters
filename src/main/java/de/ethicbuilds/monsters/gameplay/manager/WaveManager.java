@@ -4,6 +4,8 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.event.WaveEvents;
 import de.ethicbuilds.monsters.gameplay.LagGuard;
+import de.ethicbuilds.monsters.gameplay.model.GamePhase;
+import de.ethicbuilds.monsters.gameplay.repository.GameStates;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.decoration.CrateManager;
 import de.ethicbuilds.monsters.monster.EliteTier;
@@ -45,6 +47,8 @@ public class WaveManager {
     private Main plugin;
     @Inject
     private PauseManager pauseManager;
+    @Inject
+    private GameStates gameStates;
     @Getter
     private volatile int currentWave = 0;
 
@@ -57,9 +61,11 @@ public class WaveManager {
         LagGuard.start(plugin);
         Thread waveThread = new Thread(() -> {
             try {
-                while (true) {
+                // After the round end no further wave starts
+                while (!roundOver()) {
                     while (PauseManager.isPaused()) Thread.sleep(200);
                     startWave();
+                    if (roundOver()) break;
                     // After every boss wave the creator of the round may call a pause
                     if (currentWave % MonsterManager.BOSS_WAVE == 0) startOnMinecraftThread(pauseManager::giveItem);
                     Thread.sleep(100);
@@ -104,6 +110,7 @@ public class WaveManager {
                 && ThreadLocalRandom.current().nextDouble() < BOUNTY_CHANCE;
         int cap = currentWave % MonsterManager.SPIDER_WAVE == 0 ? MAX_SPIDERS_ALIVE : MAX_ALIVE;
         while (monsterManager.hasPendingSpawns() || !monsterManager.getMonsters().isEmpty()) {
+            if (roundOver()) return;
             if (PauseManager.isPaused()) {
                 Thread.sleep(200);
                 continue;
@@ -153,6 +160,10 @@ public class WaveManager {
         Overlay.bigAll(HORDE_COLOR, Overlay.line(Overlay.HORDE, HORDE_COLOR, "HORDE!", null), Overlay.line(Overlay.HORDE, HORDE_COLOR, "HORDE!", null),
                 "<color:" + Overlay.GREY + ">Haltet zusammen</color>", "<color:" + Overlay.GREY + ">Stick together</color>");
         for (Player player : Bukkit.getOnlinePlayers()) player.playSound(player.getLocation(), Sound.EVENT_RAID_HORN, 0.5F, 1.2F);
+    }
+
+    private boolean roundOver() {
+        return gameStates.getCurrentPhase() == GamePhase.AFTER_GAME;
     }
 
     private void startOnMinecraftThread(Runnable action) {
