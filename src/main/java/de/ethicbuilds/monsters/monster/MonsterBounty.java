@@ -88,7 +88,7 @@ public class MonsterBounty extends EnemyMonster {
         Main.getINSTANCE().getInjector().getInstance(MonsterManager.class).removeMonster(this);
         monster.getWorld().spawnParticle(Particle.CLOUD, monster.getLocation().add(0, 1, 0), 20, 0.3, 0.6, 0.3, 0.05);
         monster.remove();
-        Lang.broadcast("%s§7Der Kopfgeld-Zombie ist entkommen!", "%s§7The Bounty Zombie got away!", Main.getINSTANCE().getMonstersPrefix());
+        Lang.noteAll("%s§7Der Kopfgeld-Zombie ist entkommen!", "%s§7The Bounty Zombie got away!", Main.getINSTANCE().getMonstersPrefix());
     }
 
     @Override
@@ -99,6 +99,6 @@ public class MonsterBounty extends EnemyMonster {
         if (hunter == null) return;
         hunter.addCoins(reward);
         killer.playSound(killer.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.7F, 1.6F);
-        Lang.broadcast("%s§6%s §7hat das Kopfgeld geholt: §6+%d Coins", "%s§6%s §7claimed the bounty: §6+%d Coins", Main.getINSTANCE().getMonstersPrefix(), killer.getName(), reward);
+        Lang.noteAll("%s§6%s §7hat das Kopfgeld geholt: §6+%d Coins", "%s§6%s §7claimed the bounty: §6+%d Coins", Main.getINSTANCE().getMonstersPrefix(), killer.getName(), reward);
     }
 }

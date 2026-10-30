@@ -331,7 +331,7 @@ public class WaveListener implements Listener {
             return;
         }
         if (gamePlayer.getCoins() < AMMO_PRICE) {
-            player.sendMessage(Lang.f(player, "§cDu brauchst noch §6%d Coins §cum die Munition aufzufüllen", "§cYou need §6%d more Coins §cto refill ammo", AMMO_PRICE - gamePlayer.getCoins()));
+            Lang.note(player, Lang.f(player, "§cDu brauchst noch §6%d Coins §cum die Munition aufzufüllen", "§cYou need §6%d more Coins §cto refill ammo", AMMO_PRICE - gamePlayer.getCoins()));
             Sounds.deny(player);
             return;
         }
@@ -341,7 +341,7 @@ public class WaveListener implements Listener {
         weapon.refill();
         weapon.reload(player);
         AmmoHud.refresh(player, weapon);
-        player.sendMessage(Lang.f(player, "§7Munition von §a%s §7aufgefüllt! §c-%d Coins", "§7Refilled ammo for §a%s§7! §c-%d Coins", weapon.getName(player), AMMO_PRICE));
+        Lang.note(player, Lang.f(player, "§7Munition von §a%s §7aufgefüllt! §c-%d Coins", "§7Refilled ammo for §a%s§7! §c-%d Coins", weapon.getName(player), AMMO_PRICE));
         Sounds.buy(player);
     }
 
@@ -368,14 +368,14 @@ public class WaveListener implements Listener {
         Player player = gamePlayer.getPlayer();
         int coins = gamePlayer.getCoins();
         if (coins <= 0) {
-            player.sendMessage(Lang.f(player, "§cNoch §6%d Coins §cfür diese Tür, legt zusammen!", "§cThis door still needs §6%d Coins§c, chip in!", remaining));
+            Lang.note(player, Lang.f(player, "§cNoch §6%d Coins §cfür diese Tür, legt zusammen!", "§cThis door still needs §6%d Coins§c, chip in!", remaining));
             Sounds.deny(player);
             return;
         }
         gamePlayer.setCoins(0);
         int paid = doorPayments.merge(door, coins, Integer::sum);
         updateDoorPrice(door, DOOR_PRICE - paid);
-        Lang.broadcast("%s§a%s §7legt §6%d Coins §7für §a%s §7ein (§6%d§7/§6%d§7). Noch §6%d Coins§7, legt zusammen!",
+        Lang.noteAll("%s§a%s §7legt §6%d Coins §7für §a%s §7ein (§6%d§7/§6%d§7). Noch §6%d Coins§7, legt zusammen!",
                 "%s§a%s §7puts §6%d Coins §7into §a%s §7(§6%d§7/§6%d§7). §6%d Coins §7to go, chip in!",
                 plugin.getMonstersPrefix(), player.getName(), coins, door.getName(), paid, DOOR_PRICE, DOOR_PRICE - paid);
         player.playSound(player.getLocation(), Sound.BLOCK_CHAIN_PLACE, 1.0F, 1.2F);
@@ -394,7 +394,7 @@ public class WaveListener implements Listener {
         int remaining = DOOR_PRICE - doorPayments.getOrDefault(door, 0);
 
         if (gamePlayer.getCoins() < remaining) {
-            player.sendMessage(Lang.f(player, "§cDu brauchst noch §6%d Coins §cum diese Türe zu öffnen", "§cYou need §6%d more Coins §cto open this door", remaining - gamePlayer.getCoins()));
+            Lang.note(player, Lang.f(player, "§cDu brauchst noch §6%d Coins §cum diese Türe zu öffnen", "§cYou need §6%d more Coins §cto open this door", remaining - gamePlayer.getCoins()));
             Sounds.deny(player);
             return;
         }
@@ -458,7 +458,7 @@ public class WaveListener implements Listener {
 
         if (playerWeapon == null) {
             if (gamePlayer.getCoins() < weaponPointWeapon.getPrice()) {
-                player.sendMessage(Lang.f(player, "§cDu brauchst noch §6%d Coins §cum diese Waffe zu kaufen", "§cYou need §6%d more Coins §cto buy this weapon", weaponPointWeapon.getPrice() - gamePlayer.getCoins()));
+                Lang.note(player, Lang.f(player, "§cDu brauchst noch §6%d Coins §cum diese Waffe zu kaufen", "§cYou need §6%d more Coins §cto buy this weapon", weaponPointWeapon.getPrice() - gamePlayer.getCoins()));
                 Sounds.deny(player);
                 return;
             }
@@ -469,7 +469,7 @@ public class WaveListener implements Listener {
 
                     gamePlayer.addWeapon(weaponPointWeapon);
                     gamePlayer.setCoins(gamePlayer.getCoins() - weaponPointWeapon.getPrice());
-                    player.sendMessage(Lang.f(player, "%s§7Du hast §a%s §7gekauft! §c-%d Coins!", "%s§7You bought §a%s§7! §c-%d Coins!", plugin.getMonstersPrefix(), weaponPointWeapon.getName(player), weaponPointWeapon.getPrice()));
+                    Lang.note(player, Lang.f(player, "%s§7Du hast §a%s §7gekauft! §c-%d Coins!", "%s§7You bought §a%s§7! §c-%d Coins!", plugin.getMonstersPrefix(), weaponPointWeapon.getName(player), weaponPointWeapon.getPrice()));
                     Sounds.buy(player);
                     return;
                 }
@@ -481,10 +481,10 @@ public class WaveListener implements Listener {
 
                 gamePlayer.addWeapon(weaponPointWeapon);
                 gamePlayer.setCoins(gamePlayer.getCoins() - weaponPointWeapon.getPrice());
-                player.sendMessage(Lang.f(player, "%s§7Du hast §a%s §7gekauft! §c-%d Coins!", "%s§7You bought §a%s§7! §c-%d Coins!", plugin.getMonstersPrefix(), weaponPointWeapon.getName(player), weaponPointWeapon.getPrice()));
+                Lang.note(player, Lang.f(player, "%s§7Du hast §a%s §7gekauft! §c-%d Coins!", "%s§7You bought §a%s§7! §c-%d Coins!", plugin.getMonstersPrefix(), weaponPointWeapon.getName(player), weaponPointWeapon.getPrice()));
                 Sounds.buy(player);
             } else if (gamePlayer.getWeapon(itemInHand) == null) {
-                player.sendMessage(Lang.t(player, "§cBitte verwende einen Waffen Slot um eine neue Waffe zu kaufen!", "§cUse a weapon slot to buy a new weapon!"));
+                Lang.note(player, Lang.t(player, "§cBitte verwende einen Waffen Slot um eine neue Waffe zu kaufen!", "§cUse a weapon slot to buy a new weapon!"));
                 Sounds.deny(player);
             }
         } else {

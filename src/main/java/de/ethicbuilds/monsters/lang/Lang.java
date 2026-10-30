@@ -48,6 +48,20 @@ public final class Lang {
         return MM.deserialize(t(player, de, en));
     }
 
+    /** Short note in the action bar instead of the chat, without the prefix; the ammo panel waits a moment */
+    public static void note(Player player, String legacy) {
+        String prefix = de.ethicbuilds.monsters.Main.getINSTANCE().getMonstersPrefix();
+        if (legacy.startsWith(prefix)) legacy = legacy.substring(prefix.length());
+        de.ethicbuilds.monsters.weapons.AmmoHud.pause(player);
+        player.sendActionBar(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(legacy));
+    }
+
+    /** Note for everyone online, the console gets the German one */
+    public static void noteAll(String de, String en, Object... args) {
+        for (Player player : Bukkit.getOnlinePlayers()) note(player, f(player, de, en, args));
+        Bukkit.getConsoleSender().sendMessage(String.format(Locale.GERMANY, de, args));
+    }
+
     /** Chat message to everyone online, each in their language, the console gets the German one */
     public static void broadcast(String de, String en, Object... args) {
         for (Player player : Bukkit.getOnlinePlayers()) player.sendMessage(f(player, de, en, args));

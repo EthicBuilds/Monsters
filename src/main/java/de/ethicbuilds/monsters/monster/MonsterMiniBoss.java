@@ -86,7 +86,7 @@ public class MonsterMiniBoss extends MonsterZombie {
         boolean grenade = ThreadLocalRandom.current().nextBoolean() && injector.getInstance(GrenadeManager.class).give(killer);
         if (!grenade) gamePlayer.addCoins(LOOT_COINS);
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.sendMessage(Lang.f(player, "%s§a%s §7hat §c%s §7besiegt und bekommt %s§7!", "%s§a%s §7defeated §c%s §7and gets %s§7!",
+            Lang.note(player, Lang.f(player, "%s§a%s §7hat §c%s §7besiegt und bekommt %s§7!", "%s§a%s §7defeated §c%s §7and gets %s§7!",
                     Main.getINSTANCE().getMonstersPrefix(), killer.getName(), Lang.t(player, title, titleEn),
                     grenade ? Lang.t(player, "§aeine Granate", "§aa grenade") : "§6" + LOOT_COINS + " Coins"));
         }

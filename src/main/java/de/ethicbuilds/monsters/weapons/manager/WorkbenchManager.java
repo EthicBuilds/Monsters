@@ -286,7 +286,7 @@ public class WorkbenchManager implements Listener {
         player.playSound(player.getLocation(), Sound.BLOCK_GRINDSTONE_USE, 1.0F, 0.9F);
         player.playSound(player.getLocation(), Sound.ENTITY_ITEM_BREAK, 0.5F, 0.8F);
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6F, 1.2F);
-        player.sendMessage(Lang.f(player, "%s§a%s §7verschrottet! §6+%d Coins", "%s§a%s §7scrapped! §6+%d Coins",
+        Lang.note(player, Lang.f(player, "%s§a%s §7verschrottet! §6+%d Coins", "%s§a%s §7scrapped! §6+%d Coins",
                 plugin.getMonstersPrefix(), weapon.getName(player), value));
         open(gamePlayer);
     }
@@ -376,7 +376,7 @@ public class WorkbenchManager implements Listener {
         weapon.reload(player);
         if (player.getInventory().getItemInMainHand().equals(weapon.getItem())) AmmoHud.refresh(player, weapon);
         Sounds.upgrade(player, weapon.getLevel() >= Weapon.MAX_LEVEL);
-        player.sendMessage(Lang.f(player, "%s§a%s §7ist jetzt Stufe §6%d§7! §c-%d Coins", "%s§a%s §7is now level §6%d§7! §c-%d Coins",
+        Lang.note(player, Lang.f(player, "%s§a%s §7ist jetzt Stufe §6%d§7! §c-%d Coins", "%s§a%s §7is now level §6%d§7! §c-%d Coins",
                 plugin.getMonstersPrefix(), weapon.getName(player), weapon.getLevel(), price));
         open(gamePlayer);
     }
@@ -392,7 +392,7 @@ public class WorkbenchManager implements Listener {
         if (!pay(gamePlayer, price)) return;
         gamePlayer.setCrowbarLevel(level + 1);
         Sounds.upgrade(player, level + 1 >= CrowbarLevel.MAX_LEVEL);
-        player.sendMessage(Lang.f(player, "%s§7Deine §aBrechstange §7ist jetzt Stufe §6%d§7! §c-%d Coins",
+        Lang.note(player, Lang.f(player, "%s§7Deine §aBrechstange §7ist jetzt Stufe §6%d§7! §c-%d Coins",
                 "%s§7Your §aCrowbar §7is now level §6%d§7! §c-%d Coins", plugin.getMonstersPrefix(), level + 1, price));
     }
 
@@ -408,7 +408,7 @@ public class WorkbenchManager implements Listener {
         gamePlayer.setArmorLevel(level + 1);
         ArmorSet.equip(player, level + 1);
         Sounds.upgrade(player, level + 1 >= ArmorSet.MAX_LEVEL);
-        player.sendMessage(Lang.f(player, "%s§7Deine Rüstung ist jetzt §a%s §7(Stufe §6%d§7)! §c-%d Coins",
+        Lang.note(player, Lang.f(player, "%s§7Deine Rüstung ist jetzt §a%s §7(Stufe §6%d§7)! §c-%d Coins",
                 "%s§7Your armor is now §a%s §7(level §6%d§7)! §c-%d Coins", plugin.getMonstersPrefix(),
                 ArmorSet.name(player, level + 1), level + 1, price));
     }
@@ -419,7 +419,7 @@ public class WorkbenchManager implements Listener {
         int remaining = UNLOCK_PRICE - unlockPaid;
         int coins = gamePlayer.getCoins();
         if (coins <= 0) {
-            player.sendMessage(Lang.f(player, "§cNoch §6%d Coins §cfür die Werkbank, legt zusammen!",
+            Lang.note(player, Lang.f(player, "§cNoch §6%d Coins §cfür die Werkbank, legt zusammen!",
                     "§cStill §6%d Coins §cneeded for the Workbench, chip in!", remaining));
             Sounds.deny(player);
             return;
@@ -429,7 +429,7 @@ public class WorkbenchManager implements Listener {
         unlockPaid += paid;
         if (unlockPaid < UNLOCK_PRICE) {
             decorationManager.setWorkbenchPrice(UNLOCK_PRICE - unlockPaid);
-            Lang.broadcast("%s§a%s §7legt §6%d Coins §7für die §aWerkbank §7ein (§6%d§7/§6%d§7). Noch §6%d Coins§7, legt zusammen!",
+            Lang.noteAll("%s§a%s §7legt §6%d Coins §7für die §aWerkbank §7ein (§6%d§7/§6%d§7). Noch §6%d Coins§7, legt zusammen!",
                     "%s§a%s §7puts §6%d Coins §7into the §aWorkbench §7(§6%d§7/§6%d§7). Still §6%d Coins§7 needed, chip in!",
                     plugin.getMonstersPrefix(), player.getName(), paid, unlockPaid, UNLOCK_PRICE, UNLOCK_PRICE - unlockPaid);
             player.playSound(player.getLocation(), Sound.BLOCK_CHAIN_PLACE, 1.0F, 1.2F);
@@ -445,7 +445,7 @@ public class WorkbenchManager implements Listener {
     private boolean pay(GamePlayer gamePlayer, int price) {
         Player player = gamePlayer.getPlayer();
         if (gamePlayer.getCoins() < price) {
-            player.sendMessage(Lang.f(player, "§cDu brauchst noch §6%d Coins", "§cNot enough coins, §6%d Coins §cmissing", price - gamePlayer.getCoins()));
+            Lang.note(player, Lang.f(player, "§cDu brauchst noch §6%d Coins", "§cNot enough coins, §6%d Coins §cmissing", price - gamePlayer.getCoins()));
             Sounds.deny(player);
             return false;
         }

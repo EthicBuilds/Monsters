@@ -72,7 +72,7 @@ public class WaveManager {
 
     private void startWave() throws InterruptedException {
         currentWave++;
-        Lang.broadcast("%s§aStarte Welle §4%d", "%s§aStarting wave §4%d", plugin.getMonstersPrefix(), currentWave);
+        plugin.getLogger().info("Welle " + currentWave);
         userManager.broadcastSound(Sound.BLOCK_TRIAL_SPAWNER_AMBIENT_OMINOUS, 2.0F, 1.0F);
 
         startOnMinecraftThread(crateManager::resetAll);

@@ -107,7 +107,7 @@ public class GameManager {
                 if(!userManager.isFull()) this.cancel();
 
                 if (i <= 5) {
-                    Lang.broadcast("%s§aDas spiel startet in %d Sekunden!", "%s§aThe game starts in %d seconds!", plugin.getMonstersPrefix(), i);
+                    Lang.noteAll("%s§aDas Spiel startet in %d Sekunden!", "%s§aThe game starts in %d seconds!", plugin.getMonstersPrefix(), i);
                 }
 
                 if (i <= 1) {

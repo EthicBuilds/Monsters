@@ -166,7 +166,7 @@ public class ReviveManager implements Listener {
             spot.setPitch(0);
             userManager.revivePlayer(player.getUniqueId(), spot);
             spot.getWorld().spawnParticle(Particle.HEART, spot.clone().add(0, 1, 0), 8, 0.4, 0.4, 0.4, 0);
-            Lang.broadcast("%s§a%s §7steht mit einem §aMedkit §7wieder auf!", "%s§a%s §7is back up with a §aMedkit§7!", plugin.getMonstersPrefix(), player.getName());
+            Lang.noteAll("%s§a%s §7steht mit einem §aMedkit §7wieder auf!", "%s§a%s §7is back up with a §aMedkit§7!", plugin.getMonstersPrefix(), player.getName());
         }, SELF_REVIVE_DELAY);
     }
 
@@ -455,7 +455,7 @@ public class ReviveManager implements Listener {
                 Overlay.line(Overlay.REVIVE, GREEN, "REVIVED", "by " + helper.getName()));
 
         spot.getWorld().spawnParticle(Particle.HEART, spot.clone().add(0, 1, 0), 8, 0.4, 0.4, 0.4, 0);
-        Lang.broadcast("%s§a%s §7hat §a%s §7wiederbelebt! §c-%d Coins", "%s§a%s §7revived §a%s§7! §c-%d Coins", plugin.getMonstersPrefix(),
+        Lang.noteAll("%s§a%s §7hat §a%s §7wiederbelebt! §c-%d Coins", "%s§a%s §7revived §a%s§7! §c-%d Coins", plugin.getMonstersPrefix(),
                 helper.getName(), downedPlayer.getPlayer().getName(), cost);
     }
 
