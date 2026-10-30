@@ -51,7 +51,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MonsterManager {
     public static final int SPIDER_WAVE = 5;
     private static final int GROWTH_UNTIL = 10;
-    private static final int HORDE_PER_PLAYER = 10, HORDE_BONUS = 100;
+    // At most 10 crawlers, without armor, so the horde stays a quick surprise and not a wall
+    private static final int HORDE_PER_PLAYER = 5, HORDE_MAX = 10, HORDE_BONUS = 100;
     private static final String HORDE_COLOR = "#FF4838", BEATEN_COLOR = "#3CDC6E";
     private static final int SCARABS_PER_PLAYER = 8;
     private static final double BOSS_LEASH = 40;
@@ -135,9 +136,8 @@ public class MonsterManager {
     public void addHorde(int wave) {
         int players = Math.max(1, livingPlayers().size());
         List<EnemyMonster> horde = new ArrayList<>();
-        for (int i = 0; i < players * HORDE_PER_PLAYER; i++) {
+        for (int i = 0; i < Math.min(HORDE_MAX, players * HORDE_PER_PLAYER); i++) {
             EnemyMonster monster = new MonsterCrawler();
-            monster.setTier(EliteTier.roll(wave));
             monster.setWave(wave);
             monster.setSprinter(true);
             initialMonsters.addFirst(monster);

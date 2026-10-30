@@ -37,7 +37,7 @@ public abstract class EnemyMonster {
     private static final double SWITCH_MARGIN = 3;
     private static final double KNOCKBACK_RESISTANCE = 1.0;
     // Horde: clearly quicker, also above the normal speed limit
-    private static final double SPRINTER_SPEED = 1.6, SPRINTER_MAX_SPEED = 2.0;
+    private static final double SPRINTER_SPEED = 1.35, SPRINTER_MAX_SPEED = 1.8;
 
     protected int health;
     protected int damage;

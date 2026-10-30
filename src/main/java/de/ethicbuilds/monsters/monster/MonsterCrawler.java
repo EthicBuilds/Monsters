@@ -24,7 +24,7 @@ public class MonsterCrawler extends EnemyMonster {
     private AnimatedModel model;
 
     public MonsterCrawler() {
-        this.health = 14;
+        this.health = 10;
         this.damage = 2;
         this.speed = 1;
         this.name = "§7Krabbler";
