@@ -46,6 +46,7 @@ public class CrateManager implements Listener {
     @Inject private UserManager userManager;
     @Inject private GameManager gameManager;
     @Inject private GrenadeManager grenadeManager;
+    @Inject private de.ethicbuilds.monsters.powerup.PowerupManager powerupManager;
 
     private final Map<Location, Crate> crates = new HashMap<>();
     private final Map<UUID, Long> lastHits = new HashMap<>();
@@ -135,6 +136,12 @@ public class CrateManager implements Listener {
         crate.display.setItemStack(null);
         crate.block.setType(Material.AIR, false);
         loot(gamePlayer);
+        if (ThreadLocalRandom.current().nextDouble() < CrowbarLevel.powerupChance(gamePlayer.getCrowbarLevel())) powerupManager.dropAt(center);
+    }
+
+    /** Chance in percent that a crate is not empty with this crowbar level, shown at the workbench */
+    public static int lootPercent(int level) {
+        return (int) Math.min(100, Math.round((GRENADE_CHANCE + COINS_CHANCE + AMMO_CHANCE + 3 * CrowbarLevel.extraLoot(level)) * 100));
     }
 
     private void loot(GamePlayer gamePlayer) {

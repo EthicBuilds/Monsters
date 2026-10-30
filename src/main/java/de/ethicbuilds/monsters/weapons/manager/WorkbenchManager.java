@@ -489,7 +489,7 @@ public class WorkbenchManager implements Listener {
 
     // Chance in percent that a crate gives a grenade or coins
     private static String loot(int level) {
-        return String.valueOf((int) Math.round((0.5 + 2 * CrowbarLevel.extraLoot(Math.min(level, CrowbarLevel.MAX_LEVEL))) * 100));
+        return String.valueOf(de.ethicbuilds.monsters.map.decoration.CrateManager.lootPercent(Math.min(level, CrowbarLevel.MAX_LEVEL)));
     }
 
     private Component title(GamePlayer gamePlayer, Card card, int row, Weapon weapon) {

@@ -137,6 +137,13 @@ public class PowerupManager {
         }
     }
 
+    /** A crate opened with a good crowbar: medkit, speed or insta-kill right there */
+    public void dropAt(Location location) {
+        if (gameManager.getCurrentPhase() != GamePhase.WAVE) return;
+        Type[] types = {Type.MEDKIT, Type.SPEED, Type.INSTAKILL};
+        spawn(types[ThreadLocalRandom.current().nextInt(types.length)], location.toBlockLocation().add(0.5, 0.8, 0.5));
+    }
+
     // Ammo for everyone only once per wave
     private boolean ammoAllowed() {
         int wave = waveManager.getCurrentWave();
