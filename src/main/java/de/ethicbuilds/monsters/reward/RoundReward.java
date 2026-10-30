@@ -6,10 +6,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BooleanSupplier;
 
@@ -29,6 +31,19 @@ public final class RoundReward {
     private static long roundStart;
 
     private RoundReward() {}
+
+    /** What one player got: round part (minutes, wave, revives, best player) and kills part before the rank bonus */
+    public record Parts(int round, int kills, long bonus, boolean tooShort, CompletableFuture<Payout> firstWin) {
+        static Parts none(boolean tooShort) {
+            return new Parts(0, 0, 0, tooShort, CompletableFuture.completedFuture(Payout.NONE));
+        }
+
+        public long paid() {
+            return round + kills + bonus;
+        }
+    }
+
+    private record Split(int round, int kills) {}
 
     public static void start(Plugin plugin, BooleanSupplier running) {
         roundStart = System.currentTimeMillis();
@@ -57,34 +72,47 @@ public final class RoundReward {
     }
 
     public static int amount(GamePlayer gamePlayer, int wave, boolean best) {
-        int minutes = activeMinutes.getOrDefault(gamePlayer.getPlayer().getUniqueId(), 0);
-        if (minutes == 0) return 0;
-        int coins = (int) Math.round(minutes * PER_ACTIVE_MINUTE) + PER_WAVE * wave
-                + gamePlayer.getKilledZombies() / KILLS_PER_COIN + PER_REVIVE * gamePlayer.getRevives();
-        if (best) coins += BEST_BONUS;
-        return Math.min(MAX_PER_ROUND, coins);
+        Split split = split(gamePlayer, wave, best);
+        return split.round() + split.kills();
     }
 
-    /** At the round end, best player first in the list */
-    public static void payOut(List<GamePlayer> ranked, int wave, String prefix) {
+    // The cap comes off the round part, the kills part stays
+    private static Split split(GamePlayer gamePlayer, int wave, boolean best) {
+        int minutes = activeMinutes.getOrDefault(gamePlayer.getPlayer().getUniqueId(), 0);
+        if (minutes == 0) return new Split(0, 0);
+        int kills = Math.min(MAX_PER_ROUND, gamePlayer.getKilledZombies() / KILLS_PER_COIN);
+        int round = (int) Math.round(minutes * PER_ACTIVE_MINUTE) + PER_WAVE * wave + PER_REVIVE * gamePlayer.getRevives();
+        if (best) round += BEST_BONUS;
+        return new Split(Math.min(round, MAX_PER_ROUND - kills), kills);
+    }
+
+    /** At the round end, best player first in the list. Returns what each online player got */
+    public static Map<UUID, Parts> payOut(List<GamePlayer> ranked, int wave, String prefix) {
         countMinute();
+        Map<UUID, Parts> parts = new HashMap<>();
         if (System.currentTimeMillis() - roundStart < MIN_ROUND_MILLIS) {
             ranked.forEach(p -> { if (p.getPlayer().isOnline()) p.getPlayer().sendMessage(prefix + Lang.t(p.getPlayer(), "§7Die Runde war zu kurz für EthicCoins.", "§7The round was too short for EthicCoins.")); });
-            return;
+            ranked.forEach(p -> parts.put(p.getPlayer().getUniqueId(), Parts.none(true)));
+            return parts;
         }
         for (int i = 0; i < ranked.size(); i++) {
             Player player = ranked.get(i).getPlayer();
             if (!player.isOnline()) continue;
-            int base = amount(ranked.get(i), wave, i == 0);
+            parts.put(player.getUniqueId(), Parts.none(false));
+            Split split = split(ranked.get(i), wave, i == 0);
+            int base = split.round() + split.kills();
             if (base <= 0) continue;
             long coins = EthicCoins.withRankBonus(player, base);
             if (!EthicCoins.deposit(player.getUniqueId(), coins, "Monsters Runde")) continue;
             player.sendMessage(Lang.f(player, "%s§7Du bekommst §6%d EthicCoins §7für diese Runde%s", "%s§7You get §6%d EthicCoins §7for this round%s", prefix, coins,
                     i == 0 ? Lang.t(player, " §8(§6Rundenbester§8)", " §8(§6Best player§8)") : ""));
+            CompletableFuture<Payout> firstWin = CompletableFuture.completedFuture(Payout.NONE);
             if (i == 0) {
                 Lang.broadcast("%s§6%s §7war der beste Spieler der Runde!", "%s§6%s §7was the best player of the round!", prefix, player.getName());
-                DailyWin.reward(player, prefix);
+                firstWin = DailyWin.reward(player, prefix);
             }
+            parts.put(player.getUniqueId(), new Parts(split.round(), split.kills(), coins - base, false, firstWin));
         }
+        return parts;
     }
 }

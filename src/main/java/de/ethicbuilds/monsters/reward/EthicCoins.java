@@ -32,8 +32,12 @@ public final class EthicCoins {
 
     // Rank bonus like in the whole network: Founder +50 %, EthicFounder +100 %
     public static long withRankBonus(Player player, long amount) {
-        int bonus = player.hasPermission("ethiccoins.boost.100") ? 100 : player.hasPermission("ethiccoins.boost.50") ? 50 : 0;
-        return Math.round(amount * (100 + bonus) / 100d);
+        return Math.round(amount * (100 + rankBonus(player)) / 100d);
+    }
+
+    /** Rank bonus in percent */
+    public static int rankBonus(Player player) {
+        return player.hasPermission("ethiccoins.boost.100") ? 100 : player.hasPermission("ethiccoins.boost.50") ? 50 : 0;
     }
 
     @SuppressWarnings("unchecked")
