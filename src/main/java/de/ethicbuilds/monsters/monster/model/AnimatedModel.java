@@ -45,6 +45,7 @@ public class AnimatedModel implements Corpses.Corpse {
     private String walk = WALK;
     // The walk plays faster or slower with the real speed, so the steps fit (blocks per tick of a normal walk)
     private static final double WALK_SPEED = 0.12, MIN_RATE = 0.6, MAX_RATE = 1.6;
+    private double walkSpeed = WALK_SPEED;
     // Slower than this it strolls instead of walking, if the model has it
     private static final double STROLL_SPEED = 0.05;
     private static final String STROLL = "schlendern";
@@ -198,11 +199,12 @@ public class AnimatedModel implements Corpses.Corpse {
         if (model.animation(animation) != null) walk = animation;
     }
 
-    /** Stays in this pose also when standing, e.g. crawling without a leg */
-    public void setIdle(String animation) {
-        if (model.animation(animation) == null) return;
-        idle = animation;
-        walk = animation;
+    /** Other gait, e.g. crawling without a leg: own loops for moving and standing, steps fitting this speed (blocks per tick) */
+    public void setGait(String moving, String standing, double speed) {
+        if (model.animation(moving) == null) return;
+        walk = moving;
+        idle = model.animation(standing) != null ? standing : moving;
+        walkSpeed = speed;
         noStroll = true;
     }
 
@@ -417,7 +419,7 @@ public class AnimatedModel implements Corpses.Corpse {
             if (rigActive) rig.update(now, yaw, elapsed);
             else if (rig != null) rig.reset();
             double speed = moving ? now.distance(lastPosition) / elapsed : 0;
-            if (moving) walkTime += step * (float) Math.max(MIN_RATE, Math.min(MAX_RATE, speed / WALK_SPEED)) * every;
+            if (moving) walkTime += step * (float) Math.max(MIN_RATE, Math.min(MAX_RATE, speed / walkSpeed)) * every;
             lastPosition = now;
             String loop = !moving ? idle : (stroll || !noStroll && speed < STROLL_SPEED) && walk.equals(WALK) && model.animation(STROLL) != null ? STROLL : walk;
             if (far && model.lod() != null) renderLod();

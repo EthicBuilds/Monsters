@@ -47,6 +47,8 @@ public class MonsterZombie extends EnemyMonster {
     private static final Material[] SHARDS = {null, Material.COPPER_INGOT, Material.IRON_INGOT,
             Material.GOLD_INGOT, Material.DIAMOND, Material.NETHERITE_INGOT};
     // Limb loss (design session): under half health a small chance per hit, once per zombie; from gold on never
+    // The crawl loop of the design session fits 0.06 blocks per tick
+    private static final double CRAWL_STEP_SPEED = 0.06;
     private static final double LIMB_CHANCE = 0.04, LIMB_HEALTH = 0.5, ARM_DAMAGE = 0.8, CRAWL_SPEED = 0.45, CRAWL_SCALE = 0.35;
     private static final int LIMB_SAFE_TIER = 3, LIMB_LIFETIME = 40;
     // Recoil in degrees: body and head, a headshot throws the head back harder
@@ -232,7 +234,7 @@ public class MonsterZombie extends EnemyMonster {
         }
         // Without a leg it crawls on: slow and low
         crawling = true;
-        model.setIdle("kriechen");
+        model.setGait("kriechen", "kriechen_stehen", CRAWL_STEP_SPEED);
         var movement = monster.getAttribute(Attribute.MOVEMENT_SPEED);
         if (movement != null) movement.setBaseValue(movement.getBaseValue() * CRAWL_SPEED);
         var scale = monster.getAttribute(Attribute.SCALE);
