@@ -2,6 +2,8 @@ package de.ethicbuilds.monsters.monster.manager;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.gameplay.manager.GameManager;
+import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
@@ -50,6 +52,8 @@ public class MonsterManager {
     private UserManager userManager;
     @Inject
     private Main plugin;
+    @Inject
+    private GameManager gameManager;
 
     @Getter
     private final Map<Monster, EnemyMonster> monsters = new ConcurrentHashMap<>();
@@ -138,7 +142,7 @@ public class MonsterManager {
             @Override
             public void run() {
                 long left = horde.stream().filter(m -> initialMonsters.contains(m) || m.getMonster() != null && m.getMonster().isValid() && !m.getMonster().isDead()).count();
-                if (plugin.getInjector().getInstance(de.ethicbuilds.monsters.gameplay.manager.GameManager.class).getCurrentPhase() != de.ethicbuilds.monsters.gameplay.model.GamePhase.WAVE) {
+                if (gameManager.getCurrentPhase() != GamePhase.WAVE) {
                     bar.removeAll();
                     cancel();
                     return;
@@ -337,18 +341,15 @@ public class MonsterManager {
                     continue;
                 }
 
+                Player nearest = nearestPlayer(loc);
                 // The boss weaver never stays far away from the players
-                if (enemyMonster instanceof MonsterSpiderBoss boss) {
-                    Player nearest = nearestPlayer(loc);
-                    if (nearest != null && nearest.getLocation().distance(loc) > BOSS_LEASH) {
-                        Location open = spiderSpot(boss, livingPlayers());
-                        if (open != null) entity.teleport(open, io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_PASSENGERS);
-                    }
+                if (enemyMonster instanceof MonsterSpiderBoss boss && nearest != null && nearest.getLocation().distanceSquared(loc) > BOSS_LEASH * BOSS_LEASH) {
+                    Location open = spiderSpot(boss, livingPlayers());
+                    if (open != null) entity.teleport(open, io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_PASSENGERS);
                 }
 
                 // Stuck: stayed within a small spot (also wobbling back and forth) without a player next to it
                 Location anchor = lastLocation.get(enemyMonster);
-                Player nearest = nearestPlayer(loc);
                 boolean atPlayer = nearest != null && nearest.getLocation().distanceSquared(loc) < STUCK_PLAYER_DISTANCE * STUCK_PLAYER_DISTANCE;
                 if (anchor != null && anchor.getWorld().equals(loc.getWorld()) && anchor.distanceSquared(loc) < STUCK_RADIUS * STUCK_RADIUS && !atPlayer) {
                     long lastMoved = lastMoveTime.getOrDefault(enemyMonster, now);

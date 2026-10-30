@@ -16,6 +16,9 @@ import java.util.List;
  * Players that abilities of the monsters may hit: in the round, online and not down
  */
 final class LivingPlayers {
+    private static UserManager users;
+    private static GameManager game;
+
     private LivingPlayers() {}
 
     static List<Player> near(Location at, double radius) {
@@ -36,10 +39,16 @@ final class LivingPlayers {
     /** Wave under way and not paused: only then abilities start and hurt */
     static boolean waveRunning() {
         return !PauseManager.isPaused()
-                && Main.getINSTANCE().getInjector().getInstance(GameManager.class).getCurrentPhase() == GamePhase.WAVE;
+                && game().getCurrentPhase() == GamePhase.WAVE;
     }
 
     private static UserManager users() {
-        return Main.getINSTANCE().getInjector().getInstance(UserManager.class);
+        if (users == null) users = Main.getINSTANCE().getInjector().getInstance(UserManager.class);
+        return users;
+    }
+
+    private static GameManager game() {
+        if (game == null) game = Main.getINSTANCE().getInjector().getInstance(GameManager.class);
+        return game;
     }
 }

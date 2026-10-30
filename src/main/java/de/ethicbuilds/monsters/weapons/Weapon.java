@@ -3,6 +3,8 @@ package de.ethicbuilds.monsters.weapons;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.monster.manager.MonsterManager;
+import de.ethicbuilds.monsters.perk.PerkManager;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Location;
@@ -58,6 +60,9 @@ public abstract class Weapon {
 
     protected boolean isCoolDown = false;
 
+    private static MonsterManager monsterManager;
+    private static PerkManager perkManager;
+
     protected void initialize() {
         baseDamage = damage;
         baseMagazine = maxMagazine;
@@ -103,7 +108,7 @@ public abstract class Weapon {
         }
 
         player.playSound(player.getLocation(), sound, 0.5F, pitch);
-        Main.getINSTANCE().getInjector().getInstance(de.ethicbuilds.monsters.monster.manager.MonsterManager.class).shotNoise(player);
+        monsterManager().shotNoise(player);
 
         Set<org.bukkit.entity.Entity> hit = new HashSet<>();
         // With a bit of luck a normal shot goes through into a second monster
@@ -241,6 +246,16 @@ public abstract class Weapon {
             public void run() {
                 isCoolDown = false;
             }
-        }.runTaskLater(Main.getINSTANCE(), Main.getINSTANCE().getInjector().getInstance(de.ethicbuilds.monsters.perk.PerkManager.class).cooldown(player, fireRate));
+        }.runTaskLater(Main.getINSTANCE(), perkManager().cooldown(player, fireRate));
+    }
+
+    private static MonsterManager monsterManager() {
+        if (monsterManager == null) monsterManager = Main.getINSTANCE().getInjector().getInstance(MonsterManager.class);
+        return monsterManager;
+    }
+
+    private static PerkManager perkManager() {
+        if (perkManager == null) perkManager = Main.getINSTANCE().getInjector().getInstance(PerkManager.class);
+        return perkManager;
     }
 }

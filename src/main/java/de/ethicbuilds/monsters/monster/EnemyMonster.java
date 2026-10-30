@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.monster;
 import com.destroystokyo.paper.entity.Pathfinder;
 import com.destroystokyo.paper.entity.ai.VanillaGoal;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import lombok.Getter;
 import org.bukkit.Bukkit;
@@ -58,6 +59,7 @@ public abstract class EnemyMonster {
     private final Main plugin = Main.getINSTANCE();
 
     private final UserManager userManager = plugin.getInjector().getInstance(UserManager.class);
+    private final MonsterManager monsterManager = plugin.getInjector().getInstance(MonsterManager.class);
 
     public void summon(Player player, Location spawnLocation) {
         // Elite tiers only for the zombie kinds, bosses keep their own values
@@ -113,11 +115,11 @@ public abstract class EnemyMonster {
 
                 // Every monster keeps its own player, a dead one hands it to the least chased living player
                 if (target == null || !target.isOnline() || userManager.isPlayerDead(target.getUniqueId())) {
-                    target = monsterManager().leastChasedPlayer();
+                    target = monsterManager.leastChasedPlayer();
                 }
                 if (target == null) return;
                 // Spread over all players, but a clearly closer player always comes first
-                Player nearest = monsterManager().nearestPlayer(monster.getLocation());
+                Player nearest = monsterManager.nearestPlayer(monster.getLocation());
                 if (nearest != null && !nearest.equals(target)
                         && distance(nearest) + SWITCH_MARGIN < distance(target)) {
                     target = nearest;
@@ -247,9 +249,5 @@ public abstract class EnemyMonster {
 
     public boolean showsHealthBar() {
         return true;
-    }
-
-    private de.ethicbuilds.monsters.monster.manager.MonsterManager monsterManager() {
-        return plugin.getInjector().getInstance(de.ethicbuilds.monsters.monster.manager.MonsterManager.class);
     }
 }

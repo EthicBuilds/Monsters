@@ -16,6 +16,7 @@ public final class ShotDamage {
     private static boolean headshot;
     // A gun shot, not a grenade
     private static boolean aimed;
+    private static de.ethicbuilds.monsters.monster.manager.MonsterManager monsters;
 
     private ShotDamage() {}
 
@@ -52,8 +53,9 @@ public final class ShotDamage {
 
     private static boolean armored(LivingEntity target) {
         if (!(target instanceof org.bukkit.entity.Monster monster)) return false;
-        var enemy = de.ethicbuilds.monsters.Main.getINSTANCE().getInjector()
-                .getInstance(de.ethicbuilds.monsters.monster.manager.MonsterManager.class).getEnemyMonster(monster);
+        if (monsters == null) monsters = de.ethicbuilds.monsters.Main.getINSTANCE().getInjector()
+                .getInstance(de.ethicbuilds.monsters.monster.manager.MonsterManager.class);
+        var enemy = monsters.getEnemyMonster(monster);
         return enemy != null && enemy.armored();
     }
 
