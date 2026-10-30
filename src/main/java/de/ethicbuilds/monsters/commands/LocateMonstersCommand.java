@@ -1,4 +1,4 @@
-package de.ethicbuilds.monsters.test;
+package de.ethicbuilds.monsters.commands;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
@@ -10,7 +10,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-public class LocateMonsters implements CommandExecutor {
+/***
+ * /locateMonsters for testing: number of living monsters, for the team also where they are
+ */
+public class LocateMonstersCommand implements CommandExecutor {
     @Inject
     private MonsterManager monsterManager;
     @Override

@@ -65,10 +65,6 @@ public final class Cocoon implements Listener {
         });
     }
 
-    public static boolean isTrapped(Player player) {
-        return trapped.contains(player.getUniqueId());
-    }
-
     public static void trap(Player player, LivingEntity boss) {
         if (!trapped.add(player.getUniqueId())) return;
         Cocoon cocoon = new Cocoon(player, boss);

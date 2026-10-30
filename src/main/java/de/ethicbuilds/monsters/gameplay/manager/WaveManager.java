@@ -2,11 +2,9 @@ package de.ethicbuilds.monsters.gameplay.manager;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
-import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.event.WaveEvents;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.decoration.CrateManager;
-import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.EliteTier;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;

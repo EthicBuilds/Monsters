@@ -6,7 +6,6 @@ import de.ethicbuilds.monsters.gameplay.manager.DoorManager;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.RoundLoader;
 import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
-import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.gameplay.repository.GameStates;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.decoration.CrateManager;

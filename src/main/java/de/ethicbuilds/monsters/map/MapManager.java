@@ -13,7 +13,6 @@ import de.ethicbuilds.monsters.map.elements.WeaponPoint;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
 import org.bukkit.Location;

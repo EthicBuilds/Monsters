@@ -1,14 +1,11 @@
 package de.ethicbuilds.monsters.player.manager;
 
 
-import com.google.auto.service.AutoService;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
-import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.MapManager;
-import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.GameSpectator;
 import org.bukkit.*;
@@ -23,7 +20,6 @@ import java.util.*;
 public class UserManager {
     @Inject private MapManager mapManager;
     @Inject private GameManager gameManager;
-    @Inject private MonsterManager monsterManager;
     @Inject private Main plugin;
     @Inject private ReviveManager reviveManager;
 
@@ -51,11 +47,6 @@ public class UserManager {
         GamePlayer gamePlayer = gamePlayers.get(uuid);
         if (gamePlayer == null || spectators.containsKey(uuid)) return;
         spectators.put(uuid, new GameSpectator(gamePlayer.getPlayer()));
-    }
-
-    /** Players of this round may always come back, new ones while there is a free slot */
-    public boolean canJoinRunning(UUID uuid) {
-        return gamePlayers.containsKey(uuid) || gamePlayers.size() < gameManager.getGameConfig().getPlayerCount();
     }
 
     /** Joins or rejoins a running round: watches until the next wave, then plays again */
@@ -161,10 +152,6 @@ public class UserManager {
 
     public List<GamePlayer> getGamePlayers() {
         return gamePlayers.values().stream().toList();
-    }
-
-    public Collection<GameSpectator> getSpectators() {
-        return spectators.values();
     }
 
     public void startMonsterTrackerTask() {

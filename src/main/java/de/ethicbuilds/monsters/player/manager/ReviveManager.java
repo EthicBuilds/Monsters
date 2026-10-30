@@ -15,7 +15,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
-import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Entity;
@@ -172,11 +171,6 @@ public class ReviveManager implements Listener {
             spot.getWorld().spawnParticle(Particle.HEART, spot.clone().add(0, 1, 0), 8, 0.4, 0.4, 0.4, 0);
             Lang.noteAll("%s§a%s §7steht mit einem §aMedkit §7wieder auf!", "%s§a%s §7is back up with a §aMedkit§7!", plugin.getMonstersPrefix(), player.getName());
         }, SELF_REVIVE_DELAY);
-    }
-
-    public boolean hasStoredMedkit(Player player) {
-        ItemStack stored = player.getInventory().getItem(MEDKIT_SLOT);
-        return stored != null && !stored.getType().isAir();
     }
 
     // Keys 4/5 or the mouse wheel while lying: watch the previous or next living teammate through their eyes

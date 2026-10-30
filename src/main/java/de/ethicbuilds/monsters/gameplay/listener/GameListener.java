@@ -1,6 +1,5 @@
 package de.ethicbuilds.monsters.gameplay.listener;
 
-import com.destroystokyo.paper.event.block.AnvilDamagedEvent;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.inject.Inject;
@@ -13,7 +12,6 @@ import de.ethicbuilds.monsters.weapons.AmmoHud;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -27,7 +25,6 @@ import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
-import org.eclipse.sisu.Priority;
 
 import java.io.IOException;
 import java.net.URI;

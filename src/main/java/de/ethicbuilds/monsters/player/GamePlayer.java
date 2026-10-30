@@ -14,8 +14,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-import java.util.HashMap;
-import java.util.Map;
 
 public class GamePlayer extends GameUser {
     // For the summary at the end of the round
@@ -92,10 +90,6 @@ public class GamePlayer extends GameUser {
 
     public void removeWeapon(Weapon weapon) {
         weapons.remove(weapon.getItem().getType());
-    }
-
-    public boolean isWeapon(ItemStack item) {
-        return weapons.containsKey(item);
     }
 
     /** Fills the reserve ammo of every weapon, false if all were full */

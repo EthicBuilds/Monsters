@@ -17,7 +17,6 @@ import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.map.elements.WeaponPoint;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.HealthBars;
-import de.ethicbuilds.monsters.monster.MonsterGuard;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.perk.Perk;
 import de.ethicbuilds.monsters.perk.PerkManager;

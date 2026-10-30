@@ -22,8 +22,6 @@ import java.util.Set;
 
 @Getter @Setter
 public abstract class Weapon {
-    private Main plugin;
-
     protected ItemStack item;
     protected String name;
     // English name, without one the German name counts for both

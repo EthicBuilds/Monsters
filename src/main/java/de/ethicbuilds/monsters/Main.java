@@ -1,7 +1,5 @@
 package de.ethicbuilds.monsters;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import de.ethicbuilds.monsters.di.DiModule;
@@ -11,7 +9,6 @@ import de.ethicbuilds.monsters.gameplay.listener.PreGameListener;
 import de.ethicbuilds.monsters.gameplay.listener.WaveListener;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.RoundLoader;
-import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.decoration.CrateManager;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.monster.MonsterGuard;
@@ -22,14 +19,13 @@ import de.ethicbuilds.monsters.weapons.AmmoHud;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.weapons.manager.WorkbenchManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
-import de.ethicbuilds.monsters.test.LocateMonsters;
 import de.ethicbuilds.monsters.commands.BossWaveCommand;
+import de.ethicbuilds.monsters.commands.LocateMonstersCommand;
 import de.ethicbuilds.monsters.commands.CreateMapConfigCommand;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.entity.Entity;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -40,8 +36,6 @@ import java.util.Objects;
  */
 
 public final class Main extends JavaPlugin {
-    private Gson gson;
-
     @Getter
     private Injector injector;
     @Getter
@@ -53,11 +47,8 @@ public final class Main extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        // Plugin startup logic
         INSTANCE = this;
         injector = Guice.createInjector(new DiModule(INSTANCE));
-
-        gson = new GsonBuilder().setPrettyPrinting().create();
 
         saveDefaultConfig();
         injector.getInstance(ScoreboardManager.class).init();
@@ -79,14 +70,9 @@ public final class Main extends JavaPlugin {
         }, 20L, 20L);
     }
 
-    @Override
-    public void onDisable() {
-        // Plugin shutdown logic
-    }
-
     private void registerCommandsAndListeners() {
         Objects.requireNonNull(getCommand("createMapConfig")).setExecutor(injector.getInstance(CreateMapConfigCommand.class));
-        Objects.requireNonNull(getCommand("locateMonsters")).setExecutor(injector.getInstance(LocateMonsters.class));
+        Objects.requireNonNull(getCommand("locateMonsters")).setExecutor(injector.getInstance(LocateMonstersCommand.class));
         Objects.requireNonNull(getCommand("bosswelle")).setExecutor(injector.getInstance(BossWaveCommand.class));
         Objects.requireNonNull(getCommand("rundenende")).setExecutor(injector.getInstance(de.ethicbuilds.monsters.commands.RoundEndCommand.class));
         Objects.requireNonNull(getCommand("aufgeben")).setExecutor(injector.getInstance(de.ethicbuilds.monsters.commands.SurrenderCommand.class));
