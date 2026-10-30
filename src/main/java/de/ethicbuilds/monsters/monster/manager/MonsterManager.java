@@ -58,7 +58,9 @@ public class MonsterManager {
     private int spawnIndex;
 
     private final Map<EnemyMonster, Location> lastLocation = new HashMap<>();
-    private final Map<EnemyMonster, Long> lastMoveTime = new HashMap<>();;
+    private final Map<EnemyMonster, Long> lastMoveTime = new HashMap<>();
+    private static final double STUCK_RADIUS = 2, STUCK_PLAYER_DISTANCE = 4;
+    private static final long STUCK_MILLIS = 12_000;
 
     public void createMonsters(int wave) {
         monsters.clear();
@@ -331,9 +333,11 @@ public class MonsterManager {
                     }
                 }
 
-                Location lastLoc = lastLocation.get(enemyMonster);
-
-                if (lastLoc != null && lastLoc.equals(loc)) {
+                // Stuck: stayed within a small spot (also wobbling back and forth) without a player next to it
+                Location anchor = lastLocation.get(enemyMonster);
+                Player nearest = nearestPlayer(loc);
+                boolean atPlayer = nearest != null && nearest.getLocation().distanceSquared(loc) < STUCK_PLAYER_DISTANCE * STUCK_PLAYER_DISTANCE;
+                if (anchor != null && anchor.getWorld().equals(loc.getWorld()) && anchor.distanceSquared(loc) < STUCK_RADIUS * STUCK_RADIUS && !atPlayer) {
                     long lastMoved = lastMoveTime.getOrDefault(enemyMonster, now);
                     // A stuck spider gets free ground instead of being removed, the boss ends the wave
                     if (now - lastMoved >= 10_000 && enemyMonster instanceof MonsterSpider spider) {
@@ -342,6 +346,17 @@ public class MonsterManager {
                         if (open != null) entity.teleport(open, io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_PASSENGERS);
                         lastMoveTime.put(enemyMonster, now);
                         continue;
+                    }
+                    // Others come out again at the spawner nearest to the players, only if none is around
+                    if (now - lastMoved >= STUCK_MILLIS && nearest != null && !(enemyMonster instanceof MonsterSpiderBoss)) {
+                        List<Location> spawners = getActiveSpawnerLocations();
+                        if (!spawners.isEmpty()) {
+                            Location spawner = nearestSpawner(spawners, nearest).clone().add(0, 1, 0);
+                            entity.teleport(spawner, io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_PASSENGERS);
+                            lastMoveTime.put(enemyMonster, now);
+                            lastLocation.put(enemyMonster, spawner);
+                            continue;
+                        }
                     }
                     if (now - lastMoved >= 30_000) {
                         toRemove.add(enemyMonster);

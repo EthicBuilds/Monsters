@@ -354,7 +354,8 @@ public class AnimatedModel implements Corpses.Corpse {
             double nearest = nearestPlayer(now);
             switchLod(nearest);
             boolean near = nearest < DETAIL_DISTANCE * DETAIL_DISTANCE;
-            int every = far || !near ? FAR_EVERY : nearest < NEAR_DISTANCE * NEAR_DISTANCE ? 1 : MID_EVERY;
+            int every = (far || !near ? FAR_EVERY : nearest < NEAR_DISTANCE * NEAR_DISTANCE ? 1 : MID_EVERY)
+                    * de.ethicbuilds.monsters.gameplay.LagGuard.slowdown();
             if (++skipped < every) return;
             skipped = 0;
             int elapsed = TICKS * every;
@@ -385,7 +386,7 @@ public class AnimatedModel implements Corpses.Corpse {
             double speed = moving ? now.distance(lastPosition) / elapsed : 0;
             lastPosition = now;
             String loop = !moving ? idle : (stroll || !noStroll && speed < STROLL_SPEED) && walk.equals(WALK) && model.animation(STROLL) != null ? STROLL : walk;
-            if (far) renderLod();
+            if (far && model.lod() != null) renderLod();
             else render(model.animation(loop), one);
         } else {
             // Too many corpses: the oldest sinks into the ground
@@ -411,17 +412,20 @@ public class AnimatedModel implements Corpses.Corpse {
     // Far away one display in rest pose instead of all bones, back a bit closer so it does not flicker
     private void switchLod(double nearest) {
         BoneModel.Lod lod = model.lod();
-        if (lod == null) return;
+        if (lod == null && !model.hasFarHide()) return;
         if (!far && nearest > DETAIL_DISTANCE * DETAIL_DISTANCE) {
             far = true;
             List<ItemDisplay> all = all();
+            List<BoneModel.Bone> bones = model.bones();
             hidden = new ItemStack[all.size()];
             for (int i = 0; i < all.size(); i++) {
                 ItemDisplay part = all.get(i);
-                if (part == null || !part.isValid()) continue;
+                // Without a whole model only the small bones go
+                if (part == null || !part.isValid() || lod == null && !model.hiddenFar(bones.get(i % bones.size()).id())) continue;
                 hidden[i] = part.getItemStack();
                 part.setItemStack(new ItemStack(Material.AIR));
             }
+            if (lod == null) return;
             if (lodPart == null || !lodPart.isValid()) {
                 lodPart = spawnPart(lod.model());
                 base.addPassenger(lodPart);
@@ -513,7 +517,7 @@ public class AnimatedModel implements Corpses.Corpse {
                     .scale(Math.max(0.001f, scale.x), Math.max(0.001f, scale.y), Math.max(0.001f, scale.z));
 
             ItemDisplay part = parts[i];
-            if (part == null || !part.isValid()) continue;
+            if (part == null || !part.isValid() || far && hidden != null && hidden[i] != null) continue;
             // Item models measure in pixels with the pivot in the middle; displays turn their item by 180 degrees
             part.setInterpolationDelay(0);
             Matrix4f matrix = new Matrix4f(world[i]).scale(16 * model.modelScale()).rotateY((float) Math.PI);

@@ -54,6 +54,7 @@ public class WaveManager {
     }
 
     public void start() {
+        de.ethicbuilds.monsters.gameplay.LagGuard.start(plugin);
         this.waveThread = new Thread(() -> {
             try {
                 while (Thread.currentThread().isAlive()) {
@@ -110,7 +111,7 @@ public class WaveManager {
                 Thread.sleep(HORDE_WARNING);
                 startOnMinecraftThread(() -> monsterManager.addHorde(currentWave));
             }
-            int room = cap - monsterManager.getMonsters().size();
+            int room = (int) (cap * de.ethicbuilds.monsters.gameplay.LagGuard.spawnShare()) - monsterManager.getMonsters().size();
             if (monsterManager.hasPendingSpawns() && room > 0) {
                 int count = Math.min(SPAWNS_PER_TICK, room);
                 startOnMinecraftThread(() -> monsterManager.summonBatch(count));

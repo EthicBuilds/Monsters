@@ -110,6 +110,8 @@ public final class BoneModel {
     private final String id;
     private final float modelScale;
     private final Lod lod;
+    // Small bones (name prefixes) left out far away when there is no whole model for it
+    private final List<String> farHide = new ArrayList<>();
     private final List<Bone> bones = new ArrayList<>();
     private final Map<String, Animation> animations = new HashMap<>();
 
@@ -118,6 +120,7 @@ public final class BoneModel {
         modelScale = json.has("modelScale") ? json.get("modelScale").getAsFloat() : 1;
         JsonObject far = json.has("lod") ? json.getAsJsonObject("lod") : null;
         lod = far == null ? null : new Lod(far.get("model").getAsString(), vector(far.getAsJsonArray("center")), far.get("scale").getAsFloat());
+        if (json.has("farHide")) json.getAsJsonArray("farHide").forEach(prefix -> farHide.add(prefix.getAsString()));
         for (JsonElement element : json.getAsJsonArray("bones")) {
             JsonObject bone = element.getAsJsonObject();
             String parent = bone.has("parent") ? bone.get("parent").getAsString() : null;
@@ -151,6 +154,15 @@ public final class BoneModel {
 
     public Lod lod() {
         return lod;
+    }
+
+    public boolean hiddenFar(String bone) {
+        for (String prefix : farHide) if (bone.startsWith(prefix)) return true;
+        return false;
+    }
+
+    public boolean hasFarHide() {
+        return !farHide.isEmpty();
     }
 
     public List<Bone> bones() {

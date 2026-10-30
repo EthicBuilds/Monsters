@@ -28,9 +28,15 @@ public class MonsterZombie extends EnemyMonster {
     private static final int LIMB_SAFE_TIER = 3, LIMB_LIFETIME = 60;
     // Recoil in degrees: body and head, a headshot throws the head back harder
     private static final float RECOIL_BODY = 12, RECOIL_HEAD = 8, HEADSHOT_BODY = 6, HEADSHOT_HEAD = 28;
-    private static BoneModel zombie;
+    // Model per kind (design session), a kind without its model in the plugin stays the vanilla mob
+    private static final java.util.Map<EntityType, String> MODELS = java.util.Map.of(EntityType.ZOMBIE, "zombie",
+            EntityType.HUSK, "wuestenzombie", EntityType.PARCHED, "vertrockneter", EntityType.ZOMBIE_VILLAGER, "dorfzombie",
+            EntityType.VINDICATOR, "diener");
+    private static final java.util.Map<String, java.util.Optional<BoneModel>> loaded = new java.util.HashMap<>();
 
     private AnimatedModel model;
+    private BoneModel bones;
+    private Voice voice;
     private boolean limbLost, crawling;
     private final java.util.Map<String, Integer> plateTier = new java.util.HashMap<>();
     private final java.util.LinkedList<String[]> plates = new java.util.LinkedList<>();
@@ -51,21 +57,24 @@ public class MonsterZombie extends EnemyMonster {
         this.coin = 20;
     }
 
-    private static BoneModel zombie() {
-        if (zombie == null) {
+    private static java.util.Optional<BoneModel> load(String id) {
+        return loaded.computeIfAbsent(id, key -> {
+            var in = MonsterZombie.class.getResourceAsStream("/mobs/" + key + ".json");
+            if (in == null) return java.util.Optional.empty();
             try {
-                zombie = BoneModel.load(MonsterZombie.class.getResourceAsStream("/mobs/zombie.json"));
+                return java.util.Optional.of(BoneModel.load(in));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        }
-        return zombie;
+        });
     }
 
-    // Own model from the design session for the plain zombie, elite tiers with armor plates
+    // Own model from the design session, elite tiers with armor plates (those only fit the plain zombie)
     private boolean modeled() {
-        return getClass() == MonsterZombie.class && type == EntityType.ZOMBIE
-                && Main.getINSTANCE().getConfig().getBoolean("zombie-model", true);
+        if (getClass() != MonsterZombie.class || !Main.getINSTANCE().getConfig().getBoolean("zombie-model", true)) return false;
+        String id = MODELS.get(type);
+        bones = id == null ? null : load(id).orElse(null);
+        return bones != null;
     }
 
     @Override
@@ -79,8 +88,9 @@ public class MonsterZombie extends EnemyMonster {
         Main.getINSTANCE().getServer().getScheduler().runTaskLater(Main.getINSTANCE(), () -> {
             if (monster.isValid() && monster.getEquipment() != null) monster.getEquipment().clear();
         }, 1L);
-        model = new AnimatedModel(zombie(), monster, 1.0F);
-        int tier = Math.min(getTier(), ARMOR.length - 1);
+        model = new AnimatedModel(bones, monster, 1.0F);
+        voice = Voice.of(type);
+        int tier = bones.id().equals("zombie") ? Math.min(getTier(), ARMOR.length - 1) : 0;
         if (tier > 0) {
             var random = java.util.concurrent.ThreadLocalRandom.current();
             java.util.Map<String, String> plates = new java.util.HashMap<>();
@@ -176,13 +186,13 @@ public class MonsterZombie extends EnemyMonster {
     // The limb falls off, rolls a bit and fades after 3 seconds
     private void dropLimb(String limb, org.bukkit.Location at) {
         org.bukkit.inventory.ItemStack item = new org.bukkit.inventory.ItemStack(org.bukkit.Material.PAPER);
-        item.editMeta(meta -> meta.setItemModel(new org.bukkit.NamespacedKey("monsters", "zombie/" + limb)));
+        item.editMeta(meta -> meta.setItemModel(new org.bukkit.NamespacedKey("monsters", bones.id() + "/" + limb)));
         org.bukkit.entity.ItemDisplay display = at.getWorld().spawn(at, org.bukkit.entity.ItemDisplay.class, d -> {
             d.setItemStack(item);
             d.setPersistent(false);
             d.setTeleportDuration(2);
             d.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(), new org.joml.AxisAngle4f(),
-                    new org.joml.Vector3f(zombie().modelScale()), new org.joml.AxisAngle4f()));
+                    new org.joml.Vector3f(bones.modelScale()), new org.joml.AxisAngle4f()));
         });
         at.getWorld().spawnParticle(org.bukkit.Particle.BLOCK, at, 16, 0.2, 0.2, 0.2, org.bukkit.Material.SLIME_BLOCK.createBlockData());
         at.getWorld().spawnParticle(org.bukkit.Particle.BLOCK, at, 10, 0.2, 0.2, 0.2, org.bukkit.Material.PURPLE_WOOL.createBlockData());
@@ -237,7 +247,7 @@ public class MonsterZombie extends EnemyMonster {
             if (!monster.isValid() || monster.isDead()) return;
             if (!PauseManager.isPaused()) {
                 if (!crawling) model.play("stoehnen");
-                monster.getWorld().playSound(monster.getLocation(), org.bukkit.Sound.ENTITY_ZOMBIE_AMBIENT, 1.0F, 1.0F);
+                voice.moan(monster.getLocation());
             }
             moanLater();
         }, delay);
@@ -249,7 +259,7 @@ public class MonsterZombie extends EnemyMonster {
         // Falls away from the killer, crawling it just collapses
         org.bukkit.entity.Player killer = monster.getKiller();
         model.die(killer != null && !crawling ? killer.getLocation() : null);
-        monster.getWorld().playSound(monster.getLocation(), org.bukkit.Sound.ENTITY_ZOMBIE_DEATH, 1.0F, 1.0F);
+        voice.death(monster.getLocation());
     }
 
     @Override
@@ -266,6 +276,6 @@ public class MonsterZombie extends EnemyMonster {
         maybeLoseLimb();
         // The damage is dealt after this event
         Main.getINSTANCE().getServer().getScheduler().runTask(Main.getINSTANCE(), this::splinter);
-        monster.getWorld().playSound(monster.getLocation(), org.bukkit.Sound.ENTITY_ZOMBIE_HURT, 1.0F, 1.0F);
+        voice.hurt(monster.getLocation());
     }
 }
