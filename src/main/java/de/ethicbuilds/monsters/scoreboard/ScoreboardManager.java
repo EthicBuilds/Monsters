@@ -46,8 +46,8 @@ public class ScoreboardManager {
     @Inject private GameManager gameManager;
     @Inject private Main plugin;
 
-    private Thread timeThread = null;
-    private int time = 0;
+    // Wall clock start of the round, 0 before it
+    private volatile long startedAt;
 
     // German board, the English one has the same content with English labels
     @Getter
@@ -86,21 +86,12 @@ public class ScoreboardManager {
 
     /** Seconds since the round started */
     public int getTime() {
-        return time;
+        // Counts from 1 like the old second counter did
+        return startedAt == 0 ? 0 : (int) ((System.currentTimeMillis() - startedAt) / 1000) + 1;
     }
 
     public void startTime() {
-        this.timeThread = new Thread(() -> {
-            try {
-                while (Thread.currentThread().isAlive()) {
-                    time++;
-                    Thread.sleep(1000);
-                }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-        this.timeThread.start();
+        startedAt = System.currentTimeMillis();
     }
 
     private void update() {
@@ -117,6 +108,7 @@ public class ScoreboardManager {
     private List<Line> lines(boolean english) {
         List<Line> lines = new ArrayList<>();
         String map = gameManager.getGameConfig() != null ? gameManager.getGameConfig().getMapName() : "";
+        int time = getTime();
 
         lines.add(empty());
         lines.add(line("", "Map", "<#F2F5F8>" + map));

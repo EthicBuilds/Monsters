@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.gameplay.manager;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.event.WaveEvents;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.decoration.CrateManager;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
@@ -44,9 +45,8 @@ public class WaveManager {
     private Main plugin;
     @Inject
     private PauseManager pauseManager;
-    private Thread waveThread = null;
     @Getter
-    private int currentWave = 0;
+    private volatile int currentWave = 0;
 
     /** For testing: the next wave is the boss wave */
     public void skipToBossWave() {
@@ -55,9 +55,9 @@ public class WaveManager {
 
     public void start() {
         de.ethicbuilds.monsters.gameplay.LagGuard.start(plugin);
-        this.waveThread = new Thread(() -> {
+        Thread waveThread = new Thread(() -> {
             try {
-                while (Thread.currentThread().isAlive()) {
+                while (true) {
                     while (PauseManager.isPaused()) Thread.sleep(200);
                     startWave();
                     // After every boss wave the creator of the round may call a pause
@@ -67,24 +67,31 @@ public class WaveManager {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-        });
-        this.waveThread.start();
+        }, "Monsters-Wellen");
+        // Does not keep the server from shutting down
+        waveThread.setDaemon(true);
+        waveThread.start();
     }
 
     private void startWave() throws InterruptedException {
         currentWave++;
         plugin.getLogger().info("Welle " + currentWave);
-        userManager.broadcastSound(Sound.BLOCK_TRIAL_SPAWNER_AMBIENT_OMINOUS, 2.0F, 1.0F);
-
-        startOnMinecraftThread(crateManager::resetAll);
+        startOnMinecraftThread(() -> {
+            userManager.broadcastSound(Sound.BLOCK_TRIAL_SPAWNER_AMBIENT_OMINOUS, 2.0F, 1.0F);
+            crateManager.resetAll();
+        });
 
         // Only who is still there, players who left stay out until they come back
         startOnMinecraftThread(() -> userManager.getGamePlayers().stream().filter(gamePlayer -> gamePlayer.getPlayer().isOnline())
                 .forEach(gamePlayer -> userManager.revivePlayer(gamePlayer.getPlayer().getUniqueId())));
 
 
-        plugin.getInjector().getInstance(de.ethicbuilds.monsters.event.WaveEvents.class).onWaveStart(currentWave);
-        monsterManager.createMonsters(currentWave);
+        // Bukkit and the player and monster lists only on the main thread
+        int wave = currentWave;
+        startOnMinecraftThread(() -> {
+            plugin.getInjector().getInstance(WaveEvents.class).onWaveStart(wave);
+            monsterManager.createMonsters(wave);
+        });
         startOnMinecraftThread(this::announceWave);
 
         // A few monsters per tick, never more than MAX_ALIVE at once: the rest comes when others die
