@@ -60,6 +60,7 @@ public class MonsterMiniBoss extends MonsterZombie {
     private static final int ROOT_TICKS = 40;
     private static final double EMERGE_RADIUS = 3, EMERGE_DAMAGE = 6;
     private static final int BURROW_TICKS = 40;
+    private static final float BURY_DEPTH = 2.0F;
     private static final NamespacedKey ROOT = new NamespacedKey("monsters", "bandagen");
     private static final Color SAND = Color.fromRGB(0xE3C77F), BANDAGE = Color.fromRGB(0xE8DCC0), DANGER = Color.fromRGB(0xFF4838);
 
@@ -388,8 +389,8 @@ public class MonsterMiniBoss extends MonsterZombie {
         EntityEquipment equipment = monster.getEquipment();
         ItemStack[] armor = equipment != null ? equipment.getArmorContents() : null;
         if (equipment != null) equipment.setArmorContents(new ItemStack[4]);
-        if (model() != null) model().conceal(true);
-        else monster.setInvisible(true);
+        // Head and shoulders stay above the sand, so it can always be seen
+        if (model() != null) model().bury(BURY_DEPTH);
         monster.setInvulnerable(true);
         mob.setAware(false);
         mob.setTarget(null);
@@ -414,7 +415,14 @@ public class MonsterMiniBoss extends MonsterZombie {
                     if (!OpenGround.isFree(exit, 0, 2)) exit = ground(monster.getLocation());
                     GroundMark.warn(exit, GroundMark.DANGER, EMERGE_RADIUS, WARN);
                 }
-                Location dust = exit != null ? exit : monster.getLocation();
+                // The last second it moves under the sand to the circle, the head stays visible
+                if (exit != null) {
+                    double k = Math.min(1, (tick - (BURROW_TICKS - WARN) + 5) / (double) WARN);
+                    Location at = from.clone().add(exit.clone().subtract(from).toVector().multiply(k));
+                    at.setYaw(monster.getLocation().getYaw());
+                    monster.teleport(at, TeleportFlag.EntityState.RETAIN_PASSENGERS);
+                }
+                Location dust = monster.getLocation();
                 dust.getWorld().spawnParticle(Particle.BLOCK, dust.clone().add(0, 0.2, 0), 8, 0.6, 0.1, 0.6, Material.SAND.createBlockData());
                 if (tick % 10 == 0) dust.getWorld().playSound(dust, Sound.BLOCK_GRAVEL_BREAK, 0.8F, 0.6F);
                 tick += 5;
@@ -431,8 +439,7 @@ public class MonsterMiniBoss extends MonsterZombie {
         Location to = exit.clone();
         to.setYaw(monster.getLocation().getYaw());
         monster.teleport(to, TeleportFlag.EntityState.RETAIN_PASSENGERS);
-        if (model() != null) model().conceal(false);
-        else monster.setInvisible(false);
+        if (model() != null) model().bury(0);
         if (equipment != null && armor != null) equipment.setArmorContents(armor);
         if (!PauseManager.isPaused()) {
             monster.setInvulnerable(false);

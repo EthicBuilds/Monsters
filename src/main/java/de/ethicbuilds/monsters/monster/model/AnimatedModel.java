@@ -70,6 +70,8 @@ public class AnimatedModel implements Corpses.Corpse {
     private boolean stroll;
     private boolean sinking, removed;
     private float sunk;
+    private float buried, buryTarget;
+    private static final float BURY_PER_TICK = 0.12F;
     private float recoilTime = Float.NaN, deathYaw = Float.NaN, lying;
     private final Vector3f bodyRecoil = new Vector3f(), headRecoil = new Vector3f();
     // Legs on the real ground (spiders), only near players; the model turns itself instead of following the body yaw
@@ -88,6 +90,7 @@ public class AnimatedModel implements Corpses.Corpse {
     private boolean dying;
     private float yaw;
     private float offsetY = Float.NaN;
+    private static final float MIN_OFFSET = 0.05F;
     private Location lastPosition;
     private int skipped;
     private int interpolation = TICKS;
@@ -232,26 +235,9 @@ public class AnimatedModel implements Corpses.Corpse {
         return at;
     }
 
-    private ItemStack[] concealed;
-
-    /** Hidden for a while (e.g. dug into the ground), the bones keep moving */
-    public void conceal(boolean on) {
-        List<ItemDisplay> all = all();
-        if (on && concealed == null) {
-            concealed = new ItemStack[all.size()];
-            for (int i = 0; i < all.size(); i++) {
-                ItemDisplay part = all.get(i);
-                if (part == null || !part.isValid()) continue;
-                concealed[i] = part.getItemStack();
-                part.setItemStack(new ItemStack(Material.AIR));
-            }
-        } else if (!on && concealed != null) {
-            for (int i = 0; i < all.size() && i < concealed.length; i++) {
-                ItemDisplay part = all.get(i);
-                if (part != null && part.isValid() && concealed[i] != null) part.setItemStack(concealed[i]);
-            }
-            concealed = null;
-        }
+    /** Sinks this deep into the ground (blocks) and comes up again when 0, always smoothly */
+    public void bury(float depth) {
+        buryTarget = depth;
     }
 
     /** Strolls also at normal speed, e.g. on the way to a noise */
@@ -369,15 +355,19 @@ public class AnimatedModel implements Corpses.Corpse {
 
         float step = TICKS / 20f;
         time += step;
+        if (buried != buryTarget) {
+            float move = BURY_PER_TICK * TICKS;
+            buried = buried < buryTarget ? Math.min(buryTarget, buried + move) : Math.max(buryTarget, buried - move);
+        }
         if (action != null) actionTime += step;
         if (!Float.isNaN(recoilTime) && (recoilTime += step) > RECOIL_RISE + RECOIL_BACK) recoilTime = Float.NaN;
 
-        if (Float.isNaN(offsetY)) {
-            for (ItemDisplay part : parts) {
-                if (part != null && part.isInsideVehicle()) {
-                    offsetY = (float) (part.getLocation().getY() - base.getLocation().getY());
-                    break;
-                }
+        // Measured every time: right after mounting the part still sits at the feet, the model would then float a riding height above them
+        for (ItemDisplay part : parts) {
+            if (part != null && part.isInsideVehicle()) {
+                float measured = (float) (part.getLocation().getY() - base.getLocation().getY());
+                if (measured > MIN_OFFSET) offsetY = measured;
+                break;
             }
         }
 
@@ -495,7 +485,7 @@ public class AnimatedModel implements Corpses.Corpse {
     private void renderLod() {
         if (lodPart == null || !lodPart.isValid()) return;
         BoneModel.Lod lod = model.lod();
-        float lift = Float.isNaN(offsetY) ? 0 : offsetY;
+        float lift = (Float.isNaN(offsetY) ? 0 : offsetY) + buried;
         Vector3f center = lod.center();
         lodPart.setInterpolationDelay(0);
         lodPart.setTransformationMatrix(new Matrix4f().translate(0, -lift, 0).rotateY((float) Math.toRadians(180 - yaw)).scale(size / 16f)
@@ -515,7 +505,7 @@ public class AnimatedModel implements Corpses.Corpse {
         List<BoneModel.Bone> bones = model.bones();
         lastWorld = world;
         // Passengers sit higher than the feet of the monster, the model stands on the ground; the front is -Z
-        float lift = (dying || Float.isNaN(offsetY) ? 0 : offsetY) + sunk;
+        float lift = (dying || Float.isNaN(offsetY) ? 0 : offsetY) + sunk + buried;
         root.identity().translate(0, -lift, 0).rotateY((float) Math.toRadians(180 - yaw)).scale(size / 16f);
         float clock = loop != null && model.animation(walk) == loop ? walkTime : time;
         float loopTime = loop != null && loop.length() > 0 ? clock % loop.length() : 0;

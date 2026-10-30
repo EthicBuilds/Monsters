@@ -4,6 +4,7 @@ package de.ethicbuilds.monsters.player.manager;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
+import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.items.ArmorSet;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.MapManager;
@@ -79,6 +80,7 @@ public class UserManager {
             reviveManager.down(gamePlayer.getPlayer());
 
             if (!allPlayersDead()) {
+                if (reviveManager.revivesSelf(uuid)) return;
                 Player player = gamePlayer.getPlayer();
                 String cost = Overlay.num(reviveManager.cost(uuid)) + " " + Overlay.coin();
                 Overlay.big(player, Overlay.RED,
@@ -91,6 +93,11 @@ public class UserManager {
 
             gameManager.gameEnd();
         }
+    }
+
+    /** After a medkit that could not help: the round ends if nobody is up any more */
+    public void endIfAllDown() {
+        if (gameManager.getCurrentPhase() == GamePhase.WAVE && allPlayersDead()) gameManager.gameEnd();
     }
 
     public void revivePlayer(UUID uuid) {
@@ -127,8 +134,9 @@ public class UserManager {
 
     public boolean allPlayersDead() {
         for (GamePlayer gamePlayer : gamePlayers.values()) {
-            // Who left the round does not keep it running
-            if (!isPlayerDead(gamePlayer.getPlayer().getUniqueId()) && gamePlayer.getPlayer().isOnline()) {
+            // Who left the round does not keep it running, a medkit about to get someone up does
+            UUID uuid = gamePlayer.getPlayer().getUniqueId();
+            if ((!isPlayerDead(uuid) || reviveManager.revivesSelf(uuid)) && gamePlayer.getPlayer().isOnline()) {
                 return false;
             }
         }

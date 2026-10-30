@@ -84,6 +84,7 @@ public class ReviveManager implements Listener {
     private final Map<UUID, Integer> reviveProgress = new HashMap<>();
     // Self revive with a stored medkit, once per round
     private final Set<UUID> selfRevived = new HashSet<>();
+    private final Set<UUID> selfReviving = new HashSet<>();
     // Own values of the player before going down (the attribute default of movement speed is 0.7, players walk with 0.1)
     private final Map<UUID, Map<Attribute, Double>> savedBases = new HashMap<>();
     private final Map<UUID, Player> watching = new HashMap<>();
@@ -96,6 +97,11 @@ public class ReviveManager implements Listener {
     /** Every revive of the same player costs 1000 more */
     public int cost(UUID uuid) {
         return BASE_COST * (revives.getOrDefault(uuid, 0) + 1);
+    }
+
+    /** Lies down, but a stored medkit gets the player up in a moment */
+    public boolean revivesSelf(UUID uuid) {
+        return selfReviving.contains(uuid);
     }
 
     public boolean isDown(UUID uuid) {
@@ -172,8 +178,13 @@ public class ReviveManager implements Listener {
         if (stored == null || stored.getType().isAir() || selfRevived.contains(player.getUniqueId())) return;
         Overlay.medium(player, GREEN, Overlay.line(Overlay.MEDKIT, GREEN, "MEDKIT", "Du stehst gleich wieder auf"),
                 Overlay.line(Overlay.MEDKIT, GREEN, "MEDKIT", "you'll be back up in a moment"));
+        selfReviving.add(player.getUniqueId());
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (!player.isOnline() || !isDown(player.getUniqueId())) return;
+            selfReviving.remove(player.getUniqueId());
+            if (!player.isOnline() || !isDown(player.getUniqueId())) {
+                userManager.endIfAllDown();
+                return;
+            }
             selfRevived.add(player.getUniqueId());
             player.getInventory().setItem(MEDKIT_SLOT, null);
             Location spot = spots.get(player.getUniqueId()).clone();

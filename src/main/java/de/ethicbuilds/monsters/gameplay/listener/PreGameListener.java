@@ -148,7 +148,8 @@ public class PreGameListener implements Listener {
 
     @EventHandler
     public void preventPlayerDamage(EntityDamageEvent event) {
-        if (!(event.getEntity() instanceof Player) || gameManager.getCurrentPhase() != GamePhase.PRE_GAME) return;
+        // After the round nobody takes damage any more, otherwise the vanilla death screen could come
+        if (!(event.getEntity() instanceof Player) || gameManager.getCurrentPhase() == GamePhase.WAVE) return;
         event.setCancelled(true);
     }
 }
