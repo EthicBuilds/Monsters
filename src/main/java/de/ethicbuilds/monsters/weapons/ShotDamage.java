@@ -14,6 +14,8 @@ public final class ShotDamage {
 
     private static boolean active;
     private static boolean headshot;
+    // A gun shot, not a grenade
+    private static boolean aimed;
 
     private ShotDamage() {}
 
@@ -31,6 +33,7 @@ public final class ShotDamage {
         // Invisible zombies carry a model with the head at eye height, the other models (spiders) do not
         headshot = target.getEyeLocation().getY() - point.getY() < HEAD_SIZE
                 && (!target.isInvisible() || target.getType() == org.bukkit.entity.EntityType.ZOMBIE);
+        aimed = true;
         try {
             boolean armor = armored(target);
             if (headshot) {
@@ -43,6 +46,7 @@ public final class ShotDamage {
             de.ethicbuilds.monsters.lang.Overlay.hit(shooter, headshot, armor, target.isDead() || target.getHealth() <= 0);
         } finally {
             headshot = false;
+            aimed = false;
         }
     }
 
@@ -59,5 +63,9 @@ public final class ShotDamage {
 
     public static boolean isHeadshot() {
         return headshot;
+    }
+
+    public static boolean isAimed() {
+        return aimed;
     }
 }

@@ -28,7 +28,8 @@ public class MonsterZombie extends EnemyMonster {
     private static final int LIMB_SAFE_TIER = 3, LIMB_LIFETIME = 60;
     // Recoil in degrees: body and head, a headshot throws the head back harder
     private static final float RECOIL_BODY = 12, RECOIL_HEAD = 8, HEADSHOT_BODY = 6, HEADSHOT_HEAD = 28;
-    private static BoneModel zombie;
+    // Loaded models by id, empty when the plugin does not have one (yet)
+    private static final java.util.Map<String, java.util.Optional<BoneModel>> MODELS = new java.util.HashMap<>();
 
     private AnimatedModel model;
     private boolean limbLost, crawling;
@@ -51,21 +52,32 @@ public class MonsterZombie extends EnemyMonster {
         this.coin = 20;
     }
 
-    private static BoneModel zombie() {
-        if (zombie == null) {
+    private static BoneModel bones(String id) {
+        return MODELS.computeIfAbsent(id, key -> {
+            var in = MonsterZombie.class.getResourceAsStream("/mobs/" + key + ".json");
+            if (in == null) return java.util.Optional.empty();
             try {
-                zombie = BoneModel.load(MonsterZombie.class.getResourceAsStream("/mobs/zombie.json"));
+                return java.util.Optional.of(BoneModel.load(in));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        }
-        return zombie;
+        }).orElse(null);
     }
 
-    // Own model from the design session for the plain zombie, elite tiers with armor plates
+    /** Model of the design session (/mobs/<id>.json, zombie bones), null = vanilla; other kinds override it */
+    protected String modelId() {
+        return getClass() == MonsterZombie.class && type == EntityType.ZOMBIE ? "zombie" : null;
+    }
+
+    // Own model from the design session, elite tiers with armor plates
     private boolean modeled() {
-        return getClass() == MonsterZombie.class && type == EntityType.ZOMBIE
+        return modelId() != null && bones(modelId()) != null
                 && Main.getINSTANCE().getConfig().getBoolean("zombie-model", true);
+    }
+
+    /** The model, null while the kind spawns as a vanilla zombie */
+    protected AnimatedModel model() {
+        return model;
     }
 
     @Override
@@ -79,7 +91,7 @@ public class MonsterZombie extends EnemyMonster {
         Main.getINSTANCE().getServer().getScheduler().runTaskLater(Main.getINSTANCE(), () -> {
             if (monster.isValid() && monster.getEquipment() != null) monster.getEquipment().clear();
         }, 1L);
-        model = new AnimatedModel(zombie(), monster, 1.0F);
+        model = new AnimatedModel(bones(modelId()), monster, 1.0F);
         int tier = Math.min(getTier(), ARMOR.length - 1);
         if (tier > 0) {
             var random = java.util.concurrent.ThreadLocalRandom.current();
@@ -176,13 +188,13 @@ public class MonsterZombie extends EnemyMonster {
     // The limb falls off, rolls a bit and fades after 3 seconds
     private void dropLimb(String limb, org.bukkit.Location at) {
         org.bukkit.inventory.ItemStack item = new org.bukkit.inventory.ItemStack(org.bukkit.Material.PAPER);
-        item.editMeta(meta -> meta.setItemModel(new org.bukkit.NamespacedKey("monsters", "zombie/" + limb)));
+        item.editMeta(meta -> meta.setItemModel(new org.bukkit.NamespacedKey("monsters", modelId() + "/" + limb)));
         org.bukkit.entity.ItemDisplay display = at.getWorld().spawn(at, org.bukkit.entity.ItemDisplay.class, d -> {
             d.setItemStack(item);
             d.setPersistent(false);
             d.setTeleportDuration(2);
             d.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(), new org.joml.AxisAngle4f(),
-                    new org.joml.Vector3f(zombie().modelScale()), new org.joml.AxisAngle4f()));
+                    new org.joml.Vector3f(bones(modelId()).modelScale()), new org.joml.AxisAngle4f()));
         });
         at.getWorld().spawnParticle(org.bukkit.Particle.BLOCK, at, 16, 0.2, 0.2, 0.2, org.bukkit.Material.SLIME_BLOCK.createBlockData());
         at.getWorld().spawnParticle(org.bukkit.Particle.BLOCK, at, 10, 0.2, 0.2, 0.2, org.bukkit.Material.PURPLE_WOOL.createBlockData());
