@@ -19,9 +19,13 @@ public class MonsterZombie extends EnemyMonster {
     // Random pieces, each with the tier of the wave or one lower: helmet, chest with sleeves, trousers
     private static final String[][] PIECES = {{"kopf"}, {"koerper", "arm_r", "arm_l"}, {"bein_r", "bein_l"}};
     private static final double PIECE_CHANCE = 0.65;
+    // Limb loss (design session): under half health a small chance per hit, once per zombie; from gold on never
+    private static final double LIMB_CHANCE = 0.04, LIMB_HEALTH = 0.5, ARM_DAMAGE = 0.8, CRAWL_SPEED = 0.45, CRAWL_SCALE = 0.35;
+    private static final int LIMB_SAFE_TIER = 3, LIMB_LIFETIME = 60;
     private static BoneModel zombie;
 
     private AnimatedModel model;
+    private boolean limbLost, crawling;
 
     public MonsterZombie() {
         this(EntityType.ZOMBIE, "§7Zombie");
@@ -96,13 +100,78 @@ public class MonsterZombie extends EnemyMonster {
         }
     }
 
+    private void maybeLoseLimb() {
+        var maxHealth = monster.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+        if (limbLost || getTier() >= LIMB_SAFE_TIER || maxHealth == null || monster.getHealth() > maxHealth.getValue() * LIMB_HEALTH) return;
+        var random = java.util.concurrent.ThreadLocalRandom.current();
+        if (random.nextDouble() >= LIMB_CHANCE) return;
+        limbLost = true;
+        String[] limbs = {"arm_r", "arm_l", "bein_r", "bein_l"};
+        String limb = limbs[random.nextInt(limbs.length)];
+        org.bukkit.Location at = model.boneLocation(limb);
+        model.hideBone(limb);
+        if (at != null) dropLimb(limb, at);
+        if (limb.startsWith("arm")) {
+            var attack = monster.getAttribute(org.bukkit.attribute.Attribute.ATTACK_DAMAGE);
+            if (attack != null) attack.setBaseValue(attack.getBaseValue() * ARM_DAMAGE);
+            return;
+        }
+        // Without a leg it crawls on: slow and low
+        crawling = true;
+        model.setIdle("kriechen");
+        var movement = monster.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
+        if (movement != null) movement.setBaseValue(movement.getBaseValue() * CRAWL_SPEED);
+        var scale = monster.getAttribute(org.bukkit.attribute.Attribute.SCALE);
+        if (scale != null) scale.setBaseValue(CRAWL_SCALE);
+        model.measureAgain();
+    }
+
+    // The limb falls off, rolls a bit and fades after 3 seconds
+    private void dropLimb(String limb, org.bukkit.Location at) {
+        org.bukkit.inventory.ItemStack item = new org.bukkit.inventory.ItemStack(org.bukkit.Material.PAPER);
+        item.editMeta(meta -> meta.setItemModel(new org.bukkit.NamespacedKey("monsters", "zombie/" + limb)));
+        org.bukkit.entity.ItemDisplay display = at.getWorld().spawn(at, org.bukkit.entity.ItemDisplay.class, d -> {
+            d.setItemStack(item);
+            d.setPersistent(false);
+            d.setTeleportDuration(2);
+            d.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(), new org.joml.AxisAngle4f(),
+                    new org.joml.Vector3f(zombie().modelScale()), new org.joml.AxisAngle4f()));
+        });
+        at.getWorld().spawnParticle(org.bukkit.Particle.BLOCK, at, 16, 0.2, 0.2, 0.2, org.bukkit.Material.SLIME_BLOCK.createBlockData());
+        at.getWorld().spawnParticle(org.bukkit.Particle.BLOCK, at, 10, 0.2, 0.2, 0.2, org.bukkit.Material.PURPLE_WOOL.createBlockData());
+        at.getWorld().playSound(at, org.bukkit.Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 0.5F, 1.6F);
+        var random = java.util.concurrent.ThreadLocalRandom.current();
+        org.bukkit.util.Vector push = new org.bukkit.util.Vector(random.nextDouble(-0.08, 0.08), 0.12, random.nextDouble(-0.08, 0.08));
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int tick = 0;
+            final org.bukkit.Location spot = at.clone();
+            final org.bukkit.util.Vector velocity = push.clone();
+
+            @Override
+            public void run() {
+                tick += 2;
+                if (tick > LIMB_LIFETIME || !display.isValid()) {
+                    display.remove();
+                    cancel();
+                    return;
+                }
+                org.bukkit.Location next = spot.clone().add(velocity);
+                if (next.getBlock().isPassable()) spot.add(velocity);
+                velocity.setY(Math.max(-0.5, velocity.getY() - 0.08));
+                if (!next.getBlock().isPassable()) velocity.multiply(new org.bukkit.util.Vector(0.5, 0, 0.5));
+                spot.setYaw(spot.getYaw() + 25);
+                display.teleport(spot);
+            }
+        }.runTaskTimer(Main.getINSTANCE(), 2L, 2L);
+    }
+
     // Every 6 to 12 seconds head back, mouth open and the moan
     private void moanLater() {
         long delay = java.util.concurrent.ThreadLocalRandom.current().nextLong(MOAN_MIN, MOAN_MAX);
         Main.getINSTANCE().getServer().getScheduler().runTaskLater(Main.getINSTANCE(), () -> {
             if (!monster.isValid() || monster.isDead()) return;
             if (!PauseManager.isPaused()) {
-                model.play("stoehnen");
+                if (!crawling) model.play("stoehnen");
                 monster.getWorld().playSound(monster.getLocation(), org.bukkit.Sound.ENTITY_ZOMBIE_AMBIENT, 1.0F, 1.0F);
             }
             moanLater();
@@ -118,13 +187,15 @@ public class MonsterZombie extends EnemyMonster {
 
     @Override
     public void onAttack() {
-        if (model != null) model.play("beissen");
+        // Crawling it bites from the ground
+        if (model != null && !crawling) model.play("beissen");
     }
 
     @Override
     public void onHit() {
         if (model == null) return;
-        model.play("getroffen");
+        if (!crawling) model.play("getroffen");
+        maybeLoseLimb();
         monster.getWorld().playSound(monster.getLocation(), org.bukkit.Sound.ENTITY_ZOMBIE_HURT, 1.0F, 1.0F);
     }
 }

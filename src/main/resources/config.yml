@@ -13,8 +13,8 @@ custom-armor: false
 
 # Monsters-Paket (Werkbank, Lebensanzeige, Munition, Scoreboard-Icons), wird beim Betreten zusaetzlich zum Lobby-Paket geschickt
 resource-pack:
-  url: "http://136.243.146.245:25567/Monsters-pack-21.zip"
-  sha1: "ae51cbeb93a9d98c45c03a2f46bec1e2ff1d194e"
+  url: "http://136.243.146.245:25567/Monsters-pack-22.zip"
+  sha1: "a301ee44b144791b08b03eba7cef81190ca5a5c4"
 
 # Nexo-Items des Bauservers: daraus kommt, wie die Moebel gedreht und verschoben angezeigt werden (Nexo speichert das nicht in der Welt)
 nexo-items: "../monsters-bau/plugins/Nexo/items"

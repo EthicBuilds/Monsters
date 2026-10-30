@@ -29,6 +29,12 @@ public class AnimatedModel {
     private String walk = WALK;
     // The walk plays faster or slower with the real speed, so the steps fit (blocks per tick of a normal walk)
     private static final double WALK_SPEED = 0.12, MIN_RATE = 0.6, MAX_RATE = 1.6;
+    // Slower than this it strolls instead of walking, if the model has it
+    private static final double STROLL_SPEED = 0.05;
+    private static final String STROLL = "schlendern";
+    private String idle = IDLE;
+    private boolean noStroll;
+    private Matrix4f[] lastWorld;
 
     private final BoneModel model;
     private final LivingEntity base;
@@ -157,6 +163,41 @@ public class AnimatedModel {
         if (model.animation(animation) != null) walk = animation;
     }
 
+    /** Stays in this pose also when standing, e.g. crawling without a leg */
+    public void setIdle(String animation) {
+        if (model.animation(animation) == null) return;
+        idle = animation;
+        walk = animation;
+        noStroll = true;
+    }
+
+    /** A bone (and its plate) disappears, e.g. a lost arm */
+    public void hideBone(String id) {
+        List<BoneModel.Bone> bones = model.bones();
+        for (int i = 0; i < bones.size(); i++) {
+            if (!bones.get(i).id().equals(id)) continue;
+            if (parts[i] != null) parts[i].remove();
+            if (layer != null && layer[i] != null) layer[i].remove();
+        }
+    }
+
+    /** Where the bone is drawn right now, null before the first frame */
+    public Location boneLocation(String id) {
+        if (lastWorld == null || Float.isNaN(offsetY)) return null;
+        List<BoneModel.Bone> bones = model.bones();
+        for (int i = 0; i < bones.size(); i++) {
+            if (!bones.get(i).id().equals(id) || lastWorld[i] == null) continue;
+            Vector3f at = lastWorld[i].getTranslation(new Vector3f());
+            return base.getLocation().add(at.x, at.y + offsetY, at.z);
+        }
+        return null;
+    }
+
+    /** The monster changed size, the riding parts sit at another height */
+    public void measureAgain() {
+        offsetY = Float.NaN;
+    }
+
     /** One-shot animation, e.g. the bite */
     public void play(String animation) {
         if (dying || model.animation(animation) == null) return;
@@ -264,8 +305,10 @@ public class AnimatedModel {
                 double perTick = now.distance(lastPosition) / (near ? TICKS : TICKS * FAR_EVERY);
                 walkTime += step * (float) Math.max(MIN_RATE, Math.min(MAX_RATE, perTick / WALK_SPEED)) * (near ? 1 : FAR_EVERY);
             }
+            double speed = moving ? now.distance(lastPosition) / elapsed : 0;
             lastPosition = now;
-            render(model.animation(moving ? walk : IDLE), one);
+            String loop = !moving ? idle : !noStroll && speed < STROLL_SPEED && walk.equals(WALK) && model.animation(STROLL) != null ? STROLL : walk;
+            render(model.animation(loop), one);
         } else {
             setInterpolation(TICKS);
             render(null, one);
@@ -290,6 +333,7 @@ public class AnimatedModel {
     private void render(BoneModel.Animation loop, BoneModel.Animation one) {
         List<BoneModel.Bone> bones = model.bones();
         Matrix4f[] world = new Matrix4f[bones.size()];
+        lastWorld = world;
         // Passengers sit higher than the feet of the monster, the model stands on the ground; the front is -Z
         float lift = dying || Float.isNaN(offsetY) ? 0 : offsetY;
         Matrix4f root = new Matrix4f().translate(0, -lift, 0).rotateY((float) Math.toRadians(180 - yaw)).scale(size / 16f);
