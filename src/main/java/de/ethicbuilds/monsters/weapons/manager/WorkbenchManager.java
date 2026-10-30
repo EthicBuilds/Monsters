@@ -161,11 +161,11 @@ public class WorkbenchManager implements Listener {
             inventory.setItem(BIG_SLOT, big);
             inventory.setItem(LEVEL_SLOT, icon(Material.PAPER, "werkbank_stufe", text(levelLabel, GREY),
                     change(armorLevel + "/" + ArmorSet.MAX_LEVEL, (armorLevel + 1) + "/" + ArmorSet.MAX_LEVEL, max)));
-            inventory.setItem(DAMAGE_SLOT, icon(Material.PAPER, "werkbank_schaden", text(Lang.t(player, "Schutz", "Protection"), GREY),
+            inventory.setItem(DAMAGE_SLOT, icon(Material.PAPER, "werkbank_schaden", text(Lang.t(player, "Schutz", "Armor"), GREY),
                     change(String.valueOf(ArmorSet.protection(armorLevel)), String.valueOf(ArmorSet.protection(armorLevel + 1)), max)));
             inventory.setItem(MAGAZINE_SLOT, icon(Material.PAPER, "werkbank_magazin", text("Set", GREY),
                     change(ArmorSet.name(player, armorLevel), ArmorSet.name(player, armorLevel + 1), max)));
-            ItemStack button = button(gamePlayer, card.level(), card.price());
+            ItemStack button = button(gamePlayer, card.level(), card.price(), card.max());
             for (int slot : BUTTON_SLOTS) inventory.setItem(slot, button);
         } else if (crowbar) {
             boolean max = crowbarLevel >= CrowbarLevel.MAX_LEVEL;
@@ -178,7 +178,7 @@ public class WorkbenchManager implements Listener {
                     change(factor(player, CrowbarLevel.speed(crowbarLevel)), factor(player, CrowbarLevel.speed(crowbarLevel + 1)), max)));
             inventory.setItem(MAGAZINE_SLOT, icon(Material.PAPER, "werkbank_magazin", text(Lang.t(player, "Beute-Chance in Kisten (%)", "Loot chance in crates (%)"), GREY),
                     change(loot(crowbarLevel), loot(crowbarLevel + 1), max)));
-            ItemStack button = button(gamePlayer, card.level(), card.price());
+            ItemStack button = button(gamePlayer, card.level(), card.price(), card.max());
             for (int slot : BUTTON_SLOTS) inventory.setItem(slot, button);
         } else if (weapon != null) {
             boolean max = weapon.getLevel() >= Weapon.MAX_LEVEL;
@@ -193,7 +193,7 @@ public class WorkbenchManager implements Listener {
             inventory.setItem(MAGAZINE_SLOT, icon(Material.PAPER, "werkbank_magazin", text(Lang.t(player, "Magazin", "Magazine"), GREY), weapon.upgradesDamage()
                     ? change(String.valueOf(weapon.getMaxMagazine()), String.valueOf(weapon.nextMagazine()), max)
                     : change(String.valueOf(weapon.getMaxMagazine()), "", true)));
-            ItemStack button = button(gamePlayer, weapon.getLevel(), upgradePrice(weapon));
+            ItemStack button = button(gamePlayer, weapon.getLevel(), upgradePrice(weapon), Weapon.MAX_LEVEL);
             for (int slot : BUTTON_SLOTS) inventory.setItem(slot, button);
         }
         if (card != null) {
@@ -212,7 +212,7 @@ public class WorkbenchManager implements Listener {
         player.openInventory(inventory);
     }
 
-    private ItemStack button(GamePlayer gamePlayer, int level, int price) {
+    private ItemStack button(GamePlayer gamePlayer, int level, int price, int maxLevel) {
         Player player = gamePlayer.getPlayer();
         if (waveManager.getCurrentWave() < UNLOCK_WAVE) {
             return icon(Material.PAPER, "leer", text(Lang.t(player, "Gesperrt", "Locked"), LIGHT),
@@ -223,7 +223,7 @@ public class WorkbenchManager implements Listener {
             return icon(Material.PAPER, "leer", text(Lang.t(player, "Freischalten", "Unlock"), LIGHT), price(player, remaining, gamePlayer.getCoins() >= remaining),
                     text(Lang.t(player, "Zu wenig? Dann legst du alles ein, das Team legt zusammen", "Not enough? You put in all you have, the team chips in"), GREY));
         }
-        if (level >= Weapon.MAX_LEVEL) {
+        if (level >= maxLevel) {
             return icon(Material.PAPER, "leer", text(Lang.t(player, "Maximal", "Max"), GOLD));
         }
         boolean affordable = gamePlayer.getCoins() >= price;
@@ -472,7 +472,7 @@ public class WorkbenchManager implements Listener {
     private static Card armorCard(GamePlayer gamePlayer) {
         Player player = gamePlayer.getPlayer();
         int level = gamePlayer.getArmorLevel();
-        return new Card(level, Lang.t(player, "Schutz", "Protection"), String.valueOf(ArmorSet.protection(level)), String.valueOf(ArmorSet.protection(level + 1)), true,
+        return new Card(level, Lang.t(player, "Schutz", "Armor"), String.valueOf(ArmorSet.protection(level)), String.valueOf(ArmorSet.protection(level + 1)), true,
                 "Set", "", ArmorSet.name(player, Math.min(level + 1, ArmorSet.MAX_LEVEL)), level < ArmorSet.MAX_LEVEL, ArmorSet.price(level), ArmorSet.MAX_LEVEL);
     }
 
@@ -533,7 +533,7 @@ public class WorkbenchManager implements Listener {
         } else if (max) {
             title.glyph('\uE023', 93, 78)
                     .centered("knopf", 132, new WorkbenchTitle.Part(Lang.t(player, "Maximal", "Max"), TextColor.color(0x3B2A00)))
-                    .centered("knopf_2", 132, new WorkbenchTitle.Part(Lang.t(player, "Stufe ", "Level ") + level + "/" + Weapon.MAX_LEVEL, TextColor.color(0x5A4200)));
+                    .centered("knopf_2", 132, new WorkbenchTitle.Part(Lang.t(player, "Stufe ", "Level ") + level + "/" + card.max(), TextColor.color(0x5A4200)));
         } else {
             int price = card.price();
             boolean affordable = coins >= price;
