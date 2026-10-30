@@ -81,7 +81,7 @@ public class DecorationManager implements Listener {
     private final List<Sign> workbenchOpen = new ArrayList<>();
     private boolean workbenchUnlocked;
 
-    private record Sign(TextDisplay de, TextDisplay en) {
+    public record Sign(TextDisplay de, TextDisplay en) {
         boolean isValid() {
             return de.isValid() && en.isValid();
         }
@@ -222,6 +222,19 @@ public class DecorationManager implements Listener {
         return hitbox;
     }
 
+    /** Sign without a hitbox, e.g. over a spot that is built later */
+    public Sign sign(Block block, String name, String nameEn, String info, String infoEn, String hint, String hintEn, double lift) {
+        Sign sign = signAbove(block, name, nameEn, info, infoEn, hint, hintEn, lift);
+        Bukkit.getOnlinePlayers().forEach(player -> show(player, sign));
+        return sign;
+    }
+
+    public void removeSign(Sign sign) {
+        signs.remove(sign);
+        sign.de().remove();
+        sign.en().remove();
+    }
+
     public void removeHitbox(Interaction hitbox) {
         stations.remove(hitbox.getUniqueId());
         hitbox.remove();
@@ -273,8 +286,8 @@ public class DecorationManager implements Listener {
         createStation(block, station, name, nameEn, prices, pricesEn, "Rechtsklick zum Kaufen", "Right-click to buy", 1.2F, 1.1F);
     }
 
-    private Sign createStation(Block block, String station, String name, String nameEn, String prices, String pricesEn,
-                               String hint, String hintEn, float width, float height) {
+    public Sign createStation(Block block, String station, String name, String nameEn, String prices, String pricesEn,
+                              String hint, String hintEn, float width, float height) {
         return createStation(block, station, name, nameEn, prices, pricesEn, hint, hintEn, width, height, SIGN);
     }
 

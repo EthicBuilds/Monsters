@@ -49,6 +49,16 @@ public final class GameItems {
         return create(Material.PAPER, Lang.t(player, "§aErste Hilfe", "§aMedkit"), "erstehilfe_1");
     }
 
+    public static ItemStack flare(Player player, int amount) {
+        ItemStack item = create(Material.RED_CANDLE, Lang.t(player, "§cSignalfackel", "§cSignal flare"), "monsters_signalfackel");
+        item.setAmount(amount);
+        return item;
+    }
+
+    public static boolean isFlare(ItemStack item) {
+        return item != null && item.getType() == Material.RED_CANDLE;
+    }
+
     public static boolean isCrowbar(ItemStack item) {
         return item != null && item.getType() == Material.BLAZE_ROD;
     }

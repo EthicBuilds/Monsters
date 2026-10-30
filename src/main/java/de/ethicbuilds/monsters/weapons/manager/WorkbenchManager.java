@@ -398,7 +398,7 @@ public class WorkbenchManager implements Listener {
                 "%s§7Your §aCrowbar §7is now level §6%d§7! §c-%d Coins", plugin.getMonstersPrefix(), level + 1, price));
     }
 
-    private void upgradeArmor(GamePlayer gamePlayer) {
+    public void upgradeArmor(GamePlayer gamePlayer) {
         Player player = gamePlayer.getPlayer();
         int level = gamePlayer.getArmorLevel();
         if (level >= ArmorSet.MAX_LEVEL) {

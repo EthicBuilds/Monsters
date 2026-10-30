@@ -3,7 +3,12 @@ package de.ethicbuilds.monsters.di;
 import com.google.inject.AbstractModule;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.building.BuildManager;
+import de.ethicbuilds.monsters.building.Deployables;
+import de.ethicbuilds.monsters.building.Elevators;
+import de.ethicbuilds.monsters.building.Flares;
+import de.ethicbuilds.monsters.building.Nests;
 import de.ethicbuilds.monsters.building.PowerGrid;
+import de.ethicbuilds.monsters.building.Ziplines;
 import de.ethicbuilds.monsters.event.WaveEvents;
 import de.ethicbuilds.monsters.gameplay.RoundEndCard;
 import de.ethicbuilds.monsters.gameplay.manager.DoorManager;
@@ -64,6 +69,11 @@ public class DiModule extends AbstractModule {
         bind(WaveEvents.class).asEagerSingleton();
         bind(BuildManager.class).asEagerSingleton();
         bind(PowerGrid.class).asEagerSingleton();
+        bind(Nests.class).asEagerSingleton();
+        bind(Flares.class).asEagerSingleton();
+        bind(Ziplines.class).asEagerSingleton();
+        bind(Deployables.class).asEagerSingleton();
+        bind(Elevators.class).asEagerSingleton();
 
         //Repositories
         bind(GameStates.class).asEagerSingleton();

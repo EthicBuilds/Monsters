@@ -65,6 +65,9 @@ public abstract class EnemyMonster {
     private Player chased;
     private Location noise;
     private long noiseUntil;
+    private Location lure;
+    private long lureUntil;
+    private boolean lureFresh;
     private boolean noiseFresh;
 
     private final Main plugin = Main.getINSTANCE();
@@ -135,7 +138,7 @@ public abstract class EnemyMonster {
                         && distance(nearest) + SWITCH_MARGIN < distance(target)) {
                     target = nearest;
                 }
-                if (followNoise(pathfinder)) return;
+                if (followLure(pathfinder) || followNoise(pathfinder)) return;
                 chase(pathfinder);
             }
         }.runTaskTimer(plugin, ThreadLocalRandom.current().nextInt(20), 20L);
@@ -167,6 +170,33 @@ public abstract class EnemyMonster {
             noiseFresh = false;
             monster.setTarget(null);
             pathfinder.moveTo(noise, speed * NOISE_SPEED);
+        }
+        return true;
+    }
+
+    /** Signal flare: walks there for a while, even with its player right in front of it */
+    public void lure(Location at, long millis) {
+        lure = at.clone();
+        lureUntil = System.currentTimeMillis() + millis;
+        lureFresh = true;
+        repath = 0;
+    }
+
+    public boolean isLured() {
+        return lure != null && System.currentTimeMillis() <= lureUntil;
+    }
+
+    private boolean followLure(Pathfinder pathfinder) {
+        if (lure == null) return false;
+        if (!isLured() || !lure.getWorld().equals(monster.getWorld())) {
+            lure = null;
+            repath = 0;
+            return false;
+        }
+        monster.setTarget(null);
+        if (lureFresh || !pathfinder.hasPath()) {
+            lureFresh = false;
+            pathfinder.moveTo(lure, speed);
         }
         return true;
     }

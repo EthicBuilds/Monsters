@@ -9,6 +9,7 @@ import de.ethicbuilds.monsters.lang.DualBar;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.building.Breakouts;
+import de.ethicbuilds.monsters.building.Nests;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.monster.EliteTier;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
@@ -240,7 +241,10 @@ public class MonsterManager {
 
         for (int i = 0; i < count && !initialMonsters.isEmpty(); i++) {
             EnemyMonster enemyMonster = initialMonsters.removeFirst();
-            Location location = activeSpawners.get(spawnIndex % activeSpawners.size()).clone().add(0, 1, 0);
+            Location spawner = activeSpawners.get(spawnIndex % activeSpawners.size());
+            // A destroyed nest nearby: most monsters come out of the next spawner instead
+            if (activeSpawners.size() > 1 && Nests.calmed(spawner)) spawner = activeSpawners.get((spawnIndex + 1) % activeSpawners.size());
+            Location location = spawner.clone().add(0, 1, 0);
             // The horde storms out of the spawners closest to the team
             if (enemyMonster.isSprinter()) location = nearestSpawner(activeSpawners, players.get(spawnIndex % players.size())).clone().add(0, 1, 0);
             // Spiders are too big for the spawner windows, they come out on open ground in the play area

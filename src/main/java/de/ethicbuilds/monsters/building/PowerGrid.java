@@ -28,7 +28,7 @@ import java.util.List;
  * every electric fence takes one. Monsters at the generator knock it out for a while.
  * Maps without a switch always have power.
  */
-public class PowerGrid {
+public class PowerGrid implements BuildPart {
     public static final String SWITCH = "strom", GENERATOR = "generator";
     private static final String SWITCH_ID = "monsters_stromschalter_", GENERATOR_ID = "monsters_generator_",
             LAMP_ID = "monsters_flutlicht_", FENCE_ID = "monsters_elektrozaun_";
@@ -51,7 +51,8 @@ public class PowerGrid {
     private final List<ItemDisplay> lamps = new ArrayList<>();
     private final List<ItemDisplay> fences = new ArrayList<>();
 
-    boolean register(ItemDisplay display, String id, Block block) {
+    @Override
+    public boolean register(ItemDisplay display, String id, Block block) {
         if (id.startsWith(SWITCH_ID)) {
             powerSwitch = display;
             decorationManager.hitbox(block, SWITCH, 1.0F, 1.6F);
@@ -92,7 +93,8 @@ public class PowerGrid {
         return isPowered() && index < points();
     }
 
-    boolean use(GamePlayer gamePlayer, String station) {
+    @Override
+    public boolean use(GamePlayer gamePlayer, String station) {
         if (SWITCH.equals(station)) {
             useSwitch(gamePlayer.getPlayer());
         } else if (GENERATOR.equals(station)) {
@@ -146,8 +148,8 @@ public class PowerGrid {
         at.getWorld().playSound(at, Sound.BLOCK_ANVIL_USE, 1.0F, 0.9F);
     }
 
-    /** Every second while the wave runs */
-    void tick() {
+    @Override
+    public void tick() {
         if (outage > 0 && --outage == 0) restart();
         if (generator != null && on && outage == 0) damageGenerator();
         if (!isPowered()) return;

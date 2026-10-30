@@ -10,6 +10,7 @@ import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.sound.Sounds;
+import de.ethicbuilds.monsters.weapons.manager.WorkbenchManager;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -29,7 +30,9 @@ import java.util.List;
  */
 public class BuildManager {
     public static final String RUBBLE = "schutt#", BARRICADE = "barrikade#";
-    private static final String RUBBLE_ID = "monsters_schutt", BARRICADE_ID = "monsters_barrikade_", BREAKOUT_ID = "monsters_ausbruch";
+    private static final String VEST_STAND = "weste";
+    private static final String RUBBLE_ID = "monsters_schutt", BARRICADE_ID = "monsters_barrikade_", BREAKOUT_ID = "monsters_ausbruch",
+            VEST_STAND_ID = "monsters_westenstaender";
     private static final int MAX_LEVEL = 3;
     // Health per level (wood, corrugated iron, steel), upgrade price in parts for level 2 and 3
     private static final int[] HEALTH = {0, 120, 240, 400};
@@ -42,7 +45,13 @@ public class BuildManager {
     @Inject private GameManager gameManager;
     @Inject private MonsterManager monsterManager;
     @Inject private DecorationManager decorationManager;
+    @Inject private WorkbenchManager workbenchManager;
     @Inject private PowerGrid powerGrid;
+    @Inject private Nests nests;
+    @Inject private Flares flares;
+    @Inject private Ziplines ziplines;
+    @Inject private Deployables deployables;
+    @Inject private Elevators elevators;
 
     private final List<Rubble> rubble = new ArrayList<>();
     private final List<Barricade> barricades = new ArrayList<>();
@@ -77,7 +86,12 @@ public class BuildManager {
         }
     }
 
+    private List<BuildPart> parts() {
+        return List.of(powerGrid, nests, flares, ziplines, deployables, elevators);
+    }
+
     public void start() {
+        plugin.getServer().getPluginManager().registerEvents(flares, plugin);
         plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 20L, 20L);
     }
 
@@ -97,7 +111,10 @@ public class BuildManager {
             barricades.add(new Barricade(display, block, barriers, level(id)));
         } else if (BREAKOUT_ID.equals(id)) {
             Breakouts.add(display);
-        } else if (!powerGrid.register(display, id, block)) {
+        } else if (VEST_STAND_ID.equals(id)) {
+            decorationManager.createStation(block, VEST_STAND, "Westen", "Vests", "<#9AA6B8>Rüstung verbessern", "<#9AA6B8>Upgrade armor",
+                    "Rechtsklick zum Kaufen", "Right-click to buy", 1.0F, 2.0F);
+        } else if (parts().stream().noneMatch(part -> part.register(display, id, block))) {
             return false;
         }
         used = true;
@@ -143,7 +160,11 @@ public class BuildManager {
             useBarricade(gamePlayer, barricades.get(index));
             return true;
         }
-        return powerGrid.use(gamePlayer, station);
+        if (VEST_STAND.equals(station)) {
+            workbenchManager.upgradeArmor(gamePlayer);
+            return true;
+        }
+        return parts().stream().anyMatch(part -> part.use(gamePlayer, station));
     }
 
     private static int index(String station, String prefix) {
@@ -214,7 +235,7 @@ public class BuildManager {
             center.getWorld().playSound(center, barricade.level == 1 ? Sound.ENTITY_ZOMBIE_ATTACK_WOODEN_DOOR : Sound.ENTITY_ZOMBIE_ATTACK_IRON_DOOR, 0.8F, 1.0F);
             if (barricade.broken()) breakDown(barricade);
         }
-        powerGrid.tick();
+        parts().forEach(BuildPart::tick);
     }
 
     private int attackers(Location center) {
