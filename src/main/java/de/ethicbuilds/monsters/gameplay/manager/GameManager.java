@@ -49,6 +49,7 @@ import java.util.function.ToIntFunction;
 public class GameManager {
 
     private static final String START_COLOR = "#3CDC6E";
+    private static final int END_SECONDS = 30;
     private static final String STOP_URL = "http://localhost:8080/gameManager/api/server/stop";
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
@@ -234,8 +235,9 @@ public class GameManager {
 
         mapManager.getMapConfiguration().getSpawn().getWorld().strikeLightning(mapManager.getMapConfiguration().getSpawn());
 
+        // 30 seconds to look at the round end card, the last 5 counted down
         new BukkitRunnable() {
-            int i = 10;
+            int i = END_SECONDS;
 
             @Override
             public void run() {
