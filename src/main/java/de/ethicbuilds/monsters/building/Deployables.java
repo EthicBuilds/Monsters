@@ -28,7 +28,9 @@ import java.util.UUID;
  * puts them up with parts. A ladder then takes the player up onto the edge it hangs on.
  */
 public class Deployables implements BuildPart {
-    private static final String LADDER_ID = "monsters_strickleiter", BRIDGE_ID = "monsters_bruecke", STATION = "auslegen#";
+    // Bridges are pieces of 1 block (bruecke, bruecke_ende), touching pieces are laid out together
+    private static final String LADDER_ID = "monsters_strickleiter", BRIDGE_ID = "monsters_bruecke", BRIDGE_END_ID = "monsters_bruecke_ende",
+            STATION = "auslegen#";
     private static final int LADDER_PRICE = 3, BRIDGE_PRICE = 5;
     private static final int MAX_CLIMB = 16;
     private static final double CLIMB_SPEED = 0.3;
@@ -48,6 +50,7 @@ public class Deployables implements BuildPart {
         private final List<Block> barriers;
         private DecorationManager.Sign sign;
         private boolean built;
+        private Spot group = this;
 
         private Spot(ItemDisplay display, String id, Block block, List<Block> barriers) {
             this.display = display;
@@ -59,17 +62,26 @@ public class Deployables implements BuildPart {
         private boolean ladder() {
             return LADDER_ID.equals(id);
         }
+
+        private Spot group() {
+            return group == this ? this : (group = group.group());
+        }
     }
 
     @Override
     public boolean register(ItemDisplay display, String id, Block block) {
-        if (!LADDER_ID.equals(id) && !BRIDGE_ID.equals(id)) return false;
+        if (!LADDER_ID.equals(id) && !BRIDGE_ID.equals(id) && !BRIDGE_END_ID.equals(id)) return false;
         Spot spot = new Spot(display, id, block, decorationManager.barriers(block, id));
         // Not there yet: no model, the gap stays open
         display.setItemStack(null);
         spot.barriers.forEach(barrier -> barrier.setType(Material.AIR, false));
         boolean ladder = spot.ladder();
         int price = ladder ? LADDER_PRICE : BRIDGE_PRICE;
+        if (!ladder && join(spot)) {
+            decorationManager.hitbox(block, STATION + spots.size(), 1.6F, 1.0F);
+            spots.add(spot);
+            return true;
+        }
         spot.sign = decorationManager.sign(block, ladder ? "Strickleiter" : "Bretterbrücke", ladder ? "Rope ladder" : "Plank bridge",
                 Parts.price(price, false), Parts.price(price, true),
                 ladder ? "Rechtsklick zum Anbringen" : "Rechtsklick zum Auslegen", ladder ? "Right-click to hang up" : "Right-click to lay out", 1.2);
@@ -88,7 +100,7 @@ public class Deployables implements BuildPart {
             return true;
         }
         if (index < 0 || index >= spots.size()) return true;
-        Spot spot = spots.get(index);
+        Spot spot = spots.get(index).group();
         if (!spot.built) build(gamePlayer, spot);
         else if (spot.ladder()) climb(gamePlayer.getPlayer(), spot);
         return true;
@@ -98,8 +110,11 @@ public class Deployables implements BuildPart {
         int price = spot.ladder() ? LADDER_PRICE : BRIDGE_PRICE;
         if (!Parts.take(gamePlayer, price)) return;
         spot.built = true;
-        decorationManager.setModel(spot.display, spot.id);
-        spot.barriers.forEach(barrier -> barrier.setType(Material.BARRIER, false));
+        for (Spot piece : spots) {
+            if (piece.group() != spot) continue;
+            decorationManager.setModel(piece.display, piece.id);
+            piece.barriers.forEach(barrier -> barrier.setType(Material.BARRIER, false));
+        }
         if (spot.sign != null) decorationManager.removeSign(spot.sign);
         Location center = spot.block.getLocation().add(0.5, 0.5, 0.5);
         center.getWorld().spawnParticle(Particle.BLOCK, center, 20, 0.6, 0.4, 0.6, Material.OAK_PLANKS.createBlockData());
@@ -108,6 +123,28 @@ public class Deployables implements BuildPart {
         String en = spot.ladder() ? "Rope ladder hung up" : "Bridge laid out";
         Overlay.small(gamePlayer.getPlayer(), Overlay.icon(Overlay.CRATE, Parts.COLOR, "<b>" + de + "</b> <color:" + Overlay.GREY + ">· -</color>" + Parts.price(price, false)),
                 Overlay.icon(Overlay.CRATE, Parts.COLOR, "<b>" + en + "</b> <color:" + Overlay.GREY + ">· -</color>" + Parts.price(price, true)));
+    }
+
+    // A bridge piece next to another one belongs to its bridge; true when it found one (then it has no own sign)
+    private boolean join(Spot spot) {
+        Spot joined = null;
+        for (Spot other : spots) {
+            if (other.ladder() || other.group().built || !other.block.getWorld().equals(spot.block.getWorld())
+                    || other.block.getY() != spot.block.getY()
+                    || Math.abs(other.block.getX() - spot.block.getX()) + Math.abs(other.block.getZ() - spot.block.getZ()) != 1) continue;
+            Spot group = other.group();
+            if (joined == null) {
+                joined = group;
+            } else if (group != joined) {
+                // The piece connects two bridges: one sign is enough
+                if (group.sign != null) decorationManager.removeSign(group.sign);
+                group.sign = null;
+                group.group = joined;
+            }
+        }
+        if (joined == null) return false;
+        spot.group = joined;
+        return true;
     }
 
     // Up the wall next to the ladder until there is room to stand on top

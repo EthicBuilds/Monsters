@@ -25,7 +25,7 @@ import java.util.List;
 
 /***
  * Power: the switch turns everything on (perk machines, flood lights). The generator gives 2 points per level,
- * every electric fence takes one. Monsters at the generator knock it out for a while.
+ * every electric fence line takes one. Monsters at the generator knock it out for a while.
  * Maps without a switch always have power.
  */
 public class PowerGrid implements BuildPart {
@@ -49,7 +49,24 @@ public class PowerGrid implements BuildPart {
     private int level = 1, health = GENERATOR_HEALTH, outage;
     private boolean on;
     private final List<ItemDisplay> lamps = new ArrayList<>();
-    private final List<ItemDisplay> fences = new ArrayList<>();
+    private final List<Fence> fences = new ArrayList<>();
+
+    // One segment; touching segments form one fence line that takes one point
+    private static final class Fence {
+        private final ItemDisplay display;
+        // Id without an/aus, the shape stays (straight, ecke, t, ende)
+        private final String base;
+        private Fence line = this;
+
+        private Fence(ItemDisplay display, String base) {
+            this.display = display;
+            this.base = base;
+        }
+
+        private Fence line() {
+            return line == this ? this : (line = line.line());
+        }
+    }
 
     @Override
     public boolean register(ItemDisplay display, String id, Block block) {
@@ -63,7 +80,7 @@ public class PowerGrid implements BuildPart {
         } else if (id.startsWith(LAMP_ID)) {
             lamps.add(display);
         } else if (id.startsWith(FENCE_ID)) {
-            fences.add(display);
+            addFence(new Fence(display, id.substring(0, id.lastIndexOf('_') + 1)));
         } else {
             return false;
         }
@@ -88,9 +105,24 @@ public class PowerGrid implements BuildPart {
         return generator == null ? POINTS_PER_LEVEL : POINTS_PER_LEVEL * level;
     }
 
-    // The first fences get the points, the rest stays dark
-    private boolean fencePowered(int index) {
-        return isPowered() && index < points();
+    private void addFence(Fence fence) {
+        Location at = fence.display.getLocation();
+        for (Fence other : fences) {
+            Location there = other.display.getLocation();
+            if (there.getWorld().equals(at.getWorld()) && there.getBlockY() == at.getBlockY()
+                    && Math.abs(there.getBlockX() - at.getBlockX()) + Math.abs(there.getBlockZ() - at.getBlockZ()) == 1) {
+                other.line().line = fence.line();
+            }
+        }
+        fences.add(fence);
+    }
+
+    // The first fence lines get the points, the rest stays dark
+    private boolean fencePowered(Fence fence) {
+        if (!isPowered()) return false;
+        List<Fence> lines = new ArrayList<>();
+        for (Fence other : fences) if (!lines.contains(other.line())) lines.add(other.line());
+        return lines.indexOf(fence.line()) < points();
     }
 
     @Override
@@ -153,8 +185,8 @@ public class PowerGrid implements BuildPart {
         if (outage > 0 && --outage == 0) restart();
         if (generator != null && on && outage == 0) damageGenerator();
         if (!isPowered()) return;
-        for (int i = 0; i < fences.size(); i++) {
-            if (fencePowered(i)) zap(fences.get(i));
+        for (Fence fence : fences) {
+            if (fencePowered(fence)) zap(fence.display);
         }
     }
 
@@ -213,8 +245,8 @@ public class PowerGrid implements BuildPart {
             decorationManager.setModel(lamp, LAMP_ID + (powered ? "an" : "aus"));
             light(lamp.getLocation().getBlock().getRelative(0, LAMP_HEIGHT, 0), powered);
         }
-        for (int i = 0; i < fences.size(); i++) {
-            if (fences.get(i).isValid()) decorationManager.setModel(fences.get(i), FENCE_ID + (fencePowered(i) ? "an" : "aus"));
+        for (Fence fence : fences) {
+            if (fence.display.isValid()) decorationManager.setModel(fence.display, fence.base + (fencePowered(fence) ? "an" : "aus"));
         }
     }
 

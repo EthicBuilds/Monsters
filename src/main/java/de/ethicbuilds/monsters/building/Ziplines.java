@@ -95,6 +95,7 @@ public class Ziplines implements BuildPart {
         GameItems.setModel(item, ROPE_ID);
         from.getWorld().spawn(middle, ItemDisplay.class, rope -> {
             rope.setItemStack(item);
+            rope.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
             rope.setPersistent(false);
             rope.setTransformation(new Transformation(new Vector3f(), new Quaternionf().rotateY(yaw).rotateX(pitch),
                     new Vector3f(1, 1, length), new Quaternionf()));

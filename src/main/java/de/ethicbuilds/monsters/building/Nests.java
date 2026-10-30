@@ -28,7 +28,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * Nests: smashed with the crowbar they give coins and parts, afterwards fewer monsters come out of the spawners nearby
  */
 public class Nests implements BuildPart {
-    private static final String ID = "monsters_nest", STATION = "nest#";
+    private static final String ID = "monsters_nest", DESTROYED_ID = "monsters_nest_zerstoert", STATION = "nest#";
     private static final int HITS = 8, COINS = 400, PARTS = 3;
     private static final long HIT_COOLDOWN = 400;
     // Spawners this close to a destroyed nest are skipped this often
@@ -125,7 +125,8 @@ public class Nests implements BuildPart {
         center.getWorld().spawnParticle(Particle.BLOCK, center, 50, 0.7, 0.5, 0.7, Material.SLIME_BLOCK.createBlockData());
         center.getWorld().spawnParticle(Particle.SQUID_INK, center, 15, 0.5, 0.4, 0.5, 0.05);
         center.getWorld().playSound(center, Sound.ENTITY_SLIME_DEATH, 1.2F, 0.6F);
-        nest.display.remove();
+        nest.display.setTransformation(nest.rest);
+        decorationManager.setModel(nest.display, DESTROYED_ID);
         decorationManager.removeHitbox(nest.hitbox);
         gamePlayer.addCoins(COINS);
         Parts.give(gamePlayer, PARTS);

@@ -43,6 +43,8 @@ public class CrateManager implements Listener {
     private static final double AMMO_CHANCE = 0.15;
     private static final int COINS = 100;
     private static final int PARTS = 2;
+    // Damage stages of the part crate from the design session, the last one stays as wreck
+    private static final String PARTS_STAGE = "monsters_bauteilkiste_";
     private static final double REACH = 5;
     private static final String COLOR = "#F9A11E";
 
@@ -126,6 +128,10 @@ public class CrateManager implements Listener {
 
         if (crate.damage < STAGES) {
             center.getWorld().playSound(center, Sound.ENTITY_ZOMBIE_ATTACK_WOODEN_DOOR, 0.7F, 1.2F + crate.damage * 0.15F);
+            if (crate.parts) {
+                partsStage(crate, crate.damage);
+                return;
+            }
             float tilt = (float) Math.toRadians(crate.damage == 1 ? 6 : 14);
             float scale = crate.damage == 1 ? 1.0F : 0.94F;
             Vector3f base = crate.transformation.getScale();
@@ -138,15 +144,22 @@ public class CrateManager implements Listener {
 
         center.getWorld().playSound(center, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 0.9F, 1.1F);
         center.getWorld().spawnParticle(Particle.CLOUD, center, 8, 0.3, 0.3, 0.3, 0.02);
-        crate.display.setItemStack(null);
         crate.block.setType(Material.AIR, false);
         if (crate.parts) {
+            partsStage(crate, STAGES);
             // A better crowbar finds one more
             Parts.give(gamePlayer, PARTS + ThreadLocalRandom.current().nextInt(2) + (gamePlayer.getCrowbarLevel() >= 2 ? 1 : 0));
             return;
         }
+        crate.display.setItemStack(null);
         loot(gamePlayer);
         if (ThreadLocalRandom.current().nextDouble() < CrowbarLevel.powerupChance(gamePlayer.getCrowbarLevel())) powerupManager.dropAt(center);
+    }
+
+    private static void partsStage(Crate crate, int stage) {
+        ItemStack item = new ItemStack(Material.PAPER);
+        GameItems.setModel(item, PARTS_STAGE + stage);
+        crate.display.setItemStack(item);
     }
 
     /** Chance in percent that a crate is not empty with this crowbar level, shown at the workbench */
