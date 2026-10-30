@@ -24,7 +24,8 @@ public abstract class EnemyMonster {
     private static final int REPATH_SECONDS = 3;
     private static final double SWITCH_MARGIN = 3;
     private static final double KNOCKBACK_RESISTANCE = 1.0;
-    private static final double SPRINTER_SPEED = 1.35;
+    // Horde: clearly quicker, also above the normal speed limit
+    private static final double SPRINTER_SPEED = 1.6, SPRINTER_MAX_SPEED = 2.0;
 
     protected int health;
     protected int damage;
@@ -60,7 +61,7 @@ public abstract class EnemyMonster {
         boolean scaled = !(this instanceof MonsterMiniBoss) && !(this instanceof MonsterSpiderBoss);
         if (scaled) {
             health = (int) Math.round(health * WaveScaling.health(wave));
-            speed = Math.min(WaveScaling.MAX_SPEED, speed * WaveScaling.speed(wave) * (sprinter ? SPRINTER_SPEED : 1)
+            speed = Math.min(sprinter ? SPRINTER_MAX_SPEED : WaveScaling.MAX_SPEED, speed * WaveScaling.speed(wave) * (sprinter ? SPRINTER_SPEED : 1)
                     * de.ethicbuilds.monsters.event.WaveEvents.speedFactor());
         }
         monster = (Monster) plugin.getWorld().spawnEntity(spawnLocation, type);

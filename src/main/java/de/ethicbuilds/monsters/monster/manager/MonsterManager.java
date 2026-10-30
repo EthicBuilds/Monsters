@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MonsterManager {
     public static final int SPIDER_WAVE = 5;
     private static final int GROWTH_UNTIL = 10;
-    private static final int HORDE_PER_PLAYER = 6;
+    private static final int HORDE_PER_PLAYER = 10, HORDE_BONUS = 100;
     private static final int SCARABS_PER_PLAYER = 8;
     private static final double BOSS_LEASH = 40;
     public static final int BOSS_WAVE = 10;
@@ -102,13 +102,48 @@ public class MonsterManager {
     public void addHorde(int wave) {
         int players = Math.max(1, livingPlayers().size());
         int tier = EliteTier.of(wave);
+        List<EnemyMonster> horde = new ArrayList<>();
         for (int i = 0; i < players * HORDE_PER_PLAYER; i++) {
             EnemyMonster monster = new MonsterZombie();
             monster.setTier(tier);
             monster.setWave(wave);
             monster.setSprinter(true);
             initialMonsters.addFirst(monster);
+            horde.add(monster);
         }
+        trackHorde(horde);
+    }
+
+    // A bar counts the horde down, beaten it gives coins for everyone still standing
+    private void trackHorde(List<EnemyMonster> horde) {
+        de.ethicbuilds.monsters.lang.DualBar bar = new de.ethicbuilds.monsters.lang.DualBar("", "", org.bukkit.boss.BarColor.RED, org.bukkit.boss.BarStyle.SEGMENTED_10);
+        int total = horde.size();
+        new org.bukkit.scheduler.BukkitRunnable() {
+            @Override
+            public void run() {
+                long left = horde.stream().filter(m -> initialMonsters.contains(m) || m.getMonster() != null && m.getMonster().isValid() && !m.getMonster().isDead()).count();
+                if (plugin.getInjector().getInstance(de.ethicbuilds.monsters.gameplay.manager.GameManager.class).getCurrentPhase() != de.ethicbuilds.monsters.gameplay.model.GamePhase.WAVE) {
+                    bar.removeAll();
+                    cancel();
+                    return;
+                }
+                if (left == 0) {
+                    bar.removeAll();
+                    cancel();
+                    for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
+                        Player player = gamePlayer.getPlayer();
+                        if (!player.isOnline()) continue;
+                        if (!userManager.isPlayerDead(player.getUniqueId())) gamePlayer.addCoins(HORDE_BONUS);
+                        player.sendTitle("", de.ethicbuilds.monsters.lang.Lang.f(player, "§aHorde besiegt! §6+%d Coins", "§aHorde beaten! §6+%d Coins", HORDE_BONUS), 5, 40, 10);
+                        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.6F, 1.2F);
+                    }
+                    return;
+                }
+                bar.setTitle(String.format("§c§lHORDE §8· §f%d §7übrig", left), String.format("§c§lHORDE §8· §f%d §7left", left));
+                bar.setProgress(Math.max(0, Math.min(1, left / (double) total)));
+                Bukkit.getOnlinePlayers().forEach(bar::addPlayer);
+            }
+        }.runTaskTimer(plugin, 10L, 10L);
     }
 
     /** Swarm event: scarabs crawl out of the sand near the players */
@@ -161,6 +196,8 @@ public class MonsterManager {
         for (int i = 0; i < count && !initialMonsters.isEmpty(); i++) {
             EnemyMonster enemyMonster = initialMonsters.removeFirst();
             Location location = activeSpawners.get(spawnIndex % activeSpawners.size()).clone().add(0, 1, 0);
+            // The horde storms out of the spawners closest to the team
+            if (enemyMonster.isSprinter()) location = nearestSpawner(activeSpawners, players.get(spawnIndex % players.size())).clone().add(0, 1, 0);
             // Spiders are too big for the spawner windows, they come out on open ground in the play area
             if (enemyMonster instanceof MonsterSpider spider) {
                 Location open = spiderSpot(spider, players);
@@ -179,6 +216,14 @@ public class MonsterManager {
         }
     }
 
+
+    private static Location nearestSpawner(List<Location> spawners, Player player) {
+        Location best = spawners.getFirst();
+        for (Location spawner : spawners) {
+            if (spawner.getWorld().equals(player.getWorld()) && spawner.distanceSquared(player.getLocation()) < best.distanceSquared(player.getLocation())) best = spawner;
+        }
+        return best;
+    }
 
     private Location spiderSpot(MonsterSpider spider, List<Player> players) {
         int height = spider.getRoom() + 1;
