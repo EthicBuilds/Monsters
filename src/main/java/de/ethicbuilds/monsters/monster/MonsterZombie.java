@@ -33,6 +33,9 @@ public class MonsterZombie extends EnemyMonster {
             EntityType.HUSK, "wuestenzombie", EntityType.PARCHED, "vertrockneter", EntityType.ZOMBIE_VILLAGER, "dorfzombie",
             EntityType.VINDICATOR, "diener");
     private static final java.util.Map<String, java.util.Optional<BoneModel>> loaded = new java.util.HashMap<>();
+    // Now and then a plain zombie carries a torch that really lights up its surroundings
+    private static final double TORCH_CHANCE = 0.1;
+    private static final String TORCH_MODEL = "zombie_fackel";
 
     private AnimatedModel model;
     private BoneModel bones;
@@ -74,6 +77,9 @@ public class MonsterZombie extends EnemyMonster {
         if (getClass() != MonsterZombie.class || !Main.getINSTANCE().getConfig().getBoolean("zombie-model", true)) return false;
         String id = MODELS.get(type);
         bones = id == null ? null : load(id).orElse(null);
+        if (bones != null && type == EntityType.ZOMBIE && java.util.concurrent.ThreadLocalRandom.current().nextDouble() < TORCH_CHANCE) {
+            bones = load(TORCH_MODEL).orElse(bones);
+        }
         return bones != null;
     }
 
@@ -90,7 +96,8 @@ public class MonsterZombie extends EnemyMonster {
         }, 1L);
         model = new AnimatedModel(bones, monster, 1.0F);
         voice = Voice.of(type);
-        int tier = bones.id().equals("zombie") ? Math.min(getTier(), ARMOR.length - 1) : 0;
+        if (bones.id().equals(TORCH_MODEL)) TorchLight.follow(monster);
+        int tier = bones.id().startsWith("zombie") ? Math.min(getTier(), ARMOR.length - 1) : 0;
         if (tier > 0) {
             var random = java.util.concurrent.ThreadLocalRandom.current();
             java.util.Map<String, String> plates = new java.util.HashMap<>();
