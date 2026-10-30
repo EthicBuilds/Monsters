@@ -21,6 +21,10 @@ public final class Overlay {
             CRATE = '', PING = '', HOURGLASS = '', NEXT = '', WAVE = '', REVIVE = '';
     private static final char DIVIDER = '';
     public static final String GREY = "#8A93A3", GOLD = "#FFCC2E";
+    // Title symbols and the game over lettering (already red, sent in white)
+    public static final char AMMO = '\uE216', SPEED = '\uE217', INSTAKILL = '\uE218', START = '\uE219', RESTART = '\uE21A',
+            FINISH = '\uE21B', GAME_OVER = '\uE214', GAME_OVER_EN = '\uE215';
+    public static final String RED = "#FF4848", WHITE = "#FFFFFF";
 
     private static final MiniMessage MM = MiniMessage.miniMessage();
     private static final Title.Times BIG = times(10, 50, 15), MEDIUM = times(5, 40, 10), HIT_TIMES = times(0, 4, 3);

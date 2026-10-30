@@ -37,7 +37,25 @@ public final class AmmoHud {
         player.setLevel(0);
         player.setExp(weapon.getMaxAmmu() > 0 ? Math.max(0, Math.min(1, weapon.getAmmu() / (float) weapon.getMaxAmmu())) : 0);
         if (pausedUntil.getOrDefault(player.getUniqueId(), 0L) > System.currentTimeMillis()) return;
-        player.sendActionBar(panel(weapon.getMagazine(), weapon.getMaxMagazine(), weapon.getAmmu(), weapon.getLevel()));
+        player.sendActionBar(withPerks(player, panel(weapon.getMagazine(), weapon.getMaxMagazine(), weapon.getAmmu(), weapon.getLevel())));
+    }
+
+    // Owned perks as badges left of the panel (design session, font monsters:perks), as much room on the right keeps it centred
+    private static final net.kyori.adventure.key.Key PERK_FONT = net.kyori.adventure.key.Key.key("monsters", "perks");
+    private static final int PERK_WIDTH = 10, PERK_GAP = 4;
+
+    private static Component withPerks(Player player, Component panel) {
+        var perks = de.ethicbuilds.monsters.Main.getINSTANCE().getInjector().getInstance(de.ethicbuilds.monsters.perk.PerkManager.class).perks(player);
+        if (perks.isEmpty()) return panel;
+        StringBuilder badges = new StringBuilder();
+        for (var perk : perks) badges.append((char) (0xE000 + perk.ordinal()));
+        int width = perks.size() * PERK_WIDTH + PERK_GAP;
+        return Component.text()
+                .append(Component.text(badges.toString(), NamedTextColor.WHITE).font(PERK_FONT).shadowColor(ShadowColor.none()))
+                .append(de.ethicbuilds.monsters.lang.Overlay.parse(de.ethicbuilds.monsters.lang.Overlay.space(PERK_GAP)))
+                .append(panel)
+                .append(de.ethicbuilds.monsters.lang.Overlay.parse(de.ethicbuilds.monsters.lang.Overlay.space(width)))
+                .build();
     }
 
     /** No weapon in hand: the panel goes away right away instead of fading out after 3 seconds */

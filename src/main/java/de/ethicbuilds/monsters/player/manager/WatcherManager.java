@@ -78,8 +78,9 @@ public class WatcherManager implements Listener {
         setBase(player, Attribute.GRAVITY, 0);
         player.teleport(mapManager.getMapConfiguration().getSpawn());
         ChatStatus.send(player, true);
-        player.sendTitle(Lang.t(player, "§7Du schaust zu", "§7Spectating"),
-                Lang.t(player, "§aDie Runde läuft schon", "§aThe round is already running"), 10, 50, 10);
+        de.ethicbuilds.monsters.lang.Overlay.medium(player, de.ethicbuilds.monsters.lang.Overlay.GREY,
+                de.ethicbuilds.monsters.lang.Overlay.line(de.ethicbuilds.monsters.lang.Overlay.NEXT, "#3CDC6E", "Zuschauen", "die Runde läuft schon"),
+                de.ethicbuilds.monsters.lang.Overlay.line(de.ethicbuilds.monsters.lang.Overlay.NEXT, "#3CDC6E", "Spectating", "the round is already running"));
         // A moment later, right after joining the camera does not attach yet
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (player.isOnline() && isWatcher(player.getUniqueId())) cycle(player, 1);

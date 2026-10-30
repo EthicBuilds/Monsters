@@ -9,10 +9,10 @@ import org.bukkit.entity.Player;
  */
 @Getter
 public enum Perk {
-    VITALITY("perk_leben", "Leben", "Vitality", 2500, "#FF5C5C", "30 statt 20 Leben", "30 instead of 20 health"),
-    QUICK_RELOAD("perk_nachladen", "Nachladen", "Quick Reload", 3000, "#F9A11E", "40 % schneller nachladen", "Reload 40% faster"),
-    QUICK_REVIVE("perk_wiederbeleben", "Wiederbeleben", "Quick Revive", 2000, "#3CDC6E", "Mitspieler doppelt so schnell aufheben", "Revive teammates twice as fast"),
-    STAMINA("perk_tempo", "Tempo", "Stamina", 2000, "#49A2E8", "12 % schneller laufen", "Walk 12% faster");
+    VITALITY("monsters_perk_leben", "Leben", "Vitality", 2500, "#FF5C5C", "30 statt 20 Leben", "30 instead of 20 health"),
+    QUICK_RELOAD("monsters_perk_nachladen", "Nachladen", "Quick Reload", 3000, "#F9A11E", "40 % schneller nachladen", "Reload 40% faster"),
+    QUICK_REVIVE("monsters_perk_wiederbeleben", "Wiederbeleben", "Quick Revive", 2000, "#3CDC6E", "Mitspieler doppelt so schnell aufheben", "Revive teammates twice as fast"),
+    STAMINA("monsters_perk_tempo", "Tempo", "Stamina", 2000, "#49A2E8", "12 % schneller laufen", "Walk 12% faster");
 
     private final String furniture;
     private final String nameDe, nameEn;

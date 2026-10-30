@@ -158,8 +158,9 @@ public abstract class Weapon {
         }
         if (ammu <= 0) {
             AmmoHud.pause(player);
-            player.sendTitle(Lang.t(player, "§4Keine Munition", "§4No ammo"),
-                    Lang.t(player, "§7Kaufe Munition an der §aMunitionskiste", "§7Buy ammo at the §aAmmo crate"), 0, 20, 0);
+            de.ethicbuilds.monsters.lang.Overlay.small(player,
+                    de.ethicbuilds.monsters.lang.Overlay.line(de.ethicbuilds.monsters.lang.Overlay.AMMO, de.ethicbuilds.monsters.lang.Overlay.RED, "Keine Munition", "an der Munitionskiste kaufen"),
+                    de.ethicbuilds.monsters.lang.Overlay.line(de.ethicbuilds.monsters.lang.Overlay.AMMO, de.ethicbuilds.monsters.lang.Overlay.RED, "No ammo", "buy it at the ammo crate"));
             return;
         }
 

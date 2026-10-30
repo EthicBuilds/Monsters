@@ -59,7 +59,7 @@ public class PowerupManager {
     private static final int MAX_AMMO_PER_WAVE = 1;
     // Emergency crate once per round when all living players together are below a quarter of their health (design session)
     private static final double EMERGENCY_HEALTH = 0.25, FREE_DISTANCE = 3;
-    private static final String EMERGENCY_COLOR = "#FF4848";
+    private static final String EMERGENCY_COLOR = "#FF4848", AMMO_COLOR = "#F2C14E";
     private static final int EMERGENCY_FALL = 12;
 
     public enum Type {
@@ -370,8 +370,8 @@ public class PowerupManager {
                 location.getWorld().spawnParticle(Particle.HEART, location, 6, 0.4, 0.3, 0.4, 0);
             }
             case SPEED -> {
-                int left = announce(player, type, "§x§4§F§B§3§F§F§lTEMPO!", "§x§4§F§B§3§F§F§lSPEED!", "§7Alle sind 10 Sekunden schneller",
-                        "§7Everyone is faster for 10 seconds", BarColor.BLUE, Sound.ENTITY_BREEZE_WIND_BURST, 1.3F, null);
+                int left = announce(player, type, Overlay.SPEED, "#4FB3FF", "TEMPO", "SPEED", "alle sind 10 Sekunden schneller",
+                        "everyone is faster for 10 seconds", BarColor.BLUE, Sound.ENTITY_BREEZE_WIND_BURST, 1.3F, null);
                 for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
                     Player other = gamePlayer.getPlayer();
                     if (other.isOnline() && !userManager.isPlayerDead(other.getUniqueId())) {
@@ -380,8 +380,8 @@ public class PowerupManager {
                 }
             }
             case INSTAKILL -> {
-                int left = announce(player, type, "§x§F§F§3§B§3§B§lINSTA-KILL!", "§x§F§F§3§B§3§B§lINSTA-KILL!", "§7Jeder Treffer tötet, 10 Sekunden lang",
-                        "§7Every hit kills for 10 seconds", BarColor.RED, Sound.ENTITY_EVOKER_CAST_SPELL, 1.4F, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE);
+                int left = announce(player, type, Overlay.INSTAKILL, "#FF3B3B", "INSTA-KILL", "INSTA-KILL", "jeder Treffer tötet, 10 Sekunden lang",
+                        "every hit kills for 10 seconds", BarColor.RED, Sound.ENTITY_EVOKER_CAST_SPELL, 1.4F, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE);
                 instakillUntil = System.currentTimeMillis() + left * 50L;
             }
             case EMERGENCY -> {
@@ -405,8 +405,8 @@ public class PowerupManager {
                     Player other = gamePlayer.getPlayer();
                     if (!other.isOnline()) continue;
                     if (!userManager.isPlayerDead(other.getUniqueId())) gamePlayer.refillWeapons();
-                    other.sendTitle(Lang.t(other, "§x§F§2§C§1§4§E§lMUNITION!", "§x§F§2§C§1§4§E§lAMMO!"),
-                            Lang.t(other, "§7Alle Waffen aufgefüllt §8· §7von ", "§7All weapons refilled §8· §7by ") + player.getName(), 5, 30, 10);
+                    Overlay.medium(other, AMMO_COLOR, Overlay.line(Overlay.AMMO, AMMO_COLOR, "MUNITION", "alle Waffen aufgefüllt · von " + player.getName()),
+                            Overlay.line(Overlay.AMMO, AMMO_COLOR, "AMMO", "all weapons refilled · by " + player.getName()));
                     other.playSound(other.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 0.8F, 1.2F);
                     other.playSound(other.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.6F, 1.5F);
                 }
@@ -424,7 +424,7 @@ public class PowerupManager {
     }
 
     // Title for everyone and one boss bar per powerup, picking it up again adds 10 seconds. Returns the ticks left
-    private int announce(Player finder, Type type, String title, String titleEn, String subtitle, String subtitleEn,
+    private int announce(Player finder, Type type, char icon, String hex, String title, String titleEn, String subtitle, String subtitleEn,
                          BarColor color, Sound sound, float pitch, Sound extra) {
         Countdown running = countdowns.get(type);
         Countdown countdown = running != null ? running : new Countdown(new DualBar("", "", color, BarStyle.SEGMENTED_10));
@@ -432,15 +432,15 @@ public class PowerupManager {
             countdown.left += EFFECT_TICKS;
             countdown.total = countdown.left;
         }
-        countdown.bar.setTitle(title + " §7von " + finder.getName(), titleEn + " §7by " + finder.getName());
+        countdown.bar.setTitle(Overlay.parse(Overlay.line(icon, hex, title, "von " + finder.getName())),
+                Overlay.parse(Overlay.line(icon, hex, titleEn, "by " + finder.getName())));
         countdown.bar.setProgress(1);
         for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
             Player player = gamePlayer.getPlayer();
             if (!player.isOnline()) continue;
-            String sub = running != null
-                    ? Lang.f(player, "§7+10 Sekunden §8· §7noch %d Sekunden", "§7+10 seconds §8· §7%d seconds left", countdown.left / 20)
-                    : Lang.t(player, subtitle, subtitleEn);
-            player.sendTitle(Lang.t(player, title, titleEn), sub, 5, 30, 10);
+            String sub = Lang.f(player, "+10 Sekunden · noch %d Sekunden", "+10 seconds · %d seconds left", countdown.left / 20);
+            Overlay.medium(player, hex, Overlay.line(icon, hex, title, running != null ? sub : subtitle),
+                    Overlay.line(icon, hex, titleEn, running != null ? sub : subtitleEn));
             player.playSound(player.getLocation(), sound, 0.6F, pitch);
             if (extra != null) player.playSound(player.getLocation(), extra, 0.6F, 0.7F);
             countdown.bar.addPlayer(player);

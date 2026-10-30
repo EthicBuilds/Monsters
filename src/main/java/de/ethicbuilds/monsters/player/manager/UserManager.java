@@ -76,8 +76,9 @@ public class UserManager {
         player.setGameMode(GameMode.SPECTATOR);
         player.teleport(mapManager.getMapConfiguration().getSpawn());
         ChatStatus.send(player, true);
-        player.sendTitle(Lang.t(player, "§7Du schaust zu", "§7Spectating"),
-                Lang.t(player, "§aAb der nächsten Welle spielst du mit", "§aYou'll join in from the next wave"), 10, 60, 10);
+        de.ethicbuilds.monsters.lang.Overlay.medium(player, de.ethicbuilds.monsters.lang.Overlay.GREY,
+                de.ethicbuilds.monsters.lang.Overlay.line(de.ethicbuilds.monsters.lang.Overlay.NEXT, "#3CDC6E", "Zuschauen", "ab der nächsten Welle spielst du mit"),
+                de.ethicbuilds.monsters.lang.Overlay.line(de.ethicbuilds.monsters.lang.Overlay.NEXT, "#3CDC6E", "Spectating", "you join in from the next wave"));
     }
 
     public void killPlayer(UUID uuid) {
@@ -88,8 +89,12 @@ public class UserManager {
 
             if (!allPlayersDead()) {
                 Player player = gamePlayer.getPlayer();
-                player.sendTitle(Lang.t(player, "§4Du liegst am Boden!", "§4You're downed!"),
-                        Lang.f(player, "§7Ein Mitspieler belebt dich für §6%d Coins §7wieder", "§7A teammate can revive you for §6%d Coins", reviveManager.cost(uuid)));
+                String cost = de.ethicbuilds.monsters.lang.Overlay.num(reviveManager.cost(uuid)) + " " + de.ethicbuilds.monsters.lang.Overlay.coin();
+                de.ethicbuilds.monsters.lang.Overlay.big(player, de.ethicbuilds.monsters.lang.Overlay.RED,
+                        de.ethicbuilds.monsters.lang.Overlay.line(de.ethicbuilds.monsters.lang.Overlay.REVIVE, de.ethicbuilds.monsters.lang.Overlay.RED, "AM BODEN", null),
+                        de.ethicbuilds.monsters.lang.Overlay.line(de.ethicbuilds.monsters.lang.Overlay.REVIVE, de.ethicbuilds.monsters.lang.Overlay.RED, "DOWNED", null),
+                        "<color:" + de.ethicbuilds.monsters.lang.Overlay.GREY + ">Ein Mitspieler belebt dich für </color>" + cost,
+                        "<color:" + de.ethicbuilds.monsters.lang.Overlay.GREY + ">A teammate can revive you for </color>" + cost);
                 return;
             }
 

@@ -10,6 +10,7 @@ import de.ethicbuilds.monsters.gameplay.model.GameConfig;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.gameplay.repository.GameStates;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.adapter.LocationAdapter;
 import de.ethicbuilds.monsters.monster.TrackerGlow;
@@ -40,6 +41,8 @@ import java.net.http.HttpResponse;
 
 
 public class GameManager {
+
+    private static final String START_COLOR = "#3CDC6E";
 
     @Inject private Main plugin;
     @Inject private UserManager userManager;
@@ -111,7 +114,9 @@ public class GameManager {
                 if(!userManager.isFull()) this.cancel();
 
                 if (i <= 5) {
-                    Lang.noteAll("%s§aDas Spiel startet in %d Sekunden!", "%s§aThe game starts in %d seconds!", plugin.getMonstersPrefix(), i);
+                    String count = Overlay.num(i);
+                    Overlay.mediumAll(START_COLOR, Overlay.line(Overlay.START, START_COLOR, "START", "in " + count + " Sekunden"),
+                            Overlay.line(Overlay.START, START_COLOR, "START", "in " + count + " seconds"));
                 }
 
                 if (i <= 1) {
@@ -134,7 +139,8 @@ public class GameManager {
                         }
                     }
 
-                    broadcastTitle(plugin.getMonstersPrefix(), "§cÜberlebe so lange wie möglich!", "§cSurvive as long as you can!");
+                    Overlay.mediumAll(START_COLOR, Overlay.line(Overlay.START, START_COLOR, "LOS!", "Überlebt so lange wie möglich"),
+                            Overlay.line(Overlay.START, START_COLOR, "GO!", "survive as long as you can"));
 
                     userManager.startMonsterTrackerTask();
                     plugin.getInjector().getInstance(de.ethicbuilds.monsters.player.manager.SpectatorHud.class).start();
@@ -225,7 +231,10 @@ public class GameManager {
         }
 
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.sendTitle(Lang.t(player, "§4Spiel Vorbei", "§4Game Over"), Lang.f(player, "§cIhr habt es bis Runde §7%d §cgeschafft!", "§cYou made it to wave §7%d§c!", waveManager.getCurrentWave()));
+            String wave = Overlay.num(waveManager.getCurrentWave());
+            Overlay.big(player, Overlay.RED, Overlay.glyph(Overlay.GAME_OVER, Overlay.WHITE), Overlay.glyph(Overlay.GAME_OVER_EN, Overlay.WHITE),
+                    Overlay.line(Overlay.FINISH, Overlay.RED, "Welle " + wave, "so weit habt ihr es geschafft"),
+                    Overlay.line(Overlay.FINISH, Overlay.RED, "Wave " + wave, "that is how far you made it"));
         }
         sendSummary();
 
@@ -237,13 +246,14 @@ public class GameManager {
             @Override
             public void run() {
                 if(i <= 5) {
-                    Lang.broadcast("%s§cDer Server startet in §4%d §cSekuden neu", "%s§cServer restarts in §4%d §cseconds", plugin.getMonstersPrefix(), i);
+                    String count = Overlay.num(i);
+                    Overlay.smallAll(Overlay.icon(Overlay.RESTART, Overlay.GREY, "<color:" + Overlay.GREY + ">Neustart in " + count + " Sekunden</color>"),
+                            Overlay.icon(Overlay.RESTART, Overlay.GREY, "<color:" + Overlay.GREY + ">Restart in " + count + " seconds</color>"));
                 }
 
                 if(Bukkit.getOnlinePlayers().isEmpty() || i <= 1) {
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "minecraft:kill @e");
 
-                    Lang.broadcast("%s§cDer Server staret §4jetzt §cneu!", "%s§cServer restarts §4now§c!", plugin.getMonstersPrefix());
                     Bukkit.shutdown();
                 }
                 i--;
@@ -269,9 +279,4 @@ public class GameManager {
         return gameStates.getCurrentPhase();
     }
 
-    private void broadcastTitle(String s, String de, String en) {
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            p.sendTitle(s, Lang.t(p, de, en));
-        }
-    }
 }

@@ -64,6 +64,9 @@ public class DecorationManager implements Listener {
             "fass_1", "fass_2", "fass_3", "kiste_leer_2", "kiste_leer_3", "kiste_voll_1", "kiste_voll_2"
     );
 
+    // Sign height above the block, the perk machines are taller
+    private static final double SIGN = 1.6, PERK_SIGN = 2.5;
+
     @Inject private Main plugin;
     @Inject private WeaponManager weaponManager;
     @Inject private CrateManager crateManager;
@@ -157,14 +160,16 @@ public class DecorationManager implements Listener {
                     workbenchPrices(WorkbenchManager.UNLOCK_PRICE, false), workbenchPrices(WorkbenchManager.UNLOCK_PRICE, true),
                     "Rechtsklick zum Kaufen", "Right-click to buy", 2.6F, 1.4F));
             Sign open = signAbove(block, "Werkbank", "Workbench", "<#9AA6B8>Waffen verbessern", "<#9AA6B8>Upgrade weapons",
-                    "Rechtsklick zum Öffnen", "Right-click to open");
+                    "Rechtsklick zum Öffnen", "Right-click to open", SIGN);
             open.de().setVisibleByDefault(false);
             workbenchOpen.add(open);
             Bukkit.getOnlinePlayers().forEach(player -> show(player, open));
         } else if (Perk.byFurniture(id) != null) {
             Perk perk = Perk.byFurniture(id);
+            // The machines are 2 blocks high, the sign floats above them
             createStation(block, perk.getFurniture(), perk.getNameDe(), perk.getNameEn(),
-                    price(perk.getPrice()) + "\n<#9AA6B8>" + perk.getEffectDe(), price(perk.getPrice()) + "\n<#9AA6B8>" + perk.getEffectEn());
+                    price(perk.getPrice()) + "\n<#9AA6B8>" + perk.getEffectDe(), price(perk.getPrice()) + "\n<#9AA6B8>" + perk.getEffectEn(),
+                    "Rechtsklick zum Kaufen", "Right-click to buy", 1.1F, 2.0F, PERK_SIGN);
         } else if (AMMO_CRATE.equals(id)) {
             createStation(block, AMMO_STATION, "Munition", "Ammo", price(WaveListener.AMMO_PRICE) + "\n<#9AA6B8>für die Waffe in der Hand",
                     price(WaveListener.AMMO_PRICE) + "\n<#9AA6B8>for the weapon in your hand");
@@ -219,31 +224,36 @@ public class DecorationManager implements Listener {
 
     private Sign createStation(Block block, String station, String name, String nameEn, String prices, String pricesEn,
                                String hint, String hintEn, float width, float height) {
+        return createStation(block, station, name, nameEn, prices, pricesEn, hint, hintEn, width, height, SIGN);
+    }
+
+    private Sign createStation(Block block, String station, String name, String nameEn, String prices, String pricesEn,
+                               String hint, String hintEn, float width, float height, double lift) {
         Interaction hitbox = block.getWorld().spawn(block.getLocation().add(0.5, 0, 0.5), Interaction.class, interaction -> {
             interaction.setInteractionWidth(width);
             interaction.setInteractionHeight(height);
             interaction.setPersistent(false);
         });
         stations.put(hitbox.getUniqueId(), station);
-        Sign sign = signAbove(block, name, nameEn, prices, pricesEn, hint, hintEn);
+        Sign sign = signAbove(block, name, nameEn, prices, pricesEn, hint, hintEn, lift);
         Bukkit.getOnlinePlayers().forEach(player -> show(player, sign));
         return sign;
     }
 
     // German sign visible by default, the English one only for English players
-    private Sign signAbove(Block block, String name, String nameEn, String prices, String pricesEn, String hint, String hintEn) {
-        TextDisplay en = holo(block, nameEn, pricesEn, hintEn);
+    private Sign signAbove(Block block, String name, String nameEn, String prices, String pricesEn, String hint, String hintEn, double lift) {
+        TextDisplay en = holo(block, nameEn, pricesEn, hintEn, lift);
         en.setVisibleByDefault(false);
-        Sign sign = new Sign(holo(block, name, prices, hint), en);
+        Sign sign = new Sign(holo(block, name, prices, hint, lift), en);
         signs.add(sign);
         return sign;
     }
 
-    private TextDisplay holo(Block block, String name, String prices, String hint) {
+    private TextDisplay holo(Block block, String name, String prices, String hint, double lift) {
         Component text = MiniMessage.miniMessage().deserialize("<#F2F5F8><name>\n" + prices + "\n<#9AA6B8><hint>",
                 Placeholder.unparsed("name", name), Placeholder.unparsed("hint", hint));
         Location base = block.getLocation().add(0.5, 0, 0.5);
-        return block.getWorld().spawn(base.clone().add(0, 1.6, 0), TextDisplay.class, holo -> {
+        return block.getWorld().spawn(base.clone().add(0, lift, 0), TextDisplay.class, holo -> {
             holo.text(text);
             holo.setBillboard(Display.Billboard.CENTER);
             holo.setBackgroundColor(Color.fromARGB(0xB3, 0x14, 0x10, 0x0C));
