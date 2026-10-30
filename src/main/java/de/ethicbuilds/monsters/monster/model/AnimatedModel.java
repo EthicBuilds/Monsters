@@ -96,9 +96,9 @@ public class AnimatedModel {
         }
     }
 
-    /** Feet on the ground with leg IK, and the model turns itself: walking head first, facing its target when standing */
-    public void enableLegs() {
-        rig = new LegRig(model, size);
+    /** The model turns itself: walking head first, facing its target when standing; with legs also feet on the ground (IK) */
+    public void enableSteering(boolean legs) {
+        if (legs) rig = new LegRig(model, size);
         steering = true;
     }
 

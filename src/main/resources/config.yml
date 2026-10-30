@@ -8,6 +8,9 @@ tab-player-lines: false
 # Eigenes Zombie-Modell der Design-Session (vorerst nur normale Zombies ohne Elite-Stufe), bei Leistungsproblemen auf false
 zombie-model: true
 
+# Eigene Spieler-Rüstung aus dem Monsters-Paket (Design-Session), erst einschalten, wenn die Texturen im Paket sind
+custom-armor: false
+
 # Monsters-Paket (Werkbank, Lebensanzeige, Munition, Scoreboard-Icons), wird beim Betreten zusaetzlich zum Lobby-Paket geschickt
 resource-pack:
   url: "http://136.243.146.245:25567/Monsters-pack-21.zip"

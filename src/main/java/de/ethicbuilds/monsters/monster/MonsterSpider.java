@@ -18,6 +18,7 @@ public class MonsterSpider extends EnemyMonster {
 
     protected AnimatedModel model;
     private static final double MAX_BITE_ANGLE = 15;
+    private static final float LEG_RIG_SIZE = 0.5F;
     // Model size and hitbox of the spider underneath
     protected float modelSize = 0.28F;
     protected double hitboxScale = 0.8;
@@ -52,8 +53,9 @@ public class MonsterSpider extends EnemyMonster {
         var scale = monster.getAttribute(Attribute.SCALE);
         if (scale != null) scale.setBaseValue(hitboxScale);
         model = new AnimatedModel(weaver(), monster, modelSize);
-        // Feet on the ground, head first and only biting from the front (design session)
-        model.enableLegs();
+        // Head first and only biting from the front; feet on the ground for the big ones, the small quick ones
+        // would outrun their legs (design session)
+        model.enableSteering(modelSize >= LEG_RIG_SIZE);
         var attack = monster.getAttribute(Attribute.ATTACK_DAMAGE);
         if (attack != null) attack.setBaseValue(damage);
         // Spiders do not attack while something rides on them, the model parts do, so the bite is done here
