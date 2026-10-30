@@ -24,9 +24,9 @@ public final class Overlay {
 
     private static final MiniMessage MM = MiniMessage.miniMessage();
     private static final Title.Times BIG = times(10, 50, 15), MEDIUM = times(5, 40, 10), HIT_TIMES = times(0, 4, 3);
-    // Hit markers (design session): white, red for headshots, grey on armor
+    // Hit markers: white, grey on armor, light red for headshots, red for kills
     private static final char HIT = '\uE212', HEAD_HIT = '\uE213';
-    private static final String HIT_WHITE = "#FFFFFF", HIT_HEAD = "#FF4848", HIT_ARMOR = "#9A9A9A";
+    private static final String HIT_WHITE = "#FFFFFF", HIT_HEAD = "#FF8A8A", HIT_KILL = "#FF3B3B", HIT_ARMOR = "#9A9A9A";
     // Until then a big or medium text is shown, a hit marker would replace it
     private static final java.util.Map<java.util.UUID, Long> titleUntil = new java.util.HashMap<>();
 
@@ -92,10 +92,10 @@ public final class Overlay {
     }
 
     /** Hit marker in the middle, only while no other text is shown */
-    public static void hit(Player player, boolean headshot, boolean armor) {
+    public static void hit(Player player, boolean headshot, boolean armor, boolean kill) {
         Long until = titleUntil.get(player.getUniqueId());
         if (until != null && until > System.currentTimeMillis()) return;
-        String color = headshot ? HIT_HEAD : armor ? HIT_ARMOR : HIT_WHITE;
+        String color = kill ? HIT_KILL : headshot ? HIT_HEAD : armor ? HIT_ARMOR : HIT_WHITE;
         player.showTitle(Title.title(Component.empty(), parse(glyph(headshot ? HEAD_HIT : HIT, color)), HIT_TIMES));
     }
 

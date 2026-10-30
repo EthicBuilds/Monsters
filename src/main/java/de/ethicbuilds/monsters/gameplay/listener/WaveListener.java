@@ -116,10 +116,12 @@ public class WaveListener implements Listener {
             startAxeCoolDown();
         }
 
-        if (event.getFinalDamage() >= monster.getHealth()) gamePlayer.setKilledZombies(gamePlayer.getKilledZombies() + 1);
+        boolean kill = event.getFinalDamage() >= monster.getHealth();
+        if (kill) gamePlayer.setKilledZombies(gamePlayer.getKilledZombies() + 1);
 
+        // Only headshot kills count (tab, awards, challenge, stats), the coin bonus stays for every headshot
         boolean headshot = ShotDamage.isHeadshot();
-        if (headshot) gamePlayer.setHeadshots(gamePlayer.getHeadshots() + 1);
+        if (headshot && kill) gamePlayer.setHeadshots(gamePlayer.getHeadshots() + 1);
         int coins = (int) Math.round(((headshot ? HEADSHOT_COINS : 20) + EliteTier.extraCoins(enemyMonster.getTier()))
                 * de.ethicbuilds.monsters.event.WaveEvents.coinFactor());
 

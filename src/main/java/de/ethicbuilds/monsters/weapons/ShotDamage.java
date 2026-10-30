@@ -40,7 +40,7 @@ public final class ShotDamage {
                 de.ethicbuilds.monsters.sound.Sounds.armorHit(shooter);
             }
             deal(target, headshot ? amount * HEADSHOT_MULTIPLIER : amount, shooter);
-            de.ethicbuilds.monsters.lang.Overlay.hit(shooter, headshot, armor);
+            de.ethicbuilds.monsters.lang.Overlay.hit(shooter, headshot, armor, target.isDead() || target.getHealth() <= 0);
         } finally {
             headshot = false;
         }
