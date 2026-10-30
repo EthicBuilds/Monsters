@@ -12,6 +12,7 @@ import java.io.IOException;
 public class MonsterZombie extends EnemyMonster {
     // Crawling out of the ground takes 1.2 seconds, meanwhile it does not walk yet
     private static final long SPAWN_TICKS = 24;
+    private static final long MOAN_MIN = 6 * 20, MOAN_MAX = 12 * 20;
     // Elite tiers wear their armor as plates on the model, the protection of the old helmet stays
     private static final String[] ARMOR = {null, "zombie_bronze", "zombie_silber", "zombie_gold", "zombie_diamant", "zombie_netherit"};
     private static final double[] ARMOR_POINTS = {0, 1, 2, 2, 3, 3};
@@ -64,12 +65,16 @@ public class MonsterZombie extends EnemyMonster {
         model = new AnimatedModel(zombie(), monster, 1.0F);
         int tier = Math.min(getTier(), ARMOR.length - 1);
         if (tier > 0) {
-            model.addLayer(ARMOR[tier]);
+            // The jaw has no armor plate
+            model.addLayer(ARMOR[tier], java.util.Set.of("kiefer"));
             var armor = monster.getAttribute(org.bukkit.attribute.Attribute.ARMOR);
             if (armor != null) armor.setBaseValue(armor.getBaseValue() + ARMOR_POINTS[tier]);
         }
         if (isSprinter()) model.setWalk("rennen");
         model.play("spawn");
+        // Own sounds, so the moan comes together with the open mouth
+        monster.setSilent(true);
+        moanLater();
         if (monster instanceof Mob mob) {
             mob.setAware(false);
             Main.getINSTANCE().getServer().getScheduler().runTaskLater(Main.getINSTANCE(), () -> {
@@ -78,9 +83,24 @@ public class MonsterZombie extends EnemyMonster {
         }
     }
 
+    // Every 6 to 12 seconds head back, mouth open and the moan
+    private void moanLater() {
+        long delay = java.util.concurrent.ThreadLocalRandom.current().nextLong(MOAN_MIN, MOAN_MAX);
+        Main.getINSTANCE().getServer().getScheduler().runTaskLater(Main.getINSTANCE(), () -> {
+            if (!monster.isValid() || monster.isDead()) return;
+            if (!PauseManager.isPaused()) {
+                model.play("stoehnen");
+                monster.getWorld().playSound(monster.getLocation(), org.bukkit.Sound.ENTITY_ZOMBIE_AMBIENT, 1.0F, 1.0F);
+            }
+            moanLater();
+        }, delay);
+    }
+
     @Override
     public void onDeath() {
-        if (model != null) model.die();
+        if (model == null) return;
+        model.die();
+        monster.getWorld().playSound(monster.getLocation(), org.bukkit.Sound.ENTITY_ZOMBIE_DEATH, 1.0F, 1.0F);
     }
 
     @Override
@@ -90,6 +110,8 @@ public class MonsterZombie extends EnemyMonster {
 
     @Override
     public void onHit() {
-        if (model != null) model.play("getroffen");
+        if (model == null) return;
+        model.play("getroffen");
+        monster.getWorld().playSound(monster.getLocation(), org.bukkit.Sound.ENTITY_ZOMBIE_HURT, 1.0F, 1.0F);
     }
 }

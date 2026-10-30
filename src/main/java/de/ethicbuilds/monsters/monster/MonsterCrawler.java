@@ -16,6 +16,7 @@ import java.io.IOException;
  */
 public class MonsterCrawler extends EnemyMonster {
     private static final long SPAWN_TICKS = 20;
+    private static final long HISS_MIN = 5 * 20, HISS_MAX = 9 * 20;
     private static BoneModel crawler;
 
     private AnimatedModel model;
@@ -52,6 +53,9 @@ public class MonsterCrawler extends EnemyMonster {
         }, 1L);
         model = new AnimatedModel(crawler(), monster, 1.0F);
         model.play("spawn");
+        // Own sounds: the hiss together with the open mouth
+        monster.setSilent(true);
+        hissLater();
         if (monster instanceof Mob mob) {
             mob.setAware(false);
             Main.getINSTANCE().getServer().getScheduler().runTaskLater(Main.getINSTANCE(), () -> {
@@ -60,9 +64,29 @@ public class MonsterCrawler extends EnemyMonster {
         }
     }
 
+    private void hissLater() {
+        long delay = java.util.concurrent.ThreadLocalRandom.current().nextLong(HISS_MIN, HISS_MAX);
+        Main.getINSTANCE().getServer().getScheduler().runTaskLater(Main.getINSTANCE(), () -> {
+            if (!monster.isValid() || monster.isDead()) return;
+            if (!PauseManager.isPaused()) {
+                model.play("fauchen");
+                monster.getWorld().playSound(monster.getLocation(), org.bukkit.Sound.ENTITY_CAT_HISS, 0.9F, 0.6F);
+                monster.getWorld().playSound(monster.getLocation(), org.bukkit.Sound.ENTITY_SPIDER_AMBIENT, 0.4F, 0.6F);
+            }
+            hissLater();
+        }, delay);
+    }
+
     @Override
     public void onDeath() {
-        if (model != null) model.die();
+        if (model == null) return;
+        model.die();
+        monster.getWorld().playSound(monster.getLocation(), org.bukkit.Sound.ENTITY_ZOMBIE_DEATH, 0.8F, 1.6F);
+    }
+
+    @Override
+    public void onHit() {
+        if (model != null) monster.getWorld().playSound(monster.getLocation(), org.bukkit.Sound.ENTITY_ZOMBIE_HURT, 0.8F, 1.6F);
     }
 
     @Override
