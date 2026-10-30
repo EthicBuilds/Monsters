@@ -28,16 +28,29 @@ public final class ShotDamage {
 
     /** A shot that hit at this point: at the head it does more damage and gives more coins */
     public static void shoot(LivingEntity target, double amount, Player shooter, org.bukkit.Location point) {
-        headshot = target.getEyeLocation().getY() - point.getY() < HEAD_SIZE && !target.isInvisible();
+        // Invisible zombies carry a model with the head at eye height, the other models (spiders) do not
+        headshot = target.getEyeLocation().getY() - point.getY() < HEAD_SIZE
+                && (!target.isInvisible() || target.getType() == org.bukkit.entity.EntityType.ZOMBIE);
         try {
+            boolean armor = armored(target);
             if (headshot) {
                 de.ethicbuilds.monsters.sound.Sounds.headshot(shooter);
                 target.getWorld().spawnParticle(org.bukkit.Particle.CRIT, target.getEyeLocation(), 8, 0.2, 0.2, 0.2, 0.1);
+            } else if (armor) {
+                de.ethicbuilds.monsters.sound.Sounds.armorHit(shooter);
             }
             deal(target, headshot ? amount * HEADSHOT_MULTIPLIER : amount, shooter);
+            de.ethicbuilds.monsters.lang.Overlay.hit(shooter, headshot, armor);
         } finally {
             headshot = false;
         }
+    }
+
+    private static boolean armored(LivingEntity target) {
+        if (!(target instanceof org.bukkit.entity.Monster monster)) return false;
+        var enemy = de.ethicbuilds.monsters.Main.getINSTANCE().getInjector()
+                .getInstance(de.ethicbuilds.monsters.monster.manager.MonsterManager.class).getEnemyMonster(monster);
+        return enemy != null && enemy.armored();
     }
 
     public static boolean isActive() {

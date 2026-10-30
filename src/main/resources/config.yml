@@ -9,12 +9,12 @@ tab-player-lines: false
 zombie-model: true
 
 # Eigene Spieler-Rüstung aus dem Monsters-Paket (Design-Session), erst einschalten, wenn die Texturen im Paket sind
-custom-armor: false
+custom-armor: true
 
 # Monsters-Paket (Werkbank, Lebensanzeige, Munition, Scoreboard-Icons), wird beim Betreten zusaetzlich zum Lobby-Paket geschickt
 resource-pack:
-  url: "http://136.243.146.245:25567/Monsters-pack-22.zip"
-  sha1: "a301ee44b144791b08b03eba7cef81190ca5a5c4"
+  url: "http://136.243.146.245:25567/Monsters-pack-23.zip"
+  sha1: "dffef1003c2e801bcdef44623c3b10f974a7a243"
 
 # Nexo-Items des Bauservers: daraus kommt, wie die Moebel gedreht und verschoben angezeigt werden (Nexo speichert das nicht in der Welt)
 nexo-items: "../monsters-bau/plugins/Nexo/items"

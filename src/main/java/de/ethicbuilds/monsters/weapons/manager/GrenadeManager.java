@@ -83,6 +83,7 @@ public class GrenadeManager {
     private void explode(Player thrower, Location location) {
         World world = location.getWorld();
         world.playSound(location, Sound.ENTITY_GENERIC_EXPLODE, 1.0F, 1.1F);
+        plugin.getInjector().getInstance(de.ethicbuilds.monsters.monster.manager.MonsterManager.class).grenadeNoise(location);
         world.playSound(location, Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, 0.7F, 1.0F);
         world.spawnParticle(Particle.EXPLOSION, location, 3, 0.8, 0.4, 0.8, 0);
         world.spawnParticle(Particle.FLAME, location, 25, 1.5, 0.5, 1.5, 0.05);

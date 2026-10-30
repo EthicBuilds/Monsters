@@ -59,6 +59,7 @@ public class Pumpgun extends Weapon {
         }
 
         player.playSound(player.getLocation(), sound, 0.5F, pitch);
+        Main.getINSTANCE().getInjector().getInstance(de.ethicbuilds.monsters.monster.manager.MonsterManager.class).shotNoise(player);
 
         int pelletCount = 8;
         double spread = 0.7;

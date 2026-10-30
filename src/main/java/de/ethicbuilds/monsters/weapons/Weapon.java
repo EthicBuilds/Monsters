@@ -103,6 +103,7 @@ public abstract class Weapon {
         }
 
         player.playSound(player.getLocation(), sound, 0.5F, pitch);
+        Main.getINSTANCE().getInjector().getInstance(de.ethicbuilds.monsters.monster.manager.MonsterManager.class).shotNoise(player);
 
         Set<org.bukkit.entity.Entity> hit = new HashSet<>();
         // With a bit of luck a normal shot goes through into a second monster

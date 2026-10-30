@@ -22,6 +22,8 @@ import java.util.Map;
  */
 public final class BoneModel {
     public record Bone(String id, String parent, Vector3f pivot, Vector3f rest, boolean hasModel) {}
+    /** Whole model in rest pose as one item, for far away (center in pixels, scale like modelScale) */
+    public record Lod(String model, Vector3f center, float scale) {}
 
     private record Channel(float[] times, float[][] values, boolean[] smooth, boolean loop) {
         void sample(float time, Vector3f out) {
@@ -107,12 +109,15 @@ public final class BoneModel {
 
     private final String id;
     private final float modelScale;
+    private final Lod lod;
     private final List<Bone> bones = new ArrayList<>();
     private final Map<String, Animation> animations = new HashMap<>();
 
     private BoneModel(JsonObject json) {
         id = json.get("id").getAsString();
         modelScale = json.has("modelScale") ? json.get("modelScale").getAsFloat() : 1;
+        JsonObject far = json.has("lod") ? json.getAsJsonObject("lod") : null;
+        lod = far == null ? null : new Lod(far.get("model").getAsString(), vector(far.getAsJsonArray("center")), far.get("scale").getAsFloat());
         for (JsonElement element : json.getAsJsonArray("bones")) {
             JsonObject bone = element.getAsJsonObject();
             String parent = bone.has("parent") ? bone.get("parent").getAsString() : null;
@@ -142,6 +147,10 @@ public final class BoneModel {
     /** Bone item models are stored smaller (Minecraft allows -16..32), this scales them back */
     public float modelScale() {
         return modelScale;
+    }
+
+    public Lod lod() {
+        return lod;
     }
 
     public List<Bone> bones() {

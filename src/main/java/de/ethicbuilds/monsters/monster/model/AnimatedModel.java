@@ -19,11 +19,12 @@ import java.util.Map;
  * Blockbench model on an invisible monster: one ItemDisplay per bone rides on the monster, the bones are posed
  * every 2 ticks (rest pose + animation, children inside their parents, like Blockbench), far from the players less often
  */
-public class AnimatedModel {
+public class AnimatedModel implements Corpses.Corpse {
     private static final int TICKS = 2;
-    // Far from every player the bones move only every 4th time, from there nobody sees the details
-    private static final double DETAIL_DISTANCE = 24;
-    private static final int FAR_EVERY = 4;
+    // Near every time, up to 24 blocks every 2nd, beyond every 3rd as one display in rest pose (design session)
+    private static final double NEAR_DISTANCE = 12, DETAIL_DISTANCE = 24, LOD_BACK = 20;
+    private static final int MID_EVERY = 2, FAR_EVERY = 3;
+    private static final float SINK_PER_TICK = 0.05F, SINK_DEPTH = 1.6F;
     private static final String IDLE = "stehen", WALK = "laufen", DEATH = "tod";
     // Walk animation, quicker monsters run instead
     private String walk = WALK;
@@ -42,6 +43,13 @@ public class AnimatedModel {
     private final ItemDisplay[] parts;
     // Second display per bone with the same pose, e.g. armor plates of the design session
     private ItemDisplay[] layer;
+    // Far away only this one display shows, the bones keep their items here meanwhile
+    private ItemDisplay lodPart;
+    private boolean far;
+    private ItemStack[] hidden;
+    private boolean stroll;
+    private boolean sinking, removed;
+    private float sunk;
     // Legs on the real ground (spiders), only near players; the model turns itself instead of following the body yaw
     private LegRig rig;
     private boolean rigActive;
@@ -177,8 +185,26 @@ public class AnimatedModel {
         for (int i = 0; i < bones.size(); i++) {
             if (!bones.get(i).id().equals(id)) continue;
             if (parts[i] != null) parts[i].remove();
-            if (layer != null && layer[i] != null) layer[i].remove();
+            if (layer != null && layer[i] != null) {
+                layer[i].remove();
+                layer[i] = null;
+            }
         }
+    }
+
+    /** Only the plate of a bone comes off, e.g. broken armor; returns where it was */
+    public Location removeLayer(String id) {
+        int i = indexOf(id);
+        if (i < 0 || layer == null || layer[i] == null) return null;
+        Location at = boneLocation(id);
+        layer[i].remove();
+        layer[i] = null;
+        return at;
+    }
+
+    /** Strolls also at normal speed, e.g. on the way to a noise */
+    public void stroll(boolean on) {
+        stroll = on;
     }
 
     /** Where the bone is drawn right now, null before the first frame */
@@ -213,7 +239,10 @@ public class AnimatedModel {
             remove();
             return;
         }
+        if (far) showBones();
+        if (lodPart != null) lodPart.remove();
         dying = true;
+        Corpses.add(this);
         action = DEATH;
         actionTime = 0;
         // The death animation lies on the ground, also when the monster died in the air or while climbing
@@ -242,8 +271,20 @@ public class AnimatedModel {
         return all;
     }
 
+    @Override
+    public void sink() {
+        sinking = true;
+    }
+
+    @Override
+    public boolean isGone() {
+        return removed;
+    }
+
     public void remove() {
+        removed = true;
         task.cancel();
+        if (lodPart != null) lodPart.remove();
         for (ItemDisplay part : all()) {
             if (part != null) part.remove();
         }
@@ -277,11 +318,14 @@ public class AnimatedModel {
 
         if (!dying) {
             Location now = base.getLocation();
-            boolean near = nearPlayer(now);
-            if (!near && ++skipped < FAR_EVERY) return;
+            double nearest = nearestPlayer(now);
+            switchLod(nearest);
+            boolean near = nearest < DETAIL_DISTANCE * DETAIL_DISTANCE;
+            int every = far || !near ? FAR_EVERY : nearest < NEAR_DISTANCE * NEAR_DISTANCE ? 1 : MID_EVERY;
+            if (++skipped < every) return;
             skipped = 0;
-            setInterpolation(near ? TICKS : TICKS * FAR_EVERY);
-            int elapsed = near ? TICKS : TICKS * FAR_EVERY;
+            int elapsed = TICKS * every;
+            setInterpolation(elapsed);
             boolean same = now.getWorld().equals(lastPosition.getWorld());
             boolean moving = same && now.distanceSquared(lastPosition) > 0.0004;
             if (!steering) {
@@ -298,28 +342,82 @@ public class AnimatedModel {
                     yaw += Math.max(-max, Math.min(max, turn));
                 }
             }
-            rigActive = rig != null && near;
+            rigActive = rig != null && near && !far;
             if (rigActive) rig.update(now, yaw, elapsed);
             else if (rig != null) rig.reset();
             if (moving) {
-                double perTick = now.distance(lastPosition) / (near ? TICKS : TICKS * FAR_EVERY);
-                walkTime += step * (float) Math.max(MIN_RATE, Math.min(MAX_RATE, perTick / WALK_SPEED)) * (near ? 1 : FAR_EVERY);
+                double perTick = now.distance(lastPosition) / elapsed;
+                walkTime += step * (float) Math.max(MIN_RATE, Math.min(MAX_RATE, perTick / WALK_SPEED)) * every;
             }
             double speed = moving ? now.distance(lastPosition) / elapsed : 0;
             lastPosition = now;
-            String loop = !moving ? idle : !noStroll && speed < STROLL_SPEED && walk.equals(WALK) && model.animation(STROLL) != null ? STROLL : walk;
-            render(model.animation(loop), one);
+            String loop = !moving ? idle : (stroll || !noStroll && speed < STROLL_SPEED) && walk.equals(WALK) && model.animation(STROLL) != null ? STROLL : walk;
+            if (far) renderLod();
+            else render(model.animation(loop), one);
         } else {
+            // Too many corpses: the oldest sinks into the ground
+            if (sinking && (sunk += SINK_PER_TICK * TICKS) > SINK_DEPTH) {
+                remove();
+                return;
+            }
             setInterpolation(TICKS);
             render(null, one);
         }
     }
 
-    private boolean nearPlayer(Location at) {
+    // Squared distance to the nearest player
+    private double nearestPlayer(Location at) {
+        double nearest = Double.MAX_VALUE;
         for (org.bukkit.entity.Player player : at.getWorld().getPlayers()) {
-            if (player.getLocation().distanceSquared(at) < DETAIL_DISTANCE * DETAIL_DISTANCE) return true;
+            nearest = Math.min(nearest, player.getLocation().distanceSquared(at));
         }
-        return false;
+        return nearest;
+    }
+
+    // Far away one display in rest pose instead of all bones, back a bit closer so it does not flicker
+    private void switchLod(double nearest) {
+        BoneModel.Lod lod = model.lod();
+        if (lod == null) return;
+        if (!far && nearest > DETAIL_DISTANCE * DETAIL_DISTANCE) {
+            far = true;
+            List<ItemDisplay> all = all();
+            hidden = new ItemStack[all.size()];
+            for (int i = 0; i < all.size(); i++) {
+                ItemDisplay part = all.get(i);
+                if (part == null || !part.isValid()) continue;
+                hidden[i] = part.getItemStack();
+                part.setItemStack(new ItemStack(Material.AIR));
+            }
+            if (lodPart == null || !lodPart.isValid()) {
+                lodPart = spawnPart(lod.model());
+                base.addPassenger(lodPart);
+            } else {
+                lodPart.setItemStack(item(lod.model()));
+            }
+        } else if (far && nearest < LOD_BACK * LOD_BACK) {
+            showBones();
+        }
+    }
+
+    private void showBones() {
+        far = false;
+        List<ItemDisplay> all = all();
+        for (int i = 0; hidden != null && i < all.size() && i < hidden.length; i++) {
+            ItemDisplay part = all.get(i);
+            if (part != null && part.isValid() && hidden[i] != null) part.setItemStack(hidden[i]);
+        }
+        hidden = null;
+        if (lodPart != null && lodPart.isValid()) lodPart.setItemStack(new ItemStack(Material.AIR));
+    }
+
+    private void renderLod() {
+        if (lodPart == null || !lodPart.isValid()) return;
+        BoneModel.Lod lod = model.lod();
+        float lift = Float.isNaN(offsetY) ? 0 : offsetY;
+        Vector3f center = lod.center();
+        lodPart.setInterpolationDelay(0);
+        lodPart.setTransformationMatrix(new Matrix4f().translate(0, -lift, 0).rotateY((float) Math.toRadians(180 - yaw)).scale(size / 16f)
+                .translate(center.x, center.y, center.z).scale(16 * lod.scale()).rotateY((float) Math.PI));
     }
 
     private void setInterpolation(int ticks) {
@@ -328,6 +426,7 @@ public class AnimatedModel {
         for (ItemDisplay part : all()) {
             if (part != null && part.isValid()) part.setInterpolationDuration(ticks);
         }
+        if (lodPart != null && lodPart.isValid()) lodPart.setInterpolationDuration(ticks);
     }
 
     private void render(BoneModel.Animation loop, BoneModel.Animation one) {
@@ -335,7 +434,7 @@ public class AnimatedModel {
         Matrix4f[] world = new Matrix4f[bones.size()];
         lastWorld = world;
         // Passengers sit higher than the feet of the monster, the model stands on the ground; the front is -Z
-        float lift = dying || Float.isNaN(offsetY) ? 0 : offsetY;
+        float lift = (dying || Float.isNaN(offsetY) ? 0 : offsetY) + sunk;
         Matrix4f root = new Matrix4f().translate(0, -lift, 0).rotateY((float) Math.toRadians(180 - yaw)).scale(size / 16f);
         Vector3f rotation = new Vector3f(), position = new Vector3f(), scale = new Vector3f();
         Vector3f value = new Vector3f();
@@ -393,9 +492,14 @@ public class AnimatedModel {
         return spawnPart(model.id() + "/" + bone.id());
     }
 
-    private ItemDisplay spawnPart(String modelId) {
+    private static ItemStack item(String modelId) {
         ItemStack item = new ItemStack(Material.PAPER);
         item.editMeta(meta -> meta.setItemModel(new NamespacedKey("monsters", modelId)));
+        return item;
+    }
+
+    private ItemDisplay spawnPart(String modelId) {
+        ItemStack item = item(modelId);
         Location at = base.getLocation();
         at.setYaw(0);
         at.setPitch(0);

@@ -28,6 +28,21 @@ public final class Sounds {
         if (maxLevel) player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.MASTER, 0.3F, 1.6F);
     }
 
+    private static final java.util.Map<java.util.UUID, Long> lastArmorHit = new java.util.HashMap<>();
+
+    /** Dull metal on an armored monster, at most every 3 ticks (shotgun pellets) */
+    public static void armorHit(Player player) {
+        long now = System.currentTimeMillis();
+        Long last = lastArmorHit.put(player.getUniqueId(), now);
+        if (last != null && now - last < 150) return;
+        player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, SoundCategory.PLAYERS, 0.5F, 1.4F);
+    }
+
+    /** A plate breaks off */
+    public static void splinter(org.bukkit.Location at) {
+        at.getWorld().playSound(at, Sound.BLOCK_ANVIL_LAND, SoundCategory.HOSTILE, 0.25F, 1.8F);
+    }
+
     /** Crisp "ding" for a headshot, only for the shooter */
     public static void headshot(Player player) {
         player.playSound(player.getLocation(), Sound.ENTITY_ARROW_HIT_PLAYER, SoundCategory.PLAYERS, 0.6F, 1.5F);

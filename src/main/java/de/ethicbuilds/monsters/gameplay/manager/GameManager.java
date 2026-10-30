@@ -99,9 +99,9 @@ public class GameManager {
     }
 
     public void gameStart() {
-        Lang.broadcast("%s§aDas Spiel beginnt in 20 Sekunden!", "%s§aThe game starts in 20 seconds!", plugin.getMonstersPrefix());
+        Lang.broadcast("%s§aDas Spiel beginnt in 10 Sekunden!", "%s§aThe game starts in 10 seconds!", plugin.getMonstersPrefix());
         gameStartTask = new BukkitRunnable() {
-            int i = 20;
+            int i = 10;
             @Override
             public void run() {
                 if(!userManager.isFull()) this.cancel();

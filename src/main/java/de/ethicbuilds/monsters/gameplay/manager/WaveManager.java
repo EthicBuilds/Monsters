@@ -120,7 +120,7 @@ public class WaveManager {
         }
     }
 
-    // Boss wave big, every other wave medium, a new elite tier follows once the wave text is gone
+    // Boss wave big, every other wave medium, a new armor tier follows once the wave text is gone
     private void announceWave() {
         int wave = currentWave;
         if (wave % MonsterManager.BOSS_WAVE == 0) {
@@ -133,7 +133,7 @@ public class WaveManager {
         boolean spiders = wave % MonsterManager.SPIDER_WAVE == 0;
         Overlay.mediumAll(WAVE_COLOR, Overlay.line(Overlay.WAVE, WAVE_COLOR, "WELLE " + wave, spiders ? "Die Weberinnen kommen" : count + " Monster"),
                 Overlay.line(Overlay.WAVE, WAVE_COLOR, "WAVE " + wave, spiders ? "the weavers are coming" : count + " monsters"));
-        if (wave <= 10 || wave % 10 != 1) return;
+        if (spiders || !EliteTier.starts(wave)) return;
         int tier = EliteTier.of(wave);
         String color = TIER_COLORS[tier];
         Bukkit.getScheduler().runTaskLater(plugin, () -> Overlay.mediumAll(color,

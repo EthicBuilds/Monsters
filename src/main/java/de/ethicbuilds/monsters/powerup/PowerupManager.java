@@ -11,6 +11,7 @@ import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.ReviveManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -56,12 +57,18 @@ public class PowerupManager {
     private static final int MAX_DROPPED = 3;
     private static final int EFFECT_TICKS = 10 * 20;
     private static final int MAX_AMMO_PER_WAVE = 1;
+    // Emergency crate once per round when all living players together are below a quarter of their health (design session)
+    private static final double EMERGENCY_HEALTH = 0.25, FREE_DISTANCE = 3;
+    private static final String EMERGENCY_COLOR = "#FF4848";
+    private static final int EMERGENCY_FALL = 12;
 
     public enum Type {
         MEDKIT(0.04, 0x3CC860, () -> GameItems.medkit(null)),
         SPEED(0.02, 0x4FB3FF, () -> model("powerup/tempo")),
         INSTAKILL(0.015, 0xFF3B3B, () -> model("powerup/instakill")),
-        AMMO(0.01, 0xF2C14E, () -> model("powerup/munition"));
+        AMMO(0.01, 0xF2C14E, () -> model("powerup/munition")),
+        // Never dropped by chance, see checkEmergency
+        EMERGENCY(0, 0xFF4848, () -> model("powerup/munition"));
 
         private final double dropChance;
         private final int color;
@@ -92,8 +99,10 @@ public class PowerupManager {
     private int nextSpawn = MIN_DELAY;
     private long instakillUntil;
     private int ammoWave = -1, ammoDrops;
+    private boolean emergencyUsed;
 
     public void start() {
+        emergencyUsed = false;
         new BukkitRunnable() {
             int ticks = 0;
 
@@ -109,6 +118,7 @@ public class PowerupManager {
                 ticks++;
 
                 if (ticks % 100 == 0) rememberSpots();
+                if (ticks % 20 == 0) checkEmergency();
                 if (ticks >= nextSpawn) {
                     ticks = 0;
                     nextSpawn = ThreadLocalRandom.current().nextInt(MIN_DELAY, MAX_DELAY);
@@ -155,6 +165,95 @@ public class PowerupManager {
         if (ammoDrops >= MAX_AMMO_PER_WAVE) return false;
         ammoDrops++;
         return true;
+    }
+
+    private void checkEmergency() {
+        if (emergencyUsed) return;
+        double health = 0, max = 0;
+        List<Player> living = new java.util.ArrayList<>();
+        for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
+            Player player = gamePlayer.getPlayer();
+            if (!player.isOnline() || userManager.isPlayerDead(player.getUniqueId())) continue;
+            living.add(player);
+            health += player.getHealth();
+            max += player.getAttribute(Attribute.MAX_HEALTH).getValue();
+        }
+        if (living.isEmpty() || health >= max * EMERGENCY_HEALTH) return;
+        emergencyUsed = true;
+        dropEmergency(emergencySpot(living));
+    }
+
+    // Remembered spot nearest to the middle of the players, a few blocks away from everyone
+    private Location emergencySpot(List<Player> living) {
+        Location first = living.getFirst().getLocation();
+        org.bukkit.util.Vector center = new org.bukkit.util.Vector();
+        int count = 0;
+        for (Player player : living) {
+            if (!player.getWorld().equals(first.getWorld())) continue;
+            center.add(player.getLocation().toVector());
+            count++;
+        }
+        center.multiply(1.0 / count);
+        Location best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (Location spot : spots) {
+            if (!spot.getWorld().equals(first.getWorld()) || !isFree(spot)) continue;
+            double distance = spot.toVector().distanceSquared(center);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = spot;
+            }
+        }
+        return best != null ? best.clone().add(0, 0.8, 0) : first.toBlockLocation().add(0.5, 0.8, 0.5);
+    }
+
+    private boolean isFree(Location spot) {
+        for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
+            Player player = gamePlayer.getPlayer();
+            if (player.getWorld().equals(spot.getWorld()) && player.getLocation().distanceSquared(spot) < FREE_DISTANCE * FREE_DISTANCE) return false;
+        }
+        return true;
+    }
+
+    // Falls from up to 12 blocks (less under a roof), then lies there like every powerup
+    private void dropEmergency(Location spot) {
+        int height = 0;
+        while (height < EMERGENCY_FALL && spot.clone().add(0, height + 1, 0).getBlock().isPassable()) height++;
+        Location top = spot.clone().add(0, height, 0);
+        ItemDisplay falling = spot.getWorld().spawn(top, ItemDisplay.class, display -> {
+            display.setItemStack(Type.EMERGENCY.item.get());
+            display.setGlowing(true);
+            display.setGlowColorOverride(Color.fromRGB(Type.EMERGENCY.color));
+            display.setPersistent(false);
+            display.setTeleportDuration(1);
+        });
+        String ping = Overlay.glyph(Overlay.PING, EMERGENCY_COLOR) + Overlay.space(3);
+        Overlay.mediumAll(EMERGENCY_COLOR, ping + Overlay.line(Overlay.CRATE, EMERGENCY_COLOR, "NOTFALL-KISTE", "Medkit + Munition"),
+                ping + Overlay.line(Overlay.CRATE, EMERGENCY_COLOR, "EMERGENCY CRATE", "medkit + ammo"));
+        for (Player player : Bukkit.getOnlinePlayers()) player.playSound(player.getLocation(), Sound.ITEM_TRIDENT_THUNDER, 0.4F, 1.6F);
+        new BukkitRunnable() {
+            final Location at = top.clone();
+
+            @Override
+            public void run() {
+                if (!falling.isValid() || gameManager.getCurrentPhase() != GamePhase.WAVE) {
+                    falling.remove();
+                    cancel();
+                    return;
+                }
+                at.subtract(0, 0.6, 0);
+                if (at.getY() <= spot.getY()) {
+                    falling.remove();
+                    spot.getWorld().playSound(spot, Sound.BLOCK_ANVIL_LAND, 0.6F, 0.8F);
+                    spot.getWorld().spawnParticle(Particle.CLOUD, spot, 12, 0.4, 0.1, 0.4, 0.02);
+                    spawn(Type.EMERGENCY, spot);
+                    cancel();
+                    return;
+                }
+                falling.teleport(at);
+                at.getWorld().spawnParticle(Particle.SMOKE, at, 2, 0.1, 0.1, 0.1, 0);
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
     }
 
     private void rememberSpots() {
@@ -284,6 +383,22 @@ public class PowerupManager {
                 int left = announce(player, type, "§x§F§F§3§B§3§B§lINSTA-KILL!", "§x§F§F§3§B§3§B§lINSTA-KILL!", "§7Jeder Treffer tötet, 10 Sekunden lang",
                         "§7Every hit kills for 10 seconds", BarColor.RED, Sound.ENTITY_EVOKER_CAST_SPELL, 1.4F, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE);
                 instakillUntil = System.currentTimeMillis() + left * 50L;
+            }
+            case EMERGENCY -> {
+                // Ammo for everyone, the medkit for the finder: into the pocket if free, else healed
+                for (GamePlayer gamePlayer : userManager.getGamePlayers()) {
+                    Player other = gamePlayer.getPlayer();
+                    if (other.isOnline() && !userManager.isPlayerDead(other.getUniqueId())) gamePlayer.refillWeapons();
+                }
+                if (player.getInventory().getItem(ReviveManager.MEDKIT_SLOT) == null) {
+                    player.getInventory().setItem(ReviveManager.MEDKIT_SLOT, GameItems.medkit(player));
+                } else {
+                    player.setHealth(player.getAttribute(Attribute.MAX_HEALTH).getValue());
+                }
+                Overlay.mediumAll(EMERGENCY_COLOR, Overlay.line(Overlay.CRATE, EMERGENCY_COLOR, "NOTFALL-KISTE", "geöffnet von " + player.getName()),
+                        Overlay.line(Overlay.CRATE, EMERGENCY_COLOR, "EMERGENCY CRATE", "opened by " + player.getName()));
+                location.getWorld().playSound(location, Sound.BLOCK_CHEST_OPEN, 1.0F, 1.1F);
+                location.getWorld().playSound(location, Sound.ITEM_ARMOR_EQUIP_IRON, 0.8F, 1.2F);
             }
             case AMMO -> {
                 for (GamePlayer gamePlayer : userManager.getGamePlayers()) {

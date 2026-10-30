@@ -23,7 +23,12 @@ public final class Overlay {
     public static final String GREY = "#8A93A3", GOLD = "#FFCC2E";
 
     private static final MiniMessage MM = MiniMessage.miniMessage();
-    private static final Title.Times BIG = times(10, 50, 15), MEDIUM = times(5, 40, 10);
+    private static final Title.Times BIG = times(10, 50, 15), MEDIUM = times(5, 40, 10), HIT_TIMES = times(0, 4, 3);
+    // Hit markers (design session): white, red for headshots, grey on armor
+    private static final char HIT = '\uE212', HEAD_HIT = '\uE213';
+    private static final String HIT_WHITE = "#FFFFFF", HIT_HEAD = "#FF4848", HIT_ARMOR = "#9A9A9A";
+    // Until then a big or medium text is shown, a hit marker would replace it
+    private static final java.util.Map<java.util.UUID, Long> titleUntil = new java.util.HashMap<>();
 
     private Overlay() {}
 
@@ -86,13 +91,27 @@ public final class Overlay {
         return MM.deserialize(Lang.t(player, de, en));
     }
 
+    /** Hit marker in the middle, only while no other text is shown */
+    public static void hit(Player player, boolean headshot, boolean armor) {
+        Long until = titleUntil.get(player.getUniqueId());
+        if (until != null && until > System.currentTimeMillis()) return;
+        String color = headshot ? HIT_HEAD : armor ? HIT_ARMOR : HIT_WHITE;
+        player.showTitle(Title.title(Component.empty(), parse(glyph(headshot ? HEAD_HIT : HIT, color)), HIT_TIMES));
+    }
+
+    private static void shown(Player player, Title.Times times) {
+        titleUntil.put(player.getUniqueId(), System.currentTimeMillis() + times.fadeIn().plus(times.stay()).toMillis());
+    }
+
     /** Rare events: title and framed subtitle */
     public static void big(Player player, String color, String titleDe, String titleEn, String subDe, String subEn) {
+        shown(player, BIG);
         player.showTitle(Title.title(parse(player, titleDe, titleEn), parse(framed(color, Lang.t(player, subDe, subEn))), BIG));
     }
 
     /** Framed subtitle, empty title */
     public static void medium(Player player, String color, String de, String en) {
+        shown(player, MEDIUM);
         player.showTitle(Title.title(Component.empty(), parse(framed(color, Lang.t(player, de, en))), MEDIUM));
     }
 

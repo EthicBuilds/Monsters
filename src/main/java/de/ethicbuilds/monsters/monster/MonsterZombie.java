@@ -19,6 +19,10 @@ public class MonsterZombie extends EnemyMonster {
     // Random pieces, each with the tier of the wave or one lower: helmet, chest with sleeves, trousers
     private static final String[][] PIECES = {{"kopf"}, {"koerper", "arm_r", "arm_l"}, {"bein_r", "bein_l"}};
     private static final double PIECE_CHANCE = 0.65;
+    // Plates break off in this order while the health goes down, with shards of their material (design session)
+    private static final String[][] SPLINTER = {{"kopf"}, {"arm_r", "arm_l"}, {"bein_r", "bein_l"}, {"koerper"}};
+    private static final org.bukkit.Material[] SHARDS = {null, org.bukkit.Material.COPPER_INGOT, org.bukkit.Material.IRON_INGOT,
+            org.bukkit.Material.GOLD_INGOT, org.bukkit.Material.DIAMOND, org.bukkit.Material.NETHERITE_INGOT};
     // Limb loss (design session): under half health a small chance per hit, once per zombie; from gold on never
     private static final double LIMB_CHANCE = 0.04, LIMB_HEALTH = 0.5, ARM_DAMAGE = 0.8, CRAWL_SPEED = 0.45, CRAWL_SCALE = 0.35;
     private static final int LIMB_SAFE_TIER = 3, LIMB_LIFETIME = 60;
@@ -26,6 +30,10 @@ public class MonsterZombie extends EnemyMonster {
 
     private AnimatedModel model;
     private boolean limbLost, crawling;
+    private final java.util.Map<String, Integer> plateTier = new java.util.HashMap<>();
+    private final java.util.LinkedList<String[]> plates = new java.util.LinkedList<>();
+    private int plateGroups;
+    private double platePoints;
 
     public MonsterZombie() {
         this(EntityType.ZOMBIE, "§7Zombie");
@@ -80,12 +88,21 @@ public class MonsterZombie extends EnemyMonster {
                 // At least one piece, so the tier can be seen
                 if (piece != first && random.nextDouble() > PIECE_CHANCE) continue;
                 int material = Math.max(1, tier - random.nextInt(2));
-                for (String bone : PIECES[piece]) plates.put(bone, ARMOR[material] + "/" + bone);
+                for (String bone : PIECES[piece]) {
+                    plates.put(bone, ARMOR[material] + "/" + bone);
+                    plateTier.put(bone, material);
+                }
                 points += ARMOR_POINTS[material] / (double) PIECES.length;
             }
             model.addLayer(plates);
             var armor = monster.getAttribute(org.bukkit.attribute.Attribute.ARMOR);
             if (armor != null) armor.setBaseValue(armor.getBaseValue() + points);
+            for (String[] group : SPLINTER) {
+                String[] worn = java.util.Arrays.stream(group).filter(plateTier::containsKey).toArray(String[]::new);
+                if (worn.length > 0) this.plates.add(worn);
+            }
+            plateGroups = this.plates.size();
+            platePoints = points / Math.max(1, plateGroups);
         }
         if (isSprinter()) model.setWalk("rennen");
         model.play("spawn");
@@ -98,6 +115,34 @@ public class MonsterZombie extends EnemyMonster {
                 if (mob.isValid() && !PauseManager.isPaused()) mob.setAware(true);
             }, SPAWN_TICKS);
         }
+    }
+
+    // With n groups the k-th breaks once the health is below 1 - k/(n+1)
+    private void splinter() {
+        var maxHealth = monster.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+        if (plates.isEmpty() || maxHealth == null || !monster.isValid() || monster.isDead()) return;
+        double left = monster.getHealth() / maxHealth.getValue();
+        while (!plates.isEmpty() && left < 1 - (plateGroups - plates.size() + 1) / (double) (plateGroups + 1)) {
+            for (String bone : plates.removeFirst()) {
+                org.bukkit.Location at = model.removeLayer(bone);
+                if (at == null) continue;
+                at.getWorld().spawnParticle(org.bukkit.Particle.ITEM, at, 10, 0.15, 0.15, 0.15, 0.08,
+                        new org.bukkit.inventory.ItemStack(SHARDS[plateTier.get(bone)]));
+                de.ethicbuilds.monsters.sound.Sounds.splinter(at);
+            }
+            var armor = monster.getAttribute(org.bukkit.attribute.Attribute.ARMOR);
+            if (armor != null) armor.setBaseValue(Math.max(0, armor.getBaseValue() - platePoints));
+        }
+    }
+
+    @Override
+    public boolean armored() {
+        return !plates.isEmpty();
+    }
+
+    @Override
+    protected void onNoise(boolean on) {
+        if (model != null) model.stroll(on && !crawling);
     }
 
     private void maybeLoseLimb() {
@@ -140,6 +185,18 @@ public class MonsterZombie extends EnemyMonster {
         at.getWorld().spawnParticle(org.bukkit.Particle.BLOCK, at, 16, 0.2, 0.2, 0.2, org.bukkit.Material.SLIME_BLOCK.createBlockData());
         at.getWorld().spawnParticle(org.bukkit.Particle.BLOCK, at, 10, 0.2, 0.2, 0.2, org.bukkit.Material.PURPLE_WOOL.createBlockData());
         at.getWorld().playSound(at, org.bukkit.Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 0.5F, 1.6F);
+        boolean[] sinking = {false};
+        de.ethicbuilds.monsters.monster.model.Corpses.add(new de.ethicbuilds.monsters.monster.model.Corpses.Corpse() {
+            @Override
+            public void sink() {
+                sinking[0] = true;
+            }
+
+            @Override
+            public boolean isGone() {
+                return !display.isValid();
+            }
+        });
         var random = java.util.concurrent.ThreadLocalRandom.current();
         org.bukkit.util.Vector push = new org.bukkit.util.Vector(random.nextDouble(-0.08, 0.08), 0.12, random.nextDouble(-0.08, 0.08));
         new org.bukkit.scheduler.BukkitRunnable() {
@@ -153,6 +210,12 @@ public class MonsterZombie extends EnemyMonster {
                 if (tick > LIMB_LIFETIME || !display.isValid()) {
                     display.remove();
                     cancel();
+                    return;
+                }
+                if (sinking[0]) {
+                    spot.subtract(0, 0.1, 0);
+                    display.teleport(spot);
+                    if (spot.getY() < at.getY() - 1.2) display.remove();
                     return;
                 }
                 org.bukkit.Location next = spot.clone().add(velocity);
@@ -196,6 +259,8 @@ public class MonsterZombie extends EnemyMonster {
         if (model == null) return;
         if (!crawling) model.play("getroffen");
         maybeLoseLimb();
+        // The damage is dealt after this event
+        Main.getINSTANCE().getServer().getScheduler().runTask(Main.getINSTANCE(), this::splinter);
         monster.getWorld().playSound(monster.getLocation(), org.bukkit.Sound.ENTITY_ZOMBIE_HURT, 1.0F, 1.0F);
     }
 }

@@ -21,6 +21,9 @@ public abstract class EnemyMonster {
     private static final int TRAIL_PER_TRY = 2;
     // Within sight and this close the normal attack AI finds the way, further away a path is kept a few seconds
     private static final double NEAR = 16;
+    // A noise draws monsters that have not found their player yet for a few seconds, strolling
+    private static final long NOISE_MILLIS = 6000;
+    private static final double NOISE_REACHED = 4, NOISE_MOVED = 16, NOISE_SPEED = 0.6;
     private static final int REPATH_SECONDS = 3;
     private static final double SWITCH_MARGIN = 3;
     private static final double KNOCKBACK_RESISTANCE = 1.0;
@@ -48,6 +51,9 @@ public abstract class EnemyMonster {
     private int repath;
     private int trailCursor;
     private Player chased;
+    private Location noise;
+    private long noiseUntil;
+    private boolean noiseFresh;
 
     private final Main plugin = Main.getINSTANCE();
 
@@ -60,7 +66,7 @@ public abstract class EnemyMonster {
         // Bosses have their own values, all others get stronger from wave 15
         boolean scaled = !(this instanceof MonsterMiniBoss) && !(this instanceof MonsterSpiderBoss);
         if (scaled) {
-            health = (int) Math.round(health * WaveScaling.health(wave));
+            health = Math.max(1, (int) Math.round(health * WaveScaling.health(wave) * WaveScaling.groupHealth(userManager.getGamePlayers().size())));
             speed = Math.min(sprinter ? SPRINTER_MAX_SPEED : WaveScaling.MAX_SPEED, speed * WaveScaling.speed(wave) * (sprinter ? SPRINTER_SPEED : 1)
                     * de.ethicbuilds.monsters.event.WaveEvents.speedFactor());
         }
@@ -116,9 +122,48 @@ public abstract class EnemyMonster {
                         && distance(nearest) + SWITCH_MARGIN < distance(target)) {
                     target = nearest;
                 }
+                if (followNoise(pathfinder)) return;
                 chase(pathfinder);
             }
         }.runTaskTimer(plugin, java.util.concurrent.ThreadLocalRandom.current().nextInt(20), 20L);
+    }
+
+    /** Shot or explosion nearby: only heard while its player is out of reach or sight */
+    public void hear(Location at) {
+        if (monster == null || monster.isDead() || hunting()) return;
+        if (noise == null || !noise.getWorld().equals(at.getWorld()) || noise.distanceSquared(at) > NOISE_MOVED) noiseFresh = true;
+        noise = at.clone();
+        noiseUntil = System.currentTimeMillis() + NOISE_MILLIS;
+        onNoise(true);
+    }
+
+    private boolean hunting() {
+        return target != null && distance(target) < NEAR && monster.hasLineOfSight(target);
+    }
+
+    private boolean followNoise(Pathfinder pathfinder) {
+        if (noise == null) return false;
+        if (hunting() || System.currentTimeMillis() > noiseUntil || !noise.getWorld().equals(monster.getWorld())
+                || monster.getLocation().distanceSquared(noise) < NOISE_REACHED) {
+            noise = null;
+            repath = 0;
+            onNoise(false);
+            return false;
+        }
+        if (noiseFresh || !pathfinder.hasPath()) {
+            noiseFresh = false;
+            monster.setTarget(null);
+            pathfinder.moveTo(noise, speed * NOISE_SPEED);
+        }
+        return true;
+    }
+
+    /** Walking to a noise or not anymore, models stroll meanwhile */
+    protected void onNoise(boolean on) {}
+
+    /** Still wears armor plates, for the grey hit marker */
+    public boolean armored() {
+        return false;
     }
 
     private double distance(Player player) {

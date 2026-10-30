@@ -16,6 +16,7 @@ import de.ethicbuilds.monsters.monster.MonsterSpiderBoss;
 import de.ethicbuilds.monsters.monster.MonsterZombie;
 import de.ethicbuilds.monsters.monster.OpenGround;
 import de.ethicbuilds.monsters.monster.PlayerTrail;
+import de.ethicbuilds.monsters.monster.WaveScaling;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import lombok.Getter;
@@ -66,7 +67,8 @@ public class MonsterManager {
 
         int players = Math.max(1, userManager.getGamePlayers().size());
         // Up to wave 10 the waves grow fast, after that only a little, from wave 15 the monsters get stronger instead
-        int monsterCount = players * (2 + 4 * (Math.min(wave, GROWTH_UNTIL) - 1) + Math.max(0, wave - GROWTH_UNTIL));
+        int perPlayer = 2 + 4 * (Math.min(wave, GROWTH_UNTIL) - 1) + Math.max(0, wave - GROWTH_UNTIL);
+        int monsterCount = Math.max(1, (int) Math.round(perPlayer * WaveScaling.count(players)));
 
         // Every fifth wave only small amethyst weavers, more each time, every tenth with the big boss weaver
         if (wave % SPIDER_WAVE == 0) {
@@ -80,12 +82,18 @@ public class MonsterManager {
             return;
         }
         // Same number, but more kinds the longer the round goes
-        int tier = EliteTier.of(wave);
         for (int i = 0; i < monsterCount; i++) {
             EnemyMonster monster = randomMonster(wave);
-            monster.setTier(tier);
+            monster.setTier(EliteTier.roll(wave));
             monster.setWave(wave);
             initialMonsters.add(monster);
+        }
+        // Big groups get one elite more: a zombie one tier above the wave
+        if (players >= WaveScaling.ELITE_FROM_PLAYERS) {
+            MonsterZombie elite = new MonsterZombie();
+            elite.setTier(Math.min(EliteTier.of(wave) + 1, EliteTier.MAX));
+            elite.setWave(wave);
+            initialMonsters.add(elite);
         }
         // From the second wave one of them is a mini boss, it comes last so it is out when the wave is under way
         if (wave >= MINI_BOSS_WAVE) initialMonsters.set(initialMonsters.size() - 1, new MonsterMiniBoss(wave));
@@ -103,11 +111,10 @@ public class MonsterManager {
     /** A quick horde that comes out right now, before the rest of the wave */
     public void addHorde(int wave) {
         int players = Math.max(1, livingPlayers().size());
-        int tier = EliteTier.of(wave);
         List<EnemyMonster> horde = new ArrayList<>();
         for (int i = 0; i < players * HORDE_PER_PLAYER; i++) {
             EnemyMonster monster = new de.ethicbuilds.monsters.monster.MonsterCrawler();
-            monster.setTier(tier);
+            monster.setTier(EliteTier.roll(wave));
             monster.setWave(wave);
             monster.setSprinter(true);
             initialMonsters.addFirst(monster);
@@ -250,6 +257,32 @@ public class MonsterManager {
             }
         }
         return best;
+    }
+
+    private static final double SHOT_NOISE = 16, GRENADE_NOISE = 28;
+    private final Map<java.util.UUID, Long> lastShotNoise = new java.util.HashMap<>();
+
+    /** A shot, at most once a second per player */
+    public void shotNoise(Player player) {
+        long now = System.currentTimeMillis();
+        Long last = lastShotNoise.get(player.getUniqueId());
+        if (last != null && now - last < 1000) return;
+        lastShotNoise.put(player.getUniqueId(), now);
+        noise(player.getLocation(), SHOT_NOISE);
+    }
+
+    public void grenadeNoise(Location at) {
+        noise(at, GRENADE_NOISE);
+    }
+
+    // Zombies and crawlers that have not found their player yet go there (design session)
+    private void noise(Location at, double radius) {
+        for (EnemyMonster enemy : monsters.values()) {
+            if (!(enemy instanceof MonsterZombie || enemy instanceof de.ethicbuilds.monsters.monster.MonsterCrawler) || enemy instanceof MonsterMiniBoss) continue;
+            Monster entity = enemy.getMonster();
+            if (entity == null || !entity.getWorld().equals(at.getWorld()) || entity.getLocation().distanceSquared(at) > radius * radius) continue;
+            enemy.hear(at);
+        }
     }
 
     public EnemyMonster getEnemyMonster(Monster monster) {
