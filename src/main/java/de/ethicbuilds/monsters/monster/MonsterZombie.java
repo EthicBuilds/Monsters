@@ -29,7 +29,7 @@ public class MonsterZombie extends EnemyMonster {
     // Recoil in degrees: body and head, a headshot throws the head back harder
     private static final float RECOIL_BODY = 12, RECOIL_HEAD = 8, HEADSHOT_BODY = 6, HEADSHOT_HEAD = 28;
     // Model per kind (design session), a kind without its model in the plugin stays the vanilla mob
-    private static final java.util.Map<EntityType, String> MODELS = java.util.Map.of(EntityType.ZOMBIE, "zombie",
+    private static final java.util.Map<EntityType, String> KIND_MODELS = java.util.Map.of(EntityType.ZOMBIE, "zombie",
             EntityType.HUSK, "wuestenzombie", EntityType.PARCHED, "vertrockneter", EntityType.ZOMBIE_VILLAGER, "dorfzombie",
             EntityType.VINDICATOR, "diener");
     private static final java.util.Map<String, java.util.Optional<BoneModel>> loaded = new java.util.HashMap<>();
@@ -72,15 +72,26 @@ public class MonsterZombie extends EnemyMonster {
         });
     }
 
-    // Own model from the design session, elite tiers with armor plates (those only fit the plain zombie)
+    /** Model of the design session (/mobs/<id>.json, zombie bones), null = vanilla; other kinds override it */
+    protected String modelId() {
+        return getClass() == MonsterZombie.class ? KIND_MODELS.get(type) : null;
+    }
+
+    // Own model from the design session, elite tiers with armor plates (those only fit the zombie shape)
     private boolean modeled() {
-        if (getClass() != MonsterZombie.class || !Main.getINSTANCE().getConfig().getBoolean("zombie-model", true)) return false;
-        String id = MODELS.get(type);
-        bones = id == null ? null : load(id).orElse(null);
-        if (bones != null && type == EntityType.ZOMBIE && java.util.concurrent.ThreadLocalRandom.current().nextDouble() < TORCH_CHANCE) {
+        String id = modelId();
+        if (id == null || !Main.getINSTANCE().getConfig().getBoolean("zombie-model", true)) return false;
+        bones = load(id).orElse(null);
+        if (bones != null && type == EntityType.ZOMBIE && getClass() == MonsterZombie.class
+                && java.util.concurrent.ThreadLocalRandom.current().nextDouble() < TORCH_CHANCE) {
             bones = load(TORCH_MODEL).orElse(bones);
         }
         return bones != null;
+    }
+
+    /** The model, null while the kind spawns as a vanilla zombie */
+    protected AnimatedModel model() {
+        return model;
     }
 
     @Override

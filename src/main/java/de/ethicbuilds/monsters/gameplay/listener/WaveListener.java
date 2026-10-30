@@ -106,6 +106,14 @@ public class WaveListener implements Listener {
 
         EnemyMonster enemyMonster = monsterManager.getEnemyMonster(monster);
         if (enemyMonster == null) return;
+        // Buried or frozen (pause): no hit, no coins
+        if (monster.isInvulnerable()) {
+            event.setCancelled(true);
+            return;
+        }
+        // Shields and the like, insta-kill goes through
+        double factor = enemyMonster.damageFactor(player);
+        if (factor != 1 && !powerupManager.isInstakill()) event.setDamage(event.getDamage() * factor);
         enemyMonster.onHit(player);
 
         // Coins only for shots, grenades and the knife, not for hitting with a gun or other items.

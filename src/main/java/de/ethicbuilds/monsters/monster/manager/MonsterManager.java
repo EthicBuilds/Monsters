@@ -105,7 +105,10 @@ public class MonsterManager {
         double roll = Math.random();
         if (wave >= 48 && (roll -= 0.10) < 0) return new MonsterZombie(EntityType.VINDICATOR, "§7Diener");
         if (wave >= 24 && (roll -= 0.15) < 0) return new MonsterZombie(EntityType.ZOMBIE_VILLAGER, "§7Zombiedorfbewohner");
+        if (wave >= 15 && (roll -= 0.06) < 0) return new de.ethicbuilds.monsters.monster.MonsterShieldbearer();
+        if (wave >= 12 && (roll -= 0.07) < 0) return new de.ethicbuilds.monsters.monster.MonsterSpitter();
         if (wave >= 12 && (roll -= 0.10) < 0) return new MonsterZombie(EntityType.PARCHED, "§7Vertrockneter");
+        if (wave >= 9 && (roll -= 0.07) < 0) return new de.ethicbuilds.monsters.monster.MonsterBloater();
         if (wave >= 6 && (roll -= 0.25) < 0) return new MonsterZombie(EntityType.HUSK, "§7Wüstenzombie");
         return new MonsterZombie();
     }
@@ -179,6 +182,12 @@ public class MonsterManager {
     /** Small weavers the boss calls */
     public void addBrood(int count) {
         for (int i = 0; i < count; i++) initialMonsters.addFirst(new MonsterSpider());
+    }
+
+    /** Comes out right here instead of a spawner, e.g. called by a boss; counts for the wave like the others */
+    public void summonAt(EnemyMonster enemy, Player target, Location at) {
+        enemy.summon(target, at);
+        monsters.put(enemy.getMonster(), enemy);
     }
 
     public void removeMonster(Monster monster) {

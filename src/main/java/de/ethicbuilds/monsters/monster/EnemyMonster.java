@@ -235,6 +235,11 @@ public abstract class EnemyMonster {
         onHit();
     }
 
+    /** A player hits it: factor for the damage, e.g. a shield in front */
+    public double damageFactor(Player by) {
+        return 1;
+    }
+
     /** Movement speed limit, always below the players' walking speed */
     protected double maxSpeed() {
         return 0.23;
