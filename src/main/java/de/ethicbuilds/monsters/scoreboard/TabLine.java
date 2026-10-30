@@ -1,5 +1,7 @@
 package de.ethicbuilds.monsters.scoreboard;
 
+import de.ethicbuilds.monsters.lang.Pixels;
+
 /***
  * One line of the tab list as MiniMessage, drawn with a pen at pixel positions (design session).
  * Symbols, spaces and small capitals (from U+E100) each in their own font tag of monsters:tab, normal text stays
@@ -25,15 +27,7 @@ final class TabLine {
     TabLine moveTo(int px) {
         int distance = px - x;
         if (distance == 0) return this;
-        out.append(FONT);
-        for (int i = 7; i >= 0; i--) {
-            int step = 1 << i;
-            while (Math.abs(distance) >= step) {
-                out.append((char) ((distance > 0 ? 0xF011 : 0xF021) + i));
-                distance += distance > 0 ? -step : step;
-            }
-        }
-        out.append(FONT_END);
+        out.append(FONT).append(Pixels.spaces(distance)).append(FONT_END);
         x = px;
         return this;
     }
@@ -99,18 +93,8 @@ final class TabLine {
 
     static int width(String text) {
         int total = 0;
-        for (char c : text.toCharArray()) total += advance(c);
+        for (char c : text.toCharArray()) total += Pixels.advance(c);
         return total;
-    }
-
-    // Advances of the Minecraft font including the 1 px gap
-    private static int advance(char c) {
-        if ("!',.:;i|".indexOf(c) >= 0) return 2;
-        if ("`l".indexOf(c) >= 0) return 3;
-        if ("\"()*I[]t{} ".indexOf(c) >= 0) return 4;
-        if ("<>fk".indexOf(c) >= 0) return 5;
-        if (c == '@' || c == '~') return 7;
-        return 6;
     }
 
     static int smallWidth(String text) {

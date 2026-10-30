@@ -43,16 +43,7 @@ public final class Overlay {
     /** Space glyphs of monsters:tab, negative moves left */
     public static String space(int px) {
         if (px == 0) return "";
-        StringBuilder out = new StringBuilder("<font:monsters:tab>");
-        int distance = px;
-        for (int i = 7; i >= 0; i--) {
-            int step = 1 << i;
-            while (Math.abs(distance) >= step) {
-                out.append((char) ((distance > 0 ? 0xF011 : 0xF021) + i));
-                distance += distance > 0 ? -step : step;
-            }
-        }
-        return out.append("</font>").toString();
+        return "<font:monsters:tab>" + Pixels.spaces(px) + "</font>";
     }
 
     public static String glyph(char glyph, String color) {

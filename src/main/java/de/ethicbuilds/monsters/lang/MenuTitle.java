@@ -81,16 +81,8 @@ public final class MenuTitle {
     }
 
     private void moveTo(int px) {
-        int distance = px - x;
-        StringBuilder spaces = new StringBuilder();
-        for (int i = 7; i >= 0; i--) {
-            int step = 1 << i;
-            while (Math.abs(distance) >= step) {
-                spaces.append((char) ((distance > 0 ? 0xF011 : 0xF021) + i));
-                distance += distance > 0 ? -step : step;
-            }
-        }
-        if (!spaces.isEmpty()) title.append(Component.text(spaces.toString()).font(font));
+        String spaces = Pixels.spaces(px - x);
+        if (!spaces.isEmpty()) title.append(Component.text(spaces).font(font));
         x = px;
     }
 
@@ -103,12 +95,8 @@ public final class MenuTitle {
     }
 
     private static int advance(char c) {
-        if ("!',.:;i|".indexOf(c) >= 0) return 2;
-        if ("`l".indexOf(c) >= 0) return 3;
-        if ("\"()*I[]t{} ".indexOf(c) >= 0) return 4;
-        if ("<>fk".indexOf(c) >= 0) return 5;
-        if (c == '@' || c == '~' || c == '→') return 7;
+        if (c == '→') return 7;
         if (c == COIN) return 8;
-        return 6;
+        return Pixels.advance(c);
     }
 }
