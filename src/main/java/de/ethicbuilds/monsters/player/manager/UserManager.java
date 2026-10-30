@@ -154,6 +154,12 @@ public class UserManager {
         return gamePlayers.values().stream().toList();
     }
 
+    /** Players of the round who are online and not down */
+    public List<Player> getLivingPlayers() {
+        return gamePlayers.values().stream().map(GamePlayer::getPlayer)
+                .filter(player -> player.isOnline() && !isPlayerDead(player.getUniqueId())).toList();
+    }
+
     public void startMonsterTrackerTask() {
         new BukkitRunnable() {
             @Override

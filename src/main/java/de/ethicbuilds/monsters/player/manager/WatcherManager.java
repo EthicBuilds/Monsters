@@ -6,7 +6,6 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.map.MapManager;
-import de.ethicbuilds.monsters.player.GamePlayer;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -89,8 +88,7 @@ public class WatcherManager implements Listener {
     }
 
     private List<Player> living() {
-        return userManager.getGamePlayers().stream().map(GamePlayer::getPlayer)
-                .filter(p -> p.isOnline() && !userManager.isPlayerDead(p.getUniqueId())).toList();
+        return userManager.getLivingPlayers();
     }
 
     private void cycle(Player player, int direction) {

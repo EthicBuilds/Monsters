@@ -415,8 +415,7 @@ public class MonsterManager {
     }
 
     private List<Player> livingPlayers() {
-        return userManager.getGamePlayers().stream().map(GamePlayer::getPlayer)
-                .filter(p -> p.isOnline() && !userManager.isPlayerDead(p.getUniqueId())).toList();
+        return userManager.getLivingPlayers();
     }
 
     private List<Location> getActiveSpawnerLocations() {

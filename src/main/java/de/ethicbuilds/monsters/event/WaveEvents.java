@@ -9,7 +9,6 @@ import de.ethicbuilds.monsters.lang.DualBar;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
-import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
@@ -231,8 +230,7 @@ public class WaveEvents {
     }
 
     private List<Player> living() {
-        return userManager.getGamePlayers().stream().map(GamePlayer::getPlayer)
-                .filter(player -> player.isOnline() && !userManager.isPlayerDead(player.getUniqueId())).toList();
+        return userManager.getLivingPlayers();
     }
 
     private void sound(Sound sound, float volume, float pitch) {

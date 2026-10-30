@@ -248,8 +248,7 @@ public class MonsterSpiderBoss extends MonsterSpider {
             silk(target, SILK_TICKS);
         });
         later(COCOON_SHOT + SILK_TICKS, () -> {
-            UserManager users = Main.getINSTANCE().getInjector().getInstance(UserManager.class);
-            if (!target.isOnline() || users.isPlayerDead(target.getUniqueId()) || !target.getWorld().equals(mark.getWorld())
+            if (!target.isOnline() || users().isPlayerDead(target.getUniqueId()) || !target.getWorld().equals(mark.getWorld())
                     || target.getLocation().distanceSquared(mark) > 2.5 * 2.5) return;
             Cocoon.trap(target, monster);
         });
@@ -403,10 +402,12 @@ public class MonsterSpiderBoss extends MonsterSpider {
         }
     }
 
+    private static UserManager users() {
+        return Main.getINSTANCE().getInjector().getInstance(UserManager.class);
+    }
+
     private List<Player> living() {
-        UserManager users = Main.getINSTANCE().getInjector().getInstance(UserManager.class);
-        return users.getGamePlayers().stream().map(GamePlayer::getPlayer)
-                .filter(p -> p.isOnline() && !users.isPlayerDead(p.getUniqueId()) && p.getWorld().equals(monster.getWorld())).toList();
+        return users().getLivingPlayers().stream().filter(player -> player.getWorld().equals(monster.getWorld())).toList();
     }
 
     @Override
@@ -420,8 +421,7 @@ public class MonsterSpiderBoss extends MonsterSpider {
     private void victory(Location at) {
         World world = at.getWorld();
         int reward = REWARD_PER_LEVEL * level;
-        UserManager users = Main.getINSTANCE().getInjector().getInstance(UserManager.class);
-        List<GamePlayer> team = users.getGamePlayers().stream().filter(p -> p.getPlayer().isOnline()).toList();
+        List<GamePlayer> team = users().getGamePlayers().stream().filter(p -> p.getPlayer().isOnline()).toList();
         team.forEach(p -> p.addCoins(reward));
 
         Location body = at.clone().add(0, 1, 0);

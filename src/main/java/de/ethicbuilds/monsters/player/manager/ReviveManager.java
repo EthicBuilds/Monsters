@@ -249,8 +249,7 @@ public class ReviveManager implements Listener {
     }
 
     private List<Player> mates(Player player) {
-        return userManager.getGamePlayers().stream().map(GamePlayer::getPlayer)
-                .filter(mate -> mate.isOnline() && !mate.equals(player) && !userManager.isPlayerDead(mate.getUniqueId())).toList();
+        return userManager.getLivingPlayers().stream().filter(mate -> !mate.equals(player)).toList();
     }
 
     // Without a target the first living teammate

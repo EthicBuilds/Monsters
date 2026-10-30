@@ -261,18 +261,7 @@ public class WaveListener implements Listener {
         String station = decorationManager.getStation(interaction);
         if (station == null) return;
 
-        GamePlayer gamePlayer = userManager.getGamePlayer(event.getPlayer().getUniqueId());
-        if (gamePlayer == null || userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) return;
-
-        if (station.equals(DecorationManager.AMMO_STATION)) {
-            refillHeldWeapon(gamePlayer);
-        } else if (station.equals(DecorationManager.WORKBENCH_STATION)) {
-            workbenchManager.use(gamePlayer);
-        } else if (Perk.byFurniture(station) != null) {
-            perkManager.buy(gamePlayer, Perk.byFurniture(station));
-        } else {
-            buyOrReloadWeapon(gamePlayer, station);
-        }
+        useStation(event.getPlayer(), station);
     }
 
     // Hitting a station works like right-clicking it
@@ -282,16 +271,20 @@ public class WaveListener implements Listener {
         String station = decorationManager.getStation(interaction);
         if (station == null) return;
         event.setCancelled(true);
+        useStation(event.getPlayer(), station);
+    }
 
-        GamePlayer gamePlayer = userManager.getGamePlayer(event.getPlayer().getUniqueId());
+    private void useStation(Player player, String station) {
+        GamePlayer gamePlayer = userManager.getGamePlayer(player.getUniqueId());
         if (gamePlayer == null || userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) return;
 
+        Perk perk = Perk.byFurniture(station);
         if (station.equals(DecorationManager.AMMO_STATION)) {
             refillHeldWeapon(gamePlayer);
         } else if (station.equals(DecorationManager.WORKBENCH_STATION)) {
             workbenchManager.use(gamePlayer);
-        } else if (Perk.byFurniture(station) != null) {
-            perkManager.buy(gamePlayer, Perk.byFurniture(station));
+        } else if (perk != null) {
+            perkManager.buy(gamePlayer, perk);
         } else {
             buyOrReloadWeapon(gamePlayer, station);
         }
