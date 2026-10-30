@@ -44,7 +44,6 @@ public class RoundEndCard implements Listener {
     private static final int MVP_SLOT = 4;
     private static final int WAVE_SLOT = 10, KILLS_SLOT = 12, HEADSHOTS_SLOT = 14, REVIVES_SLOT = 16;
     private static final int ROUND_SLOT = 28, KILL_COINS_SLOT = 29, RANK_SLOT = 30, FIRST_WIN_SLOT = 31, CHALLENGE_SLOT = 32, TOTAL_SLOT = 34;
-    private static final int CLOSE_SLOT = 40;
 
     private static final TextColor LIGHT = TextColor.color(0xF2F5F8);
     private static final TextColor GREY = TextColor.color(0x9AA6B8);
@@ -183,12 +182,13 @@ public class RoundEndCard implements Listener {
         });
         inventory.setItem(TOTAL_SLOT, totalItem);
 
-        ItemStack close = new ItemStack(Material.BARRIER);
-        close.editMeta(meta -> {
-            meta.setItemModel(new NamespacedKey("ethicbuilds", "gui/icon_zurueck"));
-            meta.displayName(text(Lang.t(player, "Schließen", "Close"), LIGHT));
-        });
-        inventory.setItem(CLOSE_SLOT, close);
+        // The background shows everything, the items only give the details on hover
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            ItemStack item = inventory.getItem(slot);
+            if (item == null) continue;
+            item.editMeta(meta -> meta.setItemModel(new NamespacedKey("monsters", "gui/leer")));
+            inventory.setItem(slot, item);
+        }
     }
 
     private static long paid(Payout payout) {
@@ -238,9 +238,6 @@ public class RoundEndCard implements Listener {
     public void onClick(InventoryClickEvent event) {
         if (!(event.getView().getTopInventory().getHolder() instanceof Card)) return;
         event.setCancelled(true);
-        if (event.getClickedInventory() == event.getView().getTopInventory() && event.getSlot() == CLOSE_SLOT) {
-            event.getWhoClicked().closeInventory();
-        }
     }
 
     @EventHandler
