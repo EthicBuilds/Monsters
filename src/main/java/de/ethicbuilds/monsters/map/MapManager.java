@@ -4,9 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.gameplay.listener.WaveListener;
 import de.ethicbuilds.monsters.map.adapter.LocationAdapter;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
-import de.ethicbuilds.monsters.monster.MonsterGuard;
 import de.ethicbuilds.monsters.map.elements.Door;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.map.elements.WeaponPoint;
@@ -20,15 +20,12 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.EntityType;
 
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -107,60 +104,21 @@ public class MapManager {
     }
 
     private void createDoorHolos() {
-        for (Door door : mapConfiguration.getDoors()) {
-            Location base = door.getHoloLocation().clone();
-
-            createHolo("§aÖffnen §8· §aOpen", base.clone().add(0.5, 0.3, 0.5));
-            createHolo(String.format("§4%s", door.getName()), base.clone().add(0.5, 0, 0.5));
-            createHolo("§62500 Coins", base.clone().add(0.5, -0.3, 0.5));
-        }
+        for (Door door : mapConfiguration.getDoors()) decorationManager.doorSign(door, WaveListener.DOOR_PRICE);
     }
 
+    // The old points on the wall: a station like the weapon crates, so the click buys or refills as before
     private void createWeaponPointHolos() {
-        int i = 0;
         for (WeaponPoint weaponPoint : mapConfiguration.getWeaponPoints()) {
-            Weapon weaponPointWeapon;
-
-            try {
-                weaponPointWeapon = weaponManager.getWeaponNames()
-                        .get(weaponPoint.getWeaponName().toLowerCase())
-                        .getDeclaredConstructor().newInstance();
-            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                throw new RuntimeException(e);
-            }
-
+            boolean first = true;
             for (Location location : weaponPoint.getLocation()) {
-                try {
-                    location.getBlock().setType(Material.AIR);
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "minecraft:kill @e[type=minecraft:item]");
-                    if (i == 0) {
-                        createHolo(String.format("§aKaufe Monition für §4%s §afür §6500 Coins", weaponManager.getWeaponNames().get(weaponPoint.getWeaponName().toLowerCase()).getDeclaredConstructor().newInstance().getName()), location);
-                        i++;
-                        continue;
-                    }
-                    if (i == 1) {
-                        createHolo(String.format("§aKaufe %s für §afür §6%d Coins", weaponManager.getWeaponNames().get(weaponPoint.getWeaponName().toLowerCase()).getDeclaredConstructor().newInstance().getName(), weaponPointWeapon.getPrice()), location);
-                        i = 0;
-                    }
-                } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
-                        NoSuchMethodException e) {
-                    throw new RuntimeException(e);
-                }
+                location.getBlock().setType(Material.AIR);
+                decorationManager.weaponPoint(location.getBlock(), weaponPoint.getWeaponName().toLowerCase(), first);
+                first = false;
             }
         }
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "minecraft:kill @e[type=minecraft:item]");
     }
-
-    private void createHolo(String text, Location location) {
-        ArmorStand hologram = (ArmorStand) location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
-        hologram.setCustomName(text);
-        hologram.setCustomNameVisible(true);
-        hologram.setInvisible(true);
-        hologram.setGravity(false);
-        hologram.setInvulnerable(true);
-        hologram.setCollidable(false);
-        MonsterGuard.markHolo(hologram);
-    }
-
 
     private List<Location> findTargetBlocks(Location center) {
         World world = center.getWorld();

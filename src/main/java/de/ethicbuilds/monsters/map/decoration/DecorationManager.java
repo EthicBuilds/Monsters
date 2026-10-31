@@ -9,6 +9,7 @@ import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.building.BuildManager;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.lang.Lang;
+import de.ethicbuilds.monsters.map.elements.Door;
 import de.ethicbuilds.monsters.perk.Perk;
 import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.gameplay.listener.WaveListener;
@@ -69,7 +70,7 @@ public class DecorationManager implements Listener {
     // Clickable area over the whole car body
     private static final float WRECK_WIDTH = 3.2F, WRECK_HEIGHT = 1.8F;
     // Sign height above the block, the perk machines are taller
-    private static final double SIGN = 1.6, PERK_SIGN = 2.5;
+    private static final double SIGN = 1.6, PERK_SIGN = 2.5, DOOR_SIGN = 1.7;
 
     @Inject private Main plugin;
     @Inject private WeaponManager weaponManager;
@@ -81,14 +82,65 @@ public class DecorationManager implements Listener {
 
     private final Set<UUID> registered = new HashSet<>();
     private final Map<UUID, String> stations = new HashMap<>();
+    private final Map<Door, Sign> doorSigns = new HashMap<>();
     private final List<Sign> signs = new ArrayList<>();
     private final List<Sign> workbenchLocked = new ArrayList<>();
     private final List<Sign> workbenchOpen = new ArrayList<>();
     private boolean workbenchUnlocked;
 
-    public record Sign(TextDisplay de, TextDisplay en) {
+    /** German and English sign; it keeps its text, so a sign whose chunk was away gets the latest one back */
+    public static final class Sign {
+        private TextDisplay de, en;
+        private final UUID deId, enId;
+        private Component deText, enText;
+        private boolean removed;
+
+        Sign(TextDisplay de, TextDisplay en) {
+            this.de = de;
+            this.en = en;
+            this.deId = de.getUniqueId();
+            this.enId = en.getUniqueId();
+        }
+
+        public TextDisplay de() {
+            return de = fresh(de, deId);
+        }
+
+        public TextDisplay en() {
+            return en = fresh(en, enId);
+        }
+
+        void text(Component german, Component english) {
+            deText = german;
+            enText = english;
+            de().text(german);
+            en().text(english);
+        }
+
+        // Its chunk came back: the new entity with the latest text
+        void loaded(TextDisplay display) {
+            if (display.getUniqueId().equals(deId)) {
+                de = display;
+                if (deText != null) de.text(deText);
+            } else if (display.getUniqueId().equals(enId)) {
+                en = display;
+                if (enText != null) en.text(enText);
+            }
+        }
+
+        void remove() {
+            removed = true;
+            de().remove();
+            en().remove();
+        }
+
         boolean isValid() {
-            return de.isValid() && en.isValid();
+            return !removed;
+        }
+
+        private static TextDisplay fresh(TextDisplay display, UUID id) {
+            if (display.isValid()) return display;
+            return Bukkit.getEntity(id) instanceof TextDisplay loaded ? loaded : display;
         }
     }
 
@@ -140,6 +192,9 @@ public class DecorationManager implements Listener {
     public void onEntitiesLoad(EntitiesLoadEvent event) {
         if (BauTest.on() && !BauTest.session()) return;
         var entities = event.getEntities();
+        for (Entity entity : entities) {
+            if (entity instanceof TextDisplay display) signs.forEach(sign -> sign.loaded(display));
+        }
         Bukkit.getScheduler().runTask(plugin, () -> entities.forEach(this::register));
     }
 
@@ -207,7 +262,7 @@ public class DecorationManager implements Listener {
             Interaction hitbox = block.getWorld().spawn(center, Interaction.class, interaction -> {
                 interaction.setInteractionWidth(WRECK_WIDTH);
                 interaction.setInteractionHeight(WRECK_HEIGHT);
-                interaction.setPersistent(false);
+                interaction.setPersistent(!BauTest.on());
             });
             BauTest.limit(hitbox);
             stations.put(hitbox.getUniqueId(), station);
@@ -320,7 +375,7 @@ public class DecorationManager implements Listener {
         Interaction hitbox = block.getWorld().spawn(block.getLocation().add(0.5, 0, 0.5), Interaction.class, interaction -> {
             interaction.setInteractionWidth(width);
             interaction.setInteractionHeight(height);
-            interaction.setPersistent(false);
+            interaction.setPersistent(!BauTest.on());
         });
         BauTest.limit(hitbox);
         stations.put(hitbox.getUniqueId(), station);
@@ -341,8 +396,7 @@ public class DecorationManager implements Listener {
 
     public void removeSign(Sign sign) {
         signs.remove(sign);
-        sign.de().remove();
-        sign.en().remove();
+        sign.remove();
     }
 
     /** Function test on the build server: removes our hitboxes and signs, everything registers again in the next test */
@@ -352,10 +406,7 @@ public class DecorationManager implements Listener {
             if (hitbox != null) hitbox.remove();
         });
         stations.clear();
-        signs.forEach(sign -> {
-            sign.de().remove();
-            sign.en().remove();
-        });
+        signs.forEach(Sign::remove);
         signs.clear();
         workbenchLocked.clear();
         workbenchOpen.clear();
@@ -365,7 +416,43 @@ public class DecorationManager implements Listener {
 
     public void removeHitbox(Interaction hitbox) {
         stations.remove(hitbox.getUniqueId());
-        hitbox.remove();
+        // The object may be from before its chunk was away
+        Entity current = hitbox.isValid() ? hitbox : Bukkit.getEntity(hitbox.getUniqueId());
+        if (current != null) current.remove();
+    }
+
+    /** Sign of a door of the older maps: what is still missing, it is broken open with the crowbar */
+    public void doorSign(Door door, int remaining) {
+        Sign old = doorSigns.get(door);
+        if (old != null) {
+            old.text(MiniMessage.miniMessage().deserialize(doorText(door, remaining, false)), MiniMessage.miniMessage().deserialize(doorText(door, remaining, true)));
+            return;
+        }
+        Block block = door.getHoloLocation().getBlock();
+        TextDisplay en = holo(block, doorText(door, remaining, true), DOOR_SIGN);
+        en.setVisibleByDefault(false);
+        Sign sign = new Sign(holo(block, doorText(door, remaining, false), DOOR_SIGN), en);
+        signs.add(sign);
+        doorSigns.put(door, sign);
+        Bukkit.getOnlinePlayers().forEach(player -> show(player, sign));
+    }
+
+    private static String doorText(Door door, int remaining, boolean english) {
+        return compose(HoloText.LOCK, false, door.getName(), price(remaining, english) + "\n" + HoloText.info(english ? "with the crowbar" : "mit der Brechstange"),
+                english ? "Right-click to break open" : "Rechtsklick zum Aufbrechen");
+    }
+
+    public void removeDoorSign(Door door) {
+        Sign sign = doorSigns.remove(door);
+        if (sign == null) return;
+        signs.remove(sign);
+        sign.remove();
+    }
+
+    /** Weapon point of the older maps: the first spot gets the sign, every spot can be clicked */
+    public void weaponPoint(Block block, String weaponName, boolean withSign) {
+        if (withSign) createWeaponStation(block, weaponName);
+        else hitbox(block, weaponName, 1.2F, 1.1F);
     }
 
     private void createWeaponStation(Block block, String weaponName) {
@@ -389,10 +476,7 @@ public class DecorationManager implements Listener {
         Component text = MiniMessage.miniMessage().deserialize(compose(HoloText.PARTS, false, "Werkbank", workbenchPrices(remaining, false), "Rechtsklick zum Kaufen"));
         Component textEn = MiniMessage.miniMessage().deserialize(compose(HoloText.PARTS, false, "Workbench", workbenchPrices(remaining, true), "Right-click to buy"));
         workbenchLocked.removeIf(sign -> !sign.isValid());
-        workbenchLocked.forEach(sign -> {
-            sign.de().text(text);
-            sign.en().text(textEn);
-        });
+        workbenchLocked.forEach(sign -> sign.text(text, textEn));
     }
 
     private static String workbenchPrices(int coins, boolean english) {
@@ -423,7 +507,7 @@ public class DecorationManager implements Listener {
         Interaction hitbox = block.getWorld().spawn(block.getLocation().add(0.5, 0, 0.5), Interaction.class, interaction -> {
             interaction.setInteractionWidth(width);
             interaction.setInteractionHeight(height);
-            interaction.setPersistent(false);
+            interaction.setPersistent(!BauTest.on());
         });
         BauTest.limit(hitbox);
         stations.put(hitbox.getUniqueId(), station);
@@ -465,7 +549,8 @@ public class DecorationManager implements Listener {
         return block.getWorld().spawn(base.clone().add(0, lift, 0), TextDisplay.class, holo -> {
             holo.text(component);
             HoloText.style(holo);
-            holo.setPersistent(false);
+            // Kept with its chunk in the round world (a fresh copy every round), never in the build world
+            holo.setPersistent(!BauTest.on());
             if (BauTest.on()) holo.setVisibleByDefault(false);
         });
     }
