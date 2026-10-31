@@ -10,8 +10,10 @@ import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -60,25 +62,35 @@ public class DoorManager {
                     if (ticks % 16 == 0) center.getWorld().playSound(center, Sound.BLOCK_CHAIN_HIT, 0.7F, 0.8F);
                     else center.getWorld().playSound(center, Sound.ENTITY_ZOMBIE_ATTACK_WOODEN_DOOR, 0.6F, 1.4F);
                     for (Location block : blocks) {
-                        center.getWorld().spawnParticle(Particle.BLOCK, block.clone().add(0.5, 0.5, 0.5), 6, 0.3, 0.3, 0.3, block.getBlock().getBlockData());
+                        center.getWorld().spawnParticle(Particle.BLOCK, block.clone().add(0.5, 0.5, 0.5), 6, 0.3, 0.3, 0.3, dust(block));
                     }
                     center.getWorld().spawnParticle(Particle.CRIT, center, 3, 0.3, 0.3, 0.3, 0.1);
                 }
                 for (Location block : blocks) {
-                    Bukkit.getOnlinePlayers().forEach(p -> p.sendBlockDamage(block, Math.min(progress, 0.99F), player.getEntityId()));
+                    if (!hidden(block)) Bukkit.getOnlinePlayers().forEach(p -> p.sendBlockDamage(block, Math.min(progress, 0.99F), player.getEntityId()));
                 }
                 player.sendActionBar(progressBar(progress));
 
                 if (ticks >= breakTicks) {
                     stop(door, blocks, player);
                     center.getWorld().playSound(center, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 1.2F, 1.0F);
-                    center.getWorld().spawnParticle(Particle.BLOCK, center, 40, 0.6, 0.8, 0.6, blocks.getFirst().getBlock().getBlockData());
+                    center.getWorld().spawnParticle(Particle.BLOCK, center, 40, 0.6, 0.8, 0.6, dust(blocks.getFirst()));
                     center.getWorld().spawnParticle(Particle.POOF, center, 8, 0.6, 0.8, 0.6, 0.02);
                     onOpen.run();
                     cancel();
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    // Barriers (car wrecks, Nexo furniture) have no texture: metal dust instead and no cracks on the invisible block
+    private static boolean hidden(Location block) {
+        Material type = block.getBlock().getType();
+        return type == Material.BARRIER || type == Material.LIGHT || type.isAir();
+    }
+
+    private static BlockData dust(Location block) {
+        return hidden(block) ? Material.IRON_BLOCK.createBlockData() : block.getBlock().getBlockData();
     }
 
     private boolean canContinue(Player player, Location center) {

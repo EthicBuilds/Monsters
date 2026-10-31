@@ -31,13 +31,14 @@ public class Wrecks {
     private final List<Wreck> wrecks = new ArrayList<>();
 
     private static final class Wreck {
-        private final List<Location> blocks;
         private final Location center;
+        // One body per wreck, so clicking again does not start a second search
+        private final Door body;
         private int searchedWave = -1;
 
         private Wreck(List<Location> blocks, Location center) {
-            this.blocks = blocks;
             this.center = center;
+            this.body = new Door("Wrack", new ArrayList<>(blocks), center);
         }
     }
 
@@ -88,8 +89,7 @@ public class Wrecks {
             Sounds.deny(player);
             return;
         }
-        Door body = new Door("Wrack", new ArrayList<>(wreck.blocks), wreck.center);
-        doorManager.breakOpen(gamePlayer, body, () -> {
+        doorManager.breakOpen(gamePlayer, wreck.body, () -> {
             if (wreck.searchedWave == waveManager.getCurrentWave()) return;
             wreck.searchedWave = waveManager.getCurrentWave();
             Location at = wreck.center.clone().add(0, 1, 0);
