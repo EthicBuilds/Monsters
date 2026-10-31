@@ -35,12 +35,12 @@ import java.util.concurrent.ThreadLocalRandom;
 /***
  * Escape car (user 31.10.): a wreck that the team repairs with a tyre, a car battery and a fuel can out of crates
  * and wrecks. Then it drives (W/S, steering with the look) and runs monsters over. A fuel can lasts 20 seconds of driving.
- * The driver stays in until he gets off standing still (user 01.11.), hears the engine and sees the car without its roof.
+ * The driver stays in until he gets off standing still (user 01.11.) and hears the engine.
  */
 public class EscapeCar implements Listener {
     public static final String STATION = "fluchtauto#";
     static final String BROKEN_ID = "monsters_fluchtauto_kaputt";
-    private static final String FIXED_ID = "monsters_fluchtauto_repariert", ROOFLESS_ID = "monsters_fluchtauto_ohne_dach";
+    private static final String FIXED_ID = "monsters_fluchtauto_repariert";
     private static final double PART_CHANCE = 0.12;
     // Driving time of one fuel can, only counted while the car moves
     private static final int TANK_TICKS = 20 * 20;
@@ -48,8 +48,8 @@ public class EscapeCar implements Listener {
     private static final double STANDING = 0.05;
     private static final double MAX_SPEED = 0.6, ACCELERATION = 0.04, BRAKE = 0.06, HIT_RADIUS = 2.2, HIT_DAMAGE = 60;
     private static final String COLOR = "#50839D";
-    // Seat height (DESIGN): eyes about 1.7 above the ground, free above the cabin edge of the roofless car
-    private static final double SEAT = 0.1;
+    // Seat height (DESIGN): eyes about 2.0 above the ground, free above the low windscreen frame (1.69)
+    private static final double SEAT = 0.4;
 
     @Inject private Main plugin;
     @Inject private DecorationManager decorationManager;
@@ -210,7 +210,6 @@ public class EscapeCar implements Listener {
         Ride ride = new Ride();
         seats.put(seat, ride);
         car.display.setTeleportDuration(1);
-        ItemDisplay view = roofless(car, driver);
         engine(start, driver, Sound.ENTITY_IRON_GOLEM_REPAIR, 0.6F, 0.5F);
         new BukkitRunnable() {
             int ticks, nextBeat;
@@ -224,8 +223,6 @@ public class EscapeCar implements Listener {
                     seats.remove(seat);
                     seat.eject();
                     seat.remove();
-                    if (view != null) view.remove();
-                    if (driver.isOnline()) driver.showEntity(plugin, car.display);
                     car.hitbox.teleport(car.middle());
                     car.driving = false;
                     Location at = car.display.getLocation();
@@ -272,7 +269,6 @@ public class EscapeCar implements Listener {
                 // Standing still nothing is moved: every seat teleport also sends the driver his position
                 if (!next.equals(now)) {
                     car.display.teleport(next);
-                    if (view != null) view.teleport(next);
                     // A turned seat would turn the driver too, so it keeps its yaw
                     Location seatAt = next.clone().add(0, SEAT, 0);
                     seatAt.setYaw(0);
@@ -313,24 +309,6 @@ public class EscapeCar implements Listener {
     private static void engine(Location at, Player driver, Sound sound, float volume, float pitch) {
         at.getWorld().playSound(at, sound, volume, pitch);
         if (driver.isOnline()) driver.playSound(driver.getLocation(), sound, volume * 0.5F, pitch);
-    }
-
-    // Inside the roof covers half the view: the driver sees the car without it, everybody else the normal one
-    private ItemDisplay roofless(Car car, Player driver) {
-        if (!decorationManager.knownItem(ROOFLESS_ID)) return null;
-        ItemDisplay view = car.display.getWorld().spawn(car.display.getLocation(), ItemDisplay.class, display -> {
-            display.setPersistent(false);
-            display.setVisibleByDefault(false);
-            display.setItemStack(decorationManager.modelItem(ROOFLESS_ID));
-            display.setItemDisplayTransform(car.display.getItemDisplayTransform());
-            display.setTransformation(car.display.getTransformation());
-            display.setTeleportDuration(1);
-        });
-        // Nexo's scale of the car, the roofless model is the same car
-        decorationManager.look(view, FIXED_ID);
-        driver.showEntity(plugin, view);
-        driver.hideEntity(plugin, car.display);
-        return view;
     }
 
     private static void runOver(Location front, Player driver) {
