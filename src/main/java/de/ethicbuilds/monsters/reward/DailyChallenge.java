@@ -103,7 +103,8 @@ public final class DailyChallenge {
                         result.complete(Payout.NONE);
                         return;
                     }
-                    player.sendMessage(Lang.f(player, "%s§aTagesaufgabe geschafft! §6+%d EthicCoins", "%s§aDaily challenge done! §6+%d EthicCoins", Main.getINSTANCE().getMonstersPrefix(), coins));
+                    player.sendMessage(Lang.f(player, "%s§aTagesaufgabe geschafft! §6+%d EthicCoins%s", "%s§aDaily challenge done! §6+%d EthicCoins%s", Main.getINSTANCE().getMonstersPrefix(), coins,
+                            EthicCoins.bonusNote(player, reward, coins)));
                     result.complete(new Payout(reward, coins));
                 });
             });

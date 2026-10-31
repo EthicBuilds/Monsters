@@ -21,6 +21,7 @@ import de.ethicbuilds.monsters.perk.PerkManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.SpectatorHud;
 import de.ethicbuilds.monsters.reward.DailyChallenge;
+import de.ethicbuilds.monsters.reward.EthicCoins;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.powerup.PowerupManager;
 import de.ethicbuilds.monsters.reward.RoundReward;
@@ -142,6 +143,7 @@ public class GameManager {
                         }
                     }
 
+                    for (var gamePlayer : userManager.getGamePlayers()) EthicCoins.announceBonus(gamePlayer.getPlayer(), plugin.getMonstersPrefix());
                     Overlay.mediumAll(START_COLOR, Overlay.line(Overlay.START, START_COLOR, "LOS!", "Überlebt so lange wie möglich"),
                             Overlay.line(Overlay.START, START_COLOR, "GO!", "survive as long as you can"));
 

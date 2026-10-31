@@ -105,8 +105,8 @@ public final class RoundReward {
             if (base <= 0) continue;
             long coins = EthicCoins.withRankBonus(player, base);
             if (!EthicCoins.deposit(player.getUniqueId(), coins, "Monsters Runde")) continue;
-            player.sendMessage(Lang.f(player, "%s§7Du bekommst §6%d EthicCoins §7für diese Runde%s", "%s§7You get §6%d EthicCoins §7for this round%s", prefix, coins,
-                    i == 0 ? Lang.t(player, " §8(§6Rundenbester§8)", " §8(§6Best player§8)") : ""));
+            player.sendMessage(Lang.f(player, "%s§7Du bekommst §6%d EthicCoins §7für diese Runde%s%s", "%s§7You get §6%d EthicCoins §7for this round%s%s", prefix, coins,
+                    EthicCoins.bonusNote(player, base, coins), i == 0 ? Lang.t(player, " §8(§6Rundenbester§8)", " §8(§6Best player§8)") : ""));
             CompletableFuture<Payout> firstWin = CompletableFuture.completedFuture(Payout.NONE);
             if (i == 0) {
                 Lang.broadcast("%s§6%s §7war der beste Spieler der Runde!", "%s§6%s §7was the best player of the round!", prefix, player.getName());

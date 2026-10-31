@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.reward;
 
+import de.ethicbuilds.monsters.lang.Lang;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -33,6 +34,23 @@ public final class EthicCoins {
     // Rank bonus like in the whole network: Founder +50 %, EthicFounder +100 %
     public static long withRankBonus(Player player, long amount) {
         return Math.round(amount * (100 + rankBonus(player)) / 100d);
+    }
+
+    private static final String BONUS_COLOR = "§x§D§9§8§C§F§F";
+
+    /** Rank bonus part of a payout for the chat, like in all minigames, empty without bonus */
+    public static String bonusNote(Player player, long base, long paid) {
+        if (paid <= base) return "";
+        String text = Lang.f(player, "+%d durch +%d %% Rang-Bonus", "+%d from +%d %% rank bonus", paid - base, rankBonus(player));
+        return " §8(" + BONUS_COLOR + text + "§8)";
+    }
+
+    /** Hint at the round start, only for players with a rank bonus */
+    public static void announceBonus(Player player, String prefix) {
+        int bonus = rankBonus(player);
+        if (bonus <= 0) return;
+        player.sendMessage(prefix + Lang.f(player, "§7Dein Rang gibt dir " + BONUS_COLOR + "+%d %% EthicCoins §7in dieser Runde.",
+                "§7Your rank gives you " + BONUS_COLOR + "+%d %% EthicCoins §7this round.", bonus));
     }
 
     /** Rank bonus in percent */
