@@ -74,8 +74,9 @@ public class Elevators implements BuildPart, Listener {
     // From DESIGN: two ropes at model x ±1.25, from the bottom of the top piece to the eyes of the platform
     private static final double ROPE_SIDE = 1.25, ROPE_EYE = 0.765625, ROPE_TOP = 0.5;
     private static final int SHAFT_HEIGHT = 96;
-    // Crank arm (DESIGN): its model is centred on the drum, which sits here in the platform model; one turn per block
-    private static final Vector3f ARM_PIVOT = new Vector3f(0, (20F - 8) / 16, (25F - 8) / 16);
+    // Crank arm (DESIGN): its model is centred on the drum, which sits at model y 20 / z 25 of the platform; one turn per block.
+    // An item display draws its model turned by 180° about y after the transformation, so the drum lies at -z here.
+    private static final Vector3f ARM_PIVOT = new Vector3f(0, (20F - 8) / 16, -(25F - 8) / 16);
     private static final double ARM_TURN = Math.PI * 2;
 
     @Inject private Main plugin;
@@ -259,7 +260,8 @@ public class Elevators implements BuildPart, Listener {
     private static void turn(Platform platform, double angle, int ticks) {
         if (platform.arm == null || !platform.arm.isValid()) return;
         Transformation base = platform.display.getTransformation();
-        Quaternionf spin = new Quaternionf().rotateX((float) angle);
+        // About the model's x axis, which the 180° turn of the item makes -x
+        Quaternionf spin = new Quaternionf().rotateX((float) -angle);
         Vector3f translation = new Vector3f(base.getTranslation())
                 .add(new Quaternionf(base.getLeftRotation()).transform(new Vector3f(ARM_PIVOT).mul(base.getScale())));
         platform.arm.setInterpolationDelay(0);
