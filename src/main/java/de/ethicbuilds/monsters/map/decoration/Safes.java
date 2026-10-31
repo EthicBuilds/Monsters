@@ -91,6 +91,8 @@ public class Safes {
                 text.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
                 text.setDefaultBackground(false);
                 text.setShadowed(true);
+                text.setBrightness(new Display.Brightness(15, 15));
+                text.setViewRange(0.3F);
                 text.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(0.8F), new AxisAngle4f()));
                 text.setPersistent(false);
             });
