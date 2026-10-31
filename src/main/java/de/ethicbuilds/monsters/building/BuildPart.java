@@ -17,6 +17,9 @@ interface BuildPart {
     /** Every second while the wave runs */
     default void tick() {}
 
+    /** Every 2 ticks, for what the players look at */
+    default void look() {}
+
     /** Function test on the build server: forget all registered pieces */
     void clear();
 }

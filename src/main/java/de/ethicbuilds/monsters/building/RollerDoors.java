@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.building;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.bautest.BauTest;
 import de.ethicbuilds.monsters.bautest.NexoBarriers;
 import de.ethicbuilds.monsters.bautest.NexoStandIns;
 import de.ethicbuilds.monsters.bautest.Restore;
@@ -12,6 +13,8 @@ import de.ethicbuilds.monsters.map.decoration.HoloText;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.sound.Sounds;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -22,14 +25,20 @@ import org.bukkit.entity.Interaction;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
+import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /***
  * Roller doors (user 31.10.): 2 wide and 3 high, closed at the start. The switch beside it buys it free once (the team can chip in),
  * then opens and closes it and shows how it stands. Monsters break closed doors, parts repair and upgrade them
- * at the door, from level 2 they close by themselves when monsters come.
+ * with a right-click on the door (whoever looks at it sees the price), from level 2 they close by themselves when monsters come.
  */
 public class RollerDoors implements BuildPart {
     private static final String DOOR_ID = "monsters_rolltor_", SWITCH_ID = "monsters_rolltor_schalter",
@@ -38,13 +47,15 @@ public class RollerDoors implements BuildPart {
     private static final int MAX_LEVEL = 3, REPAIR = 1, HIT = 10, UNLOCK = 2500;
     private static final int[] UPGRADE = {0, 0, 10, 16};
     private static final int[] HEALTH = {0, 250, 500, 900};
-    private static final double SWITCH_REACH = 12, ATTACK_REACH = 1.8, ALARM_REACH = 6;
+    private static final double SWITCH_REACH = 12, ATTACK_REACH = 1.8, ALARM_REACH = 6, LOOK_REACH = 6, INFO_LIFT = 3.15;
 
     @Inject private DecorationManager decorationManager;
     @Inject private MonsterManager monsterManager;
 
     private final List<Door> doors = new ArrayList<>();
     private final List<Lever> switches = new ArrayList<>();
+    // The door each player looks at, its price sign is shown to that player only
+    private final Map<UUID, Door> looking = new HashMap<>();
 
     private static final class Lever {
         private final ItemDisplay display;
@@ -63,6 +74,7 @@ public class RollerDoors implements BuildPart {
         private final List<Block> barriers;
         private final Location center;
         private Interaction hitbox;
+        private TextDisplay info, infoEn;
         private int level, health, paid;
         private RollerShutter shutter;
         private boolean bought, open;
@@ -113,6 +125,9 @@ public class RollerDoors implements BuildPart {
         Restore.display(door.display);
         door.display.setItemStack(null);
         door.shutter = new RollerShutter(decorationManager, door.display.getLocation(), door.level);
+        door.info = info(door);
+        door.infoEn = info(door);
+        text(door);
         // At the start it is closed, whatever model the map builder placed
         show(door);
         return true;
@@ -129,6 +144,11 @@ public class RollerDoors implements BuildPart {
 
     @Override
     public void clear() {
+        for (Door door : doors) {
+            door.info.remove();
+            door.infoEn.remove();
+        }
+        looking.clear();
         doors.clear();
         switches.clear();
     }
@@ -155,14 +175,10 @@ public class RollerDoors implements BuildPart {
         }
     }
 
-    // At the door only parts work: broken rebuild, damaged repair, whole next level
+    // At the door only parts work, bought free or not: broken rebuild, damaged repair, whole next level
     private void work(GamePlayer gamePlayer, Door door) {
         Player player = gamePlayer.getPlayer();
-        if (!door.bought) {
-            Overlay.small(player, Overlay.line((char) 0, COLOR, "ROLLTOR", "am Schalter freikaufen"),
-                    Overlay.line((char) 0, COLOR, "ROLLER DOOR", "buy it free at the switch"));
-            Sounds.deny(player);
-        } else if (!door.whole()) {
+        if (!door.whole()) {
             int price = REPAIR * door.level * 2;
             if (!Parts.take(gamePlayer, price)) return;
             door.health = HEALTH[door.level];
@@ -173,6 +189,7 @@ public class RollerDoors implements BuildPart {
         } else if (door.health < HEALTH[door.level]) {
             if (!Parts.take(gamePlayer, REPAIR)) return;
             door.health = HEALTH[door.level];
+            text(door);
             note(player, "Rolltor repariert", "Roller door repaired", REPAIR);
             door.center.getWorld().playSound(door.center, Sound.BLOCK_ANVIL_USE, 1.0F, 1.0F);
         } else if (door.level < MAX_LEVEL) {
@@ -276,6 +293,7 @@ public class RollerDoors implements BuildPart {
 
     // Model, barriers, click area and switches for the current state; while it rolls the shutter moves itself
     private void show(Door door, boolean rolling) {
+        text(door);
         if (!door.whole()) door.shutter.broken();
         else if (!rolling) door.shutter.place(door.open);
         setBarriers(door, !door.passable());
@@ -337,6 +355,7 @@ public class RollerDoors implements BuildPart {
             int attackers = monsters(ATTACK_REACH, door);
             if (attackers == 0) continue;
             door.health -= attackers * HIT;
+            text(door);
             Location at = door.center.clone().add(0, 1, 0);
             at.getWorld().spawnParticle(Particle.BLOCK, at, 6 * attackers, 0.6, 0.8, 0.6, Material.IRON_BLOCK.createBlockData());
             at.getWorld().playSound(at, Sound.ENTITY_ZOMBIE_ATTACK_IRON_DOOR, 0.8F, 1.0F);
@@ -362,6 +381,74 @@ public class RollerDoors implements BuildPart {
         show(door);
         Overlay.smallAll(Overlay.icon(Overlay.PARTS, Parts.COLOR, "<b>Rolltor zerstört</b> " + grey("· mit Bauteilen neu aufbauen")),
                 Overlay.icon(Overlay.PARTS, Parts.COLOR, "<b>Roller door destroyed</b> " + grey("· rebuild it with parts")));
+    }
+
+    // Small price sign over the box, nobody sees it until they look at the door
+    private static TextDisplay info(Door door) {
+        return door.center.getWorld().spawn(door.center.clone().add(0, INFO_LIFT, 0), TextDisplay.class, holo -> {
+            HoloText.style(holo);
+            holo.setPersistent(false);
+            holo.setVisibleByDefault(false);
+        });
+    }
+
+    // What a right-click on the door does next and what it costs
+    private static void text(Door door) {
+        if (door.info == null) return;
+        for (boolean english : new boolean[]{false, true}) {
+            String name, lines, hint;
+            if (!door.whole()) {
+                name = english ? "Rebuild" : "Wiederaufbau";
+                lines = HoloText.parts(REPAIR * door.level * 2, english);
+                hint = english ? "Right-click to rebuild" : "Rechtsklick zum Aufbauen";
+            } else if (door.health < HEALTH[door.level]) {
+                name = english ? "Repair" : "Reparatur";
+                lines = HoloText.parts(REPAIR, english);
+                hint = english ? "Right-click to repair" : "Rechtsklick zum Reparieren";
+            } else if (door.level < MAX_LEVEL) {
+                name = (english ? "Upgrade level " : "Ausbau Stufe ") + (door.level + 1);
+                lines = HoloText.parts(UPGRADE[door.level + 1], english);
+                hint = english ? "Right-click to upgrade" : "Rechtsklick zum Ausbauen";
+            } else {
+                name = (english ? "Level " : "Stufe ") + MAX_LEVEL;
+                lines = HoloText.info("max.");
+                hint = "";
+            }
+            (english ? door.infoEn : door.info).text(MiniMessage.miniMessage().deserialize(DecorationManager.compose(HoloText.PARTS, false, name, lines, hint)));
+        }
+    }
+
+    @Override
+    public void look() {
+        if (doors.isEmpty()) return;
+        Main plugin = Main.getINSTANCE();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            Door door = BauTest.on() && !BauTest.active(player) ? null : lookedAt(player);
+            Door before = door == null ? looking.remove(player.getUniqueId()) : looking.put(player.getUniqueId(), door);
+            if (before == door) continue;
+            if (before != null) {
+                player.hideEntity(plugin, before.info);
+                player.hideEntity(plugin, before.infoEn);
+            }
+            if (door != null) player.showEntity(plugin, Lang.english(player) ? door.infoEn : door.info);
+        }
+    }
+
+    private Door lookedAt(Player player) {
+        Vector eye = player.getEyeLocation().toVector(), direction = player.getEyeLocation().getDirection();
+        Door best = null;
+        double bestDistance = LOOK_REACH;
+        for (Door door : doors) {
+            if (!door.hitbox.isValid() || !door.hitbox.getWorld().equals(player.getWorld())) continue;
+            RayTraceResult hit = door.hitbox.getBoundingBox().rayTrace(eye, direction, LOOK_REACH);
+            if (hit == null) continue;
+            double distance = hit.getHitPosition().distance(eye);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = door;
+            }
+        }
+        return best;
     }
 
     private static void note(Player player, String de, String en, int price) {

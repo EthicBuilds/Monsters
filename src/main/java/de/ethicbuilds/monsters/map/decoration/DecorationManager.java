@@ -548,9 +548,10 @@ public class DecorationManager implements Listener {
         return sign;
     }
 
-    // Title, divider, the lines of the sign and the small hint (DESIGN 31.10.)
-    private static String compose(Character icon, boolean colored, String name, String lines, String hint) {
-        return HoloText.title(icon, colored, name) + "\n" + HoloText.divider() + (lines.isEmpty() ? "" : "\n" + lines) + "\n" + HoloText.hint(hint);
+    /** Title, divider, the lines of the sign and the small hint (DESIGN 31.10.), without a hint no hint line */
+    public static String compose(Character icon, boolean colored, String name, String lines, String hint) {
+        return HoloText.title(icon, colored, name) + "\n" + HoloText.divider() + (lines.isEmpty() ? "" : "\n" + lines)
+                + (hint.isEmpty() ? "" : "\n" + HoloText.hint(hint));
     }
 
     private TextDisplay holo(Block block, String text, double lift) {
