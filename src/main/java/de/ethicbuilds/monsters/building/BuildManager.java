@@ -167,7 +167,7 @@ public class BuildManager {
             Restore.block(block);
             block.setType(Material.AIR, false);
         });
-        NexoBarriers.open(piece.barriers());
+        NexoBarriers.open(piece.display());
         // On the build server the furniture only disappears for the test
         if (BauTest.on()) Restore.hide(piece.display());
         else piece.display().remove();
@@ -209,7 +209,7 @@ public class BuildManager {
                 Restore.block(block);
                 block.setType(Material.BARRIER, false);
             });
-            NexoBarriers.close(barricade.barriers);
+            NexoBarriers.close(barricade.display);
             note(player, "Barrikade aufgebaut", "Barricade rebuilt", price);
             sound(barricade, Sound.BLOCK_WOOD_PLACE);
         } else if (barricade.health < HEALTH[barricade.level]) {
@@ -282,7 +282,7 @@ public class BuildManager {
             Restore.block(block);
             block.setType(Material.AIR, false);
         });
-        NexoBarriers.open(barricade.barriers);
+        NexoBarriers.open(barricade.display);
         Restore.display(barricade.display);
         barricade.display.setItemStack(null);
         Overlay.smallAll(Overlay.icon(Overlay.PARTS, Parts.COLOR, "<b>Barrikade zerstört</b> " + grey("· mit Bauteilen neu aufbauen")),

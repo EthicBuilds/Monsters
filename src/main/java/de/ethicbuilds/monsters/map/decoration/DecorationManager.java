@@ -35,7 +35,9 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Transformation;
+import org.bukkit.util.Vector;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
@@ -109,6 +111,29 @@ public class DecorationManager implements Listener {
 
     public String getStation(Entity entity) {
         return stations.get(entity.getUniqueId());
+    }
+
+    /** Our station the player looks at, for clicks that reach Nexo's own hitbox instead of ours */
+    public String stationLookedAt(Player player, double reach) {
+        Vector eye = player.getEyeLocation().toVector(), look = player.getEyeLocation().getDirection();
+        // Exact first, then a little more generous for thin hitboxes
+        for (double grow : new double[]{0, 0.4}) {
+            String best = null;
+            double bestDistance = reach;
+            for (Map.Entry<UUID, String> entry : stations.entrySet()) {
+                Entity hitbox = Bukkit.getEntity(entry.getKey());
+                if (hitbox == null || !hitbox.getWorld().equals(player.getWorld())) continue;
+                RayTraceResult hit = hitbox.getBoundingBox().expand(grow).rayTrace(eye, look, reach);
+                if (hit == null) continue;
+                double distance = hit.getHitPosition().distance(eye);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    best = entry.getValue();
+                }
+            }
+            if (best != null) return best;
+        }
+        return null;
     }
 
     public void registerLoaded(World world) {
@@ -333,7 +358,7 @@ public class DecorationManager implements Listener {
                 price(weapon.getPrice()), price(weapon.getPrice()));
     }
 
-    private static String price(int coins) {
+    public static String price(int coins) {
         return "<white><font:monsters:hud>\uE017</font></white> <#F9A11E>" + coins + " <#9AA6B8>Coins";
     }
 

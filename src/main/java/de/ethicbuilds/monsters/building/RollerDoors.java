@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.building;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.bautest.NexoBarriers;
 import de.ethicbuilds.monsters.bautest.Restore;
+import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
@@ -23,16 +24,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 /***
- * Roller doors (user 31.10.): 2 wide and 3 high, built with parts in 3 levels (corrugated iron, reinforced, steel).
- * Only a switch nearby opens and closes it and shows how it stands, monsters break closed doors,
- * from level 2 they close by themselves when monsters come.
+ * Roller doors (user 31.10.): 2 wide and 3 high, closed at the start. The switch beside it buys it free once,
+ * then opens and closes it and shows how it stands. Monsters break closed doors, parts repair and upgrade them
+ * at the door, from level 2 they close by themselves when monsters come.
  */
 public class RollerDoors implements BuildPart {
     private static final String DOOR_ID = "monsters_rolltor_", SWITCH_ID = "monsters_rolltor_schalter",
             DOOR = "rolltor#", SWITCH = "rolltorschalter#";
     private static final String COLOR = "#9AA6B8";
-    private static final int MAX_LEVEL = 3, REPAIR = 1, HIT = 10;
-    private static final int[] PRICE = {0, 6, 10, 16};
+    private static final int MAX_LEVEL = 3, REPAIR = 1, HIT = 10, UNLOCK = 2500;
+    private static final int[] UPGRADE = {0, 0, 10, 16};
     private static final int[] HEALTH = {0, 250, 500, 900};
     private static final double SWITCH_REACH = 12, ATTACK_REACH = 1.8, ALARM_REACH = 6;
 
@@ -42,25 +43,32 @@ public class RollerDoors implements BuildPart {
     private final List<Door> doors = new ArrayList<>();
     private final List<Lever> switches = new ArrayList<>();
 
-    private record Lever(ItemDisplay display, Block block) {}
+    private static final class Lever {
+        private final ItemDisplay display;
+        private final Block block;
+        private DecorationManager.Sign sign;
+
+        private Lever(ItemDisplay display, Block block) {
+            this.display = display;
+            this.block = block;
+        }
+    }
 
     private static final class Door {
         private final ItemDisplay display;
         private final Block block;
         private final List<Block> barriers;
         private final Location center;
-        // Placed closed: Nexo sends its barriers to the players
-        private final boolean nexo;
         private Interaction hitbox;
-        private DecorationManager.Sign sign;
         private int level, health;
-        private boolean open;
+        private boolean bought, open;
 
-        private Door(ItemDisplay display, Block block, List<Block> barriers, boolean nexo) {
+        private Door(ItemDisplay display, Block block, List<Block> barriers, int level) {
             this.display = display;
             this.block = block;
             this.barriers = barriers;
-            this.nexo = nexo;
+            this.level = level;
+            this.health = HEALTH[level];
             double x = 0, z = 0;
             for (Block barrier : barriers) {
                 x += barrier.getX() - block.getX();
@@ -70,12 +78,12 @@ public class RollerDoors implements BuildPart {
             this.center = block.getLocation().add(0.5 + x / n, 0, 0.5 + z / n);
         }
 
-        private boolean built() {
-            return level > 0 && health > 0;
+        private boolean whole() {
+            return health > 0;
         }
 
-        private String model() {
-            return DOOR_ID + level + (open ? "_auf" : "_zu");
+        private boolean passable() {
+            return !whole() || open;
         }
     }
 
@@ -84,6 +92,8 @@ public class RollerDoors implements BuildPart {
         if (id.startsWith(SWITCH_ID)) {
             decorationManager.hitbox(block, SWITCH + switches.size(), 0.8F, 1.4F);
             Lever lever = new Lever(display, block);
+            lever.sign = decorationManager.sign(block, "Rolltor", "Roller door", DecorationManager.price(UNLOCK), DecorationManager.price(UNLOCK),
+                    "Rechtsklick zum Freikaufen", "Right-click to buy free", 1.0);
             switches.add(lever);
             Door door = nearest(block);
             if (door != null) lever(lever, door);
@@ -91,18 +101,22 @@ public class RollerDoors implements BuildPart {
         }
         if (!id.startsWith(DOOR_ID) || !id.endsWith("_zu") && !id.endsWith("_auf")) return false;
         String closed = id.endsWith("_zu") ? id : id.substring(0, id.length() - "_auf".length()) + "_zu";
-        Door door = new Door(display, block, decorationManager.barriers(display, closed), id.endsWith("_zu"));
-        // In the round the door is missing until a player builds it
-        Restore.display(display);
-        display.setItemStack(null);
-        setBarriers(door, false);
+        Door door = new Door(display, block, decorationManager.barriers(display, closed), level(closed));
         door.hitbox = decorationManager.hitbox(block, DOOR + doors.size(), 2.0F, 3.0F);
         door.hitbox.teleport(door.center);
-        door.sign = decorationManager.sign(block, "Rolltor", "Roller door", Parts.price(PRICE[1], false), Parts.price(PRICE[1], true),
-                "Rechtsklick zum Bauen", "Right-click to build", 3.2);
         doors.add(door);
-        levers(door);
+        // At the start it is closed, whatever model the map builder placed
+        show(door);
         return true;
+    }
+
+    private static int level(String closed) {
+        try {
+            int level = Integer.parseInt(closed.substring(DOOR_ID.length(), closed.length() - "_zu".length()));
+            return Math.max(1, Math.min(MAX_LEVEL, level));
+        } catch (NumberFormatException e) {
+            return 1;
+        }
     }
 
     @Override
@@ -115,12 +129,12 @@ public class RollerDoors implements BuildPart {
     public boolean use(GamePlayer gamePlayer, String station) {
         int index = index(station, SWITCH);
         if (index >= 0) {
-            if (index < switches.size()) toggle(gamePlayer.getPlayer(), switches.get(index).block());
+            if (index < switches.size()) toggle(gamePlayer, switches.get(index));
             return true;
         }
         index = index(station, DOOR);
         if (index < 0) return false;
-        if (index < doors.size()) build(gamePlayer, doors.get(index));
+        if (index < doors.size()) work(gamePlayer, doors.get(index));
         return true;
     }
 
@@ -133,24 +147,18 @@ public class RollerDoors implements BuildPart {
         }
     }
 
-    // Missing or broken: build, damaged: repair, whole: next level
-    private void build(GamePlayer gamePlayer, Door door) {
+    // At the door only parts work: broken rebuild, damaged repair, whole next level
+    private void work(GamePlayer gamePlayer, Door door) {
         Player player = gamePlayer.getPlayer();
-        if (door.level == 0) {
-            if (!Parts.take(gamePlayer, PRICE[1])) return;
-            door.level = 1;
-            door.health = HEALTH[1];
-            door.open = true;
-            if (door.sign != null) decorationManager.removeSign(door.sign);
-            door.sign = null;
-            show(door);
-            note(player, "Rolltor gebaut", "Roller door built", PRICE[1]);
-            door.center.getWorld().playSound(door.center, Sound.BLOCK_ANVIL_PLACE, 1.0F, 1.0F);
-        } else if (door.health <= 0) {
+        if (!door.bought) {
+            Overlay.small(player, Overlay.line((char) 0, COLOR, "ROLLTOR", "am Schalter freikaufen"),
+                    Overlay.line((char) 0, COLOR, "ROLLER DOOR", "buy it free at the switch"));
+            Sounds.deny(player);
+        } else if (!door.whole()) {
             int price = REPAIR * door.level * 2;
             if (!Parts.take(gamePlayer, price)) return;
             door.health = HEALTH[door.level];
-            door.open = true;
+            door.open = false;
             show(door);
             note(player, "Rolltor aufgebaut", "Roller door rebuilt", price);
             door.center.getWorld().playSound(door.center, Sound.BLOCK_ANVIL_PLACE, 1.0F, 1.0F);
@@ -160,7 +168,7 @@ public class RollerDoors implements BuildPart {
             note(player, "Rolltor repariert", "Roller door repaired", REPAIR);
             door.center.getWorld().playSound(door.center, Sound.BLOCK_ANVIL_USE, 1.0F, 1.0F);
         } else if (door.level < MAX_LEVEL) {
-            int price = PRICE[door.level + 1];
+            int price = UPGRADE[door.level + 1];
             if (!Parts.take(gamePlayer, price)) return;
             door.level++;
             door.health = HEALTH[door.level];
@@ -174,18 +182,33 @@ public class RollerDoors implements BuildPart {
         }
     }
 
-    // The switch works the nearest roller door
-    private void toggle(Player player, Block lever) {
-        Door door = nearest(lever);
-        Location at = lever.getLocation().add(0.5, 1.0, 0.5);
-        if (door == null || !door.built()) {
-            String de = door == null ? "Kein Rolltor in der Nähe" : door.level == 0 ? "Erst das Rolltor bauen" : "Das Rolltor ist kaputt";
-            String en = door == null ? "No roller door nearby" : door.level == 0 ? "Build the roller door first" : "The roller door is broken";
+    // The switch works the nearest roller door: first buy it free, then open and close
+    private void toggle(GamePlayer gamePlayer, Lever lever) {
+        Player player = gamePlayer.getPlayer();
+        Door door = nearest(lever.block);
+        if (door == null || !door.whole()) {
+            String de = door == null ? "Kein Rolltor in der Nähe" : "Kaputt · am Tor mit Bauteilen aufbauen";
+            String en = door == null ? "No roller door nearby" : "Broken · rebuild it at the door with parts";
             Overlay.small(player, Overlay.line((char) 0, COLOR, "ROLLTOR", de), Overlay.line((char) 0, COLOR, "ROLLER DOOR", en));
             Sounds.deny(player);
             return;
         }
-        if (door.open && blocked(door)) {
+        if (!door.bought) {
+            if (gamePlayer.getCoins() < UNLOCK) {
+                Lang.note(player, Lang.f(player, "§cDu brauchst noch §6%d Coins", "§cNot enough coins, §6%d Coins §cmissing", UNLOCK - gamePlayer.getCoins()));
+                Sounds.deny(player);
+                return;
+            }
+            gamePlayer.setCoins(gamePlayer.getCoins() - UNLOCK);
+            door.bought = true;
+            for (Lever other : switches) {
+                if (other.sign == null || nearest(other.block) != door) continue;
+                decorationManager.removeSign(other.sign);
+                other.sign = null;
+            }
+            Lang.note(player, Lang.f(player, "§7Rolltor freigekauft §c-%d Coins", "§7Roller door bought free §c-%d Coins", UNLOCK));
+            Sounds.buy(player);
+        } else if (door.open && blocked(door)) {
             Overlay.small(player, Overlay.line((char) 0, COLOR, "ROLLTOR", "Jemand steht im Tor"),
                     Overlay.line((char) 0, COLOR, "ROLLER DOOR", "Someone is in the way"));
             Sounds.deny(player);
@@ -193,6 +216,8 @@ public class RollerDoors implements BuildPart {
         }
         door.open = !door.open;
         show(door);
+        roll(door);
+        Location at = lever.block.getLocation().add(0.5, 1.0, 0.5);
         at.getWorld().playSound(at, Sound.BLOCK_LEVER_CLICK, 1.0F, door.open ? 0.9F : 0.6F);
         Color color = door.open ? Color.fromRGB(0x5BD15B) : Color.fromRGB(0xFF4848);
         at.getWorld().spawnParticle(Particle.DUST, at, 8, 0.15, 0.15, 0.15, new Particle.DustOptions(color, 1.0F));
@@ -214,31 +239,30 @@ public class RollerDoors implements BuildPart {
         return best;
     }
 
-    // Model, barriers and click area for the current state
+    // Model, barriers, click area and switches for the current state
     private void show(Door door) {
-        boolean closed = door.built() && !door.open;
-        if (door.built()) {
-            decorationManager.setModel(door.display, door.model());
+        if (door.whole()) {
+            decorationManager.setModel(door.display, DOOR_ID + door.level + (door.open ? "_auf" : "_zu"));
         } else {
             Restore.display(door.display);
             door.display.setItemStack(null);
         }
-        setBarriers(door, closed);
+        setBarriers(door, !door.passable());
         // Open, the door is rolled up under the top
-        door.hitbox.teleport(door.center.clone().add(0, door.built() && door.open ? 2 : 0, 0));
-        door.hitbox.setInteractionHeight(door.built() && door.open ? 1.0F : 3.0F);
+        boolean up = door.whole() && door.open;
+        door.hitbox.teleport(door.center.clone().add(0, up ? 2 : 0, 0));
+        door.hitbox.setInteractionHeight(up ? 1.0F : 3.0F);
+        for (Lever lever : switches) if (nearest(lever.block) == door) lever(lever, door);
+    }
+
+    private static void roll(Door door) {
         door.center.getWorld().playSound(door.center, door.open ? Sound.BLOCK_IRON_DOOR_OPEN : Sound.BLOCK_IRON_DOOR_CLOSE, 1.0F, 0.6F);
-        levers(door);
     }
 
-    // Every switch of this door shows its state, if DESIGN made both lever models
-    private void levers(Door door) {
-        for (Lever lever : switches) if (nearest(lever.block()) == door) lever(lever, door);
-    }
-
+    // The switch shows how the door stands, if Nexo knows both lever models
     private void lever(Lever lever, Door door) {
-        String id = SWITCH_ID + (door.built() && door.open ? "_auf" : "_zu");
-        if (lever.display().isValid() && decorationManager.known(id)) decorationManager.setModel(lever.display(), id);
+        String id = SWITCH_ID + (door.whole() && door.open ? "_auf" : "_zu");
+        if (lever.display.isValid() && decorationManager.known(id)) decorationManager.setModel(lever.display, id);
     }
 
     private static void setBarriers(Door door, boolean closed) {
@@ -247,9 +271,8 @@ public class RollerDoors implements BuildPart {
             Restore.block(block);
             block.setType(closed ? Material.BARRIER : Material.AIR, false);
         }
-        if (!door.nexo) return;
-        if (closed) NexoBarriers.close(door.barriers);
-        else NexoBarriers.open(door.barriers);
+        if (closed) NexoBarriers.close(door.display);
+        else NexoBarriers.open(door.display);
     }
 
     private static boolean blocked(Door door) {
@@ -267,12 +290,13 @@ public class RollerDoors implements BuildPart {
     @Override
     public void tick() {
         for (Door door : doors) {
-            if (!door.built() || !door.display.isValid()) continue;
+            if (!door.whole() || !door.display.isValid()) continue;
             if (door.open) {
                 // From level 2 the door closes by itself when monsters come
                 if (door.level >= 2 && monsters(ALARM_REACH, door) > 0 && !blocked(door)) {
                     door.open = false;
                     show(door);
+                    roll(door);
                 }
                 continue;
             }

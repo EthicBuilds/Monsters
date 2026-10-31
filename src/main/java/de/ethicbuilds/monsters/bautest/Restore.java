@@ -46,12 +46,15 @@ public final class Restore {
         BauTest.audience().forEach(player -> player.hideEntity(Main.getINSTANCE(), entity));
     }
 
-    public static void all() {
+    /** Sets everything back, returns the displays whose look came back */
+    public static Set<ItemDisplay> all() {
         showHidden();
         displays.forEach(Restore::back);
+        Set<ItemDisplay> restored = new HashSet<>(displays.keySet());
         displays.clear();
         blocks.forEach((block, data) -> block.setBlockData(data, false));
         blocks.clear();
+        return restored;
     }
 
     /** Before a chunk is saved */

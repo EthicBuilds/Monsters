@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.bautest;
 
+import com.destroystokyo.paper.event.player.PlayerUseUnknownEntityEvent;
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
@@ -65,8 +66,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class BauTest implements Listener {
     public static final String META = "monsters-funktion";
-    private static final int COINS = 50_000, PARTS = 50, MONSTER_SLOT = 6, MAX_MONSTERS = 10;
-    private static final double BREAKOUT_REACH = 24;
+    private static final int COINS = 100_000, PARTS = 50, MONSTER_SLOT = 6, MAX_MONSTERS = 10;
+    private static final double BREAKOUT_REACH = 24, NEXO_REACH = 6;
     private static final double MONSTER_DISTANCE = 6;
     private static final NamespacedKey MONSTER_ITEM = new NamespacedKey("monsters", "test_gegner");
     private static boolean on;
@@ -135,8 +136,7 @@ public class BauTest implements Listener {
     // While disabling nothing can be hidden any more, our entities are not saved anyway
     public void stop() {
         testMonsters.forEach(Entity::remove);
-        Restore.all();
-        NexoBarriers.all();
+        NexoBarriers.all(Restore.all());
         for (UUID uuid : List.copyOf(active)) {
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) giveBack(player);
@@ -186,8 +186,7 @@ public class BauTest implements Listener {
     private void end() {
         testMonsters.forEach(monster -> monster.setHealth(0));
         testMonsters.clear();
-        Restore.all();
-        NexoBarriers.all();
+        NexoBarriers.all(Restore.all());
         decorationManager.clearAll();
         crateManager.clear();
         safes.clear();
@@ -312,6 +311,14 @@ public class BauTest implements Listener {
         if (station == null) return;
         event.setCancelled(true);
         waveListener.useStation(event.getPlayer(), station);
+    }
+
+    // Nexo's own invisible hitboxes are unknown to the server: such a click goes to the station the tester looks at
+    @EventHandler
+    public void onNexoHitbox(PlayerUseUnknownEntityEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND || !active(event.getPlayer())) return;
+        String station = decorationManager.stationLookedAt(event.getPlayer(), NEXO_REACH);
+        if (station != null) waveListener.useStation(event.getPlayer(), station);
     }
 
     @EventHandler

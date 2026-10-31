@@ -81,7 +81,7 @@ public class Deployables implements BuildPart {
             Restore.block(barrier);
             barrier.setType(Material.AIR, false);
         });
-        NexoBarriers.open(spot.barriers);
+        NexoBarriers.open(display);
         boolean ladder = spot.ladder();
         int price = ladder ? LADDER_PRICE : BRIDGE_PRICE;
         if (!ladder && join(spot)) {
@@ -130,7 +130,7 @@ public class Deployables implements BuildPart {
                 Restore.block(barrier);
                 barrier.setType(Material.BARRIER, false);
             });
-            NexoBarriers.close(piece.barriers);
+            NexoBarriers.close(piece.display);
         }
         if (spot.sign != null) decorationManager.removeSign(spot.sign);
         Location center = spot.block.getLocation().add(0.5, 0.5, 0.5);
