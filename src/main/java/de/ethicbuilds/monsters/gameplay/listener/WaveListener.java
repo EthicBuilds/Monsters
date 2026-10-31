@@ -19,6 +19,8 @@ import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.items.GasMask;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
+import de.ethicbuilds.monsters.map.decoration.EscapeCar;
+import de.ethicbuilds.monsters.map.decoration.Safes;
 import de.ethicbuilds.monsters.map.decoration.Wrecks;
 import de.ethicbuilds.monsters.map.elements.Door;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
@@ -77,6 +79,8 @@ public class WaveListener implements Listener {
     @Inject private PowerupManager powerupManager;
     @Inject private PerkManager perkManager;
     @Inject private Wrecks wrecks;
+    @Inject private Safes safes;
+    @Inject private EscapeCar escapeCar;
     @Inject private RocketLoot rocketLoot;
     @Inject private Main plugin;
 
@@ -302,6 +306,14 @@ public class WaveListener implements Listener {
         GamePlayer gamePlayer = userManager.getGamePlayer(player.getUniqueId());
         if (gamePlayer == null || userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) return;
 
+        if (station.startsWith(Safes.SAFE) || station.startsWith(Safes.NOTE)) {
+            safes.use(gamePlayer, station);
+            return;
+        }
+        if (station.startsWith(EscapeCar.STATION)) {
+            escapeCar.use(gamePlayer, station);
+            return;
+        }
         if (station.startsWith(Wrecks.STATION)) {
             wrecks.search(gamePlayer, station);
             return;

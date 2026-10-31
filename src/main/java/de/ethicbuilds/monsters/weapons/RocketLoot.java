@@ -54,6 +54,16 @@ public class RocketLoot implements Listener {
         if (!give(gamePlayer, false)) drop(at);
     }
 
+    /** Sure loot, e.g. out of the safe */
+    public void grant(GamePlayer gamePlayer, Location at) {
+        Weapon owned = gamePlayer.getWeapons().get(Material.IRON_NUGGET);
+        if (owned != null) {
+            owned.refill();
+            return;
+        }
+        if (!give(gamePlayer, false)) drop(at);
+    }
+
     private void drop(Location at) {
         RocketLauncher launcher = new RocketLauncher();
         ItemStack item = launcher.getItem();

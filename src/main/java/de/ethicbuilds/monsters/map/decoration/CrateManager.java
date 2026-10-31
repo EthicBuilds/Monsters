@@ -30,6 +30,7 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -55,6 +56,7 @@ public class CrateManager implements Listener {
     @Inject private GrenadeManager grenadeManager;
     @Inject private PowerupManager powerupManager;
     @Inject private MonsterManager monsterManager;
+    @Inject private EscapeCar escapeCar;
 
     private final Map<Location, Crate> crates = new HashMap<>();
     private final Map<UUID, Long> lastHits = new HashMap<>();
@@ -77,6 +79,11 @@ public class CrateManager implements Listener {
     public void register(ItemDisplay display, Block block) {
         if (block.getType().isAir()) block.setType(Material.BARRIER, false);
         crates.put(block.getLocation(), new Crate(display, block));
+    }
+
+    /** Where the crates stand, e.g. for code notes on top */
+    public List<Block> crateBlocks() {
+        return crates.values().stream().map(crate -> crate.block).toList();
     }
 
     /** Called at the start of every wave */
@@ -151,6 +158,7 @@ public class CrateManager implements Listener {
             return;
         }
         loot(gamePlayer);
+        escapeCar.maybePart(player);
         if (ThreadLocalRandom.current().nextDouble() < CrowbarLevel.powerupChance(gamePlayer.getCrowbarLevel())) powerupManager.dropAt(center);
     }
 
@@ -162,6 +170,7 @@ public class CrateManager implements Listener {
     /** Searched car wreck: what a crate has, now and then also a powerup */
     public void search(GamePlayer gamePlayer, Location at) {
         loot(gamePlayer);
+        escapeCar.maybePart(gamePlayer.getPlayer());
         if (ThreadLocalRandom.current().nextDouble() < WRECK_POWERUP) powerupManager.dropAt(at);
     }
 

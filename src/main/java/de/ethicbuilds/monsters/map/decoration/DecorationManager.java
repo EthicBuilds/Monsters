@@ -73,6 +73,8 @@ public class DecorationManager implements Listener {
     @Inject private WeaponManager weaponManager;
     @Inject private CrateManager crateManager;
     @Inject private Wrecks wrecks;
+    @Inject private Safes safes;
+    @Inject private EscapeCar escapeCar;
 
     private final Set<UUID> registered = new HashSet<>();
     private final Map<UUID, String> stations = new HashMap<>();
@@ -155,7 +157,11 @@ public class DecorationManager implements Listener {
         }
 
         if (entity instanceof ItemDisplay display) Sirens.register(display, id);
-        if (Wrecks.isWreck(id)) {
+        if (Safes.SAFE_ID.equals(id) && entity instanceof ItemDisplay display) {
+            safes.register(display, block);
+        } else if (EscapeCar.BROKEN_ID.equals(id) && entity instanceof ItemDisplay display) {
+            escapeCar.register(display, block);
+        } else if (Wrecks.isWreck(id)) {
             String station = wrecks.register(block);
             Location center = wrecks.center(station);
             Interaction hitbox = block.getWorld().spawn(center, Interaction.class, interaction -> {
@@ -187,6 +193,30 @@ public class DecorationManager implements Listener {
             createStation(block, AMMO_STATION, "Munition", "Ammo", price(WaveListener.AMMO_PRICE) + "\n<#9AA6B8>für die Waffe in der Hand",
                     price(WaveListener.AMMO_PRICE) + "\n<#9AA6B8>for the weapon in your hand");
         }
+    }
+
+    /** Shows another Nexo model on the furniture, with the look Nexo gives it */
+    public void setModel(ItemDisplay display, String id) {
+        ItemStack item = new ItemStack(Material.PAPER);
+        GameItems.setModel(item, id);
+        display.setItemStack(item);
+        look().apply(display, id);
+    }
+
+    /** Clickable area without a sign, the station name goes to the click handling */
+    public Interaction hitbox(Block block, String station, float width, float height) {
+        Interaction hitbox = block.getWorld().spawn(block.getLocation().add(0.5, 0, 0.5), Interaction.class, interaction -> {
+            interaction.setInteractionWidth(width);
+            interaction.setInteractionHeight(height);
+            interaction.setPersistent(false);
+        });
+        stations.put(hitbox.getUniqueId(), station);
+        return hitbox;
+    }
+
+    public void removeHitbox(Interaction hitbox) {
+        stations.remove(hitbox.getUniqueId());
+        hitbox.remove();
     }
 
     private void createWeaponStation(Block block, String weaponName) {
