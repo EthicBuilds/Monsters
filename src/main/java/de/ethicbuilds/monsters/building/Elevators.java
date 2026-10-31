@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.bautest.BauTest;
 import de.ethicbuilds.monsters.bautest.NexoBarriers;
+import de.ethicbuilds.monsters.bautest.NexoStandIns;
 import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
@@ -47,13 +48,16 @@ public class Elevators implements BuildPart {
             BOTTOM_ID = "monsters_aufzug_unten", TOP_ID = "monsters_aufzug_oben", ROPE_ID = "monsters_aufzug_seil", POST_ID = "monsters_aufzug_pfosten",
             STATION = "kurbel#", CAR_STATION = "fahrkorb#";
     private static final double CRANK_REACH = 8, SPEED = 0.12;
-    // Riders: a little lift against sinking, this far off the deck they are put back, farther away they left the ride
-    private static final double HOLD = 0.0, LOST = 0.5, SUNK = 0.25, GONE = 3;
+    // Riders: this far off the deck they are put back, farther away they left the ride
+    private static final double LOST = 0.5, SUNK = 0.25, GONE = 3;
+    // Share of the remaining gap corrected per tick, divided by the ping in ticks (a higher gain swings with latency)
+    private static final double GAIN = 0.6;
+    private static final int MAX_LAG = 20;
     // Not saved with the player, a disconnect during the ride takes it away
     private static final NamespacedKey RIDE = new NamespacedKey("monsters", "aufzug_fahrt");
     // Soft start and stop over this part of the way (blocks), never slower than MIN_STEP per tick
     private static final double EASE = 0.6, EASE_START = 0.15, MIN_STEP = 0.02;
-    private static final double TOP_DROP = 0.15;
+    private static final double TOP_DROP = 0;
     private static final long FLY_BACK_TICKS = 10;
     // From DESIGN: deck 1 block above the platform block, posts beside it at model x ±1.583, bottom posts 2 high
     private static final double DECK = 1.0, POST_SIDE = 1.583, BOTTOM_POSTS = 2.0;
@@ -73,6 +77,8 @@ public class Elevators implements BuildPart {
         private final ItemDisplay display;
         private final List<int[]> footprint = new ArrayList<>();
         private final Block origin;
+        // Height of the model above its block, Nexo puts furniture half a block up
+        private final double offset;
         private Block base;
         private boolean moving;
         // Crank on the platform (shaft platforms only)
@@ -83,6 +89,7 @@ public class Elevators implements BuildPart {
             this.display = display;
             this.base = base;
             this.origin = base;
+            this.offset = display.getLocation().getY() - base.getY();
             for (Block barrier : barriers) {
                 footprint.add(new int[]{barrier.getX() - base.getX(), barrier.getY() - base.getY(), barrier.getZ() - base.getZ()});
             }
@@ -131,8 +138,12 @@ public class Elevators implements BuildPart {
     @Override
     public boolean register(ItemDisplay display, String id, Block block) {
         if (PLATFORM_ID.equals(id) || CAR_ID.equals(id)) {
-            Platform platform = new Platform(display, block, decorationManager.barriers(display, id));
-            display.setTeleportDuration(1);
+            // On the build server our own display rides instead of the Nexo furniture, Nexo sends its model itself
+            ItemDisplay shown = NexoStandIns.of(display, id);
+            Platform platform = new Platform(shown, block, decorationManager.barriers(display, id));
+            shown.setTeleportDuration(1);
+            // Hidden for the testers, Nexo's barriers went with it: real ones to stand on
+            if (shown != display) platform.barriers(Material.BARRIER);
             platforms.add(platform);
         } else if (CRANK_ID.equals(id)) {
             decorationManager.hitbox(block, STATION + cranks.size(), 1.0F, 1.4F);
@@ -261,8 +272,9 @@ public class Elevators implements BuildPart {
             Platform platform = platforms.get(index);
             Shaft shaft = platform.shaft;
             if (shaft == null || platform.moving) return true;
-            // Up from the bottom, otherwise down
-            int target = platform.base.getY() == shaft.floor().getY() ? shaft.upper().getY() : shaft.floor().getY();
+            // Up from where it was placed, otherwise back down there
+            int bottom = platform.origin.getY();
+            int target = platform.base.getY() == bottom ? shaft.upper().getY() : bottom;
             move(platform, target);
             platform.base.getWorld().playSound(platform.crank.getLocation(), Sound.BLOCK_CHAIN_PLACE, 1.0F, 0.7F);
             return true;
@@ -316,14 +328,14 @@ public class Elevators implements BuildPart {
         platform.barriers(Material.AIR);
         // Nexo's barriers stay where the platform was placed: away while it is somewhere else
         NexoBarriers.open(platform.display);
-        Restore.display(platform.display);
+        if (!NexoStandIns.is(platform.display)) Restore.display(platform.display);
         double direction = Math.signum(targetY - platform.base.getY());
         Location start = platform.display.getLocation();
         Location crankStart = platform.crank == null ? null : platform.crank.getLocation();
         double distance = Math.abs(targetY - platform.base.getY());
         // At the top of a shaft the model may sit a little lower than the floor it stops at
         boolean top = platform.shaft != null && targetY == platform.shaft.upper().getY();
-        double displayTravel = targetY - (top ? plugin.getConfig().getDouble("aufzug-oben-tiefer", TOP_DROP) : 0) - start.getY();
+        double displayTravel = targetY + platform.offset - (top ? plugin.getConfig().getDouble("aufzug-oben-tiefer", TOP_DROP) : 0) - start.getY();
         double crankOffset = crankStart == null ? 0 : crankStart.getY() - start.getY();
         int baseY = platform.base.getY();
         Map<Player, Location> riders = new HashMap<>();
@@ -339,12 +351,16 @@ public class Elevators implements BuildPart {
         start.getWorld().playSound(start, Sound.BLOCK_PISTON_EXTEND, 1.0F, 0.6F);
 
         new BukkitRunnable() {
+            // Way done after each tick, the riders' reported heights belong to older entries
+            final List<Double> path = new ArrayList<>(List.of(0.0));
             double moved;
             int ticks;
 
             @Override
             public void run() {
+                double before = moved;
                 moved = Math.min(distance, moved + step(moved, distance));
+                path.add(moved);
                 double share = distance == 0 ? 1 : moved / distance;
                 Location at = start.clone().add(0, displayTravel * share, 0);
                 platform.display.teleport(at);
@@ -354,7 +370,7 @@ public class Elevators implements BuildPart {
                     platform.crank.teleport(crank);
                 }
                 if (platform.shaft != null) hang(platform.shaft);
-                carry(Math.min(distance, moved + step(moved, distance)));
+                carry(before, moved);
                 if (++ticks % 10 == 0) at.getWorld().playSound(at, Sound.BLOCK_CHAIN_STEP, 0.8F, 0.6F);
                 if (moved < distance) return;
 
@@ -367,9 +383,10 @@ public class Elevators implements BuildPart {
                 for (Player rider : riders.keySet()) {
                     if (!rider.isOnline() || !over(platform, rider.getLocation())) continue;
                     Location feet = rider.getLocation();
+                    rider.setVelocity(new Vector());
                     if (feet.getY() < floor - SUNK) {
                         feet.setY(floor);
-                        rider.teleport(feet, TeleportFlag.Relative.VELOCITY_X, TeleportFlag.Relative.VELOCITY_Y, TeleportFlag.Relative.VELOCITY_Z);
+                        rider.teleport(feet);
                     }
                 }
                 // Flying goes back once everyone stands on the floor again
@@ -383,9 +400,11 @@ public class Elevators implements BuildPart {
                 cancel();
             }
 
-            // Height follows the deck exactly, x and z stay where the rider stood when it started
-            private void carry(double next) {
-                double deckNext = baseY + DECK + direction * next;
+            // The rider moves with the deck's own step, sent in the same tick as the display (both arrive one client tick later).
+            // Drift is corrected against where the deck was one ping ago, the time the reported position is from, never
+            // against the deck now: with latency that swings up. x and z stay where the rider stood when it started.
+            private void carry(double before, double now) {
+                double deckNow = baseY + DECK + direction * now;
                 for (Iterator<Map.Entry<Player, Location>> it = riders.entrySet().iterator(); it.hasNext(); ) {
                     Map.Entry<Player, Location> entry = it.next();
                     Player rider = entry.getKey();
@@ -401,12 +420,16 @@ public class Elevators implements BuildPart {
                     }
                     rider.setFallDistance(0);
                     if (rider.isFlying()) rider.setFlying(false);
-                    if (Math.abs(feet.getY() - deckNext) > LOST) {
-                        feet.set(stood.getX(), deckNext, stood.getZ());
+                    int lag = Math.min(MAX_LAG, (int) Math.round(rider.getPing() / 50.0));
+                    double expected = baseY + DECK + direction * path.get(Math.max(0, path.size() - 2 - lag));
+                    if (Math.abs(feet.getY() - expected) > LOST) {
+                        feet.set(stood.getX(), deckNow, stood.getZ());
                         rider.teleport(feet, TeleportFlag.Relative.VELOCITY_X, TeleportFlag.Relative.VELOCITY_Z);
                         continue;
                     }
-                    rider.setVelocity(new Vector(stood.getX() - feet.getX(), deckNext - feet.getY() + HOLD, stood.getZ() - feet.getZ()));
+                    double gain = GAIN / (lag + 1);
+                    rider.setVelocity(new Vector(gain * (stood.getX() - feet.getX()), direction * (now - before) + gain * (expected - feet.getY()),
+                            gain * (stood.getZ() - feet.getZ())));
                 }
             }
         }.runTaskTimer(plugin, 1L, 1L);
