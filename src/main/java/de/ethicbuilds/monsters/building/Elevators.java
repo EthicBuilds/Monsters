@@ -8,6 +8,8 @@ import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
+import io.papermc.paper.entity.TeleportFlag;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -23,7 +25,9 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 
 /***
@@ -36,7 +40,9 @@ public class Elevators implements BuildPart {
     private static final String PLATFORM_ID = "monsters_aufzug", CAR_ID = "monsters_aufzug_plattform", CRANK_ID = "monsters_aufzug_kurbel",
             BOTTOM_ID = "monsters_aufzug_unten", TOP_ID = "monsters_aufzug_oben", ROPE_ID = "monsters_aufzug_seil", POST_ID = "monsters_aufzug_pfosten",
             STATION = "kurbel#", CAR_STATION = "fahrkorb#";
-    private static final double CRANK_REACH = 8, SPEED = 0.15;
+    private static final double CRANK_REACH = 8, SPEED = 0.12;
+    // Riders: a little lift against sinking, above this they jump, below this they lost the deck
+    private static final double HOLD = 0.01, JUMP = 0.6, LOST = 0.5;
     // From DESIGN: deck 1 block above the platform block, posts beside it at model x ±1.583, bottom posts 2 high
     private static final double DECK = 1.0, POST_SIDE = 1.583, BOTTOM_POSTS = 2.0;
     private static final int SHAFT_HEIGHT = 96;
@@ -303,7 +309,14 @@ public class Elevators implements BuildPart {
         Location crankStart = platform.crank == null ? null : platform.crank.getLocation();
         double distance = Math.abs(targetY - platform.base.getY());
         List<Player> riders = new ArrayList<>();
-        for (Player player : start.getWorld().getPlayers()) if (platform.carries(player)) riders.add(player);
+        Map<Player, Boolean> couldFly = new HashMap<>();
+        for (Player player : start.getWorld().getPlayers()) {
+            if (!platform.carries(player)) continue;
+            riders.add(player);
+            // Standing on air while it moves: no kick for flying, also on servers without allow-flight
+            couldFly.put(player, player.getAllowFlight());
+            player.setAllowFlight(true);
+        }
         start.getWorld().playSound(start, Sound.BLOCK_PISTON_EXTEND, 1.0F, 0.6F);
 
         new BukkitRunnable() {
@@ -316,10 +329,22 @@ public class Elevators implements BuildPart {
                 platform.display.teleport(at);
                 if (crankStart != null && platform.crank.isValid()) platform.crank.teleport(crankStart.clone().add(0, direction * moved, 0));
                 if (platform.shaft != null) hang(platform.shaft);
+                // Each rider gets exactly the step to where the deck is next tick, measured from where he really is
+                double deckNext = start.getY() + DECK + direction * Math.min(distance, moved + SPEED);
                 for (Player rider : riders) {
                     if (!rider.isOnline()) continue;
-                    rider.setVelocity(new Vector(0, direction > 0 ? SPEED + 0.08 : -SPEED, 0));
+                    Location feet = rider.getLocation();
                     rider.setFallDistance(0);
+                    // Jumping on it is fine, sunk in or fallen behind it goes back onto the deck
+                    if (feet.getY() > deckNext + JUMP) continue;
+                    if (feet.getY() < deckNext - LOST) {
+                        feet.setY(deckNext);
+                        rider.teleport(feet, TeleportFlag.EntityState.RETAIN_PASSENGERS);
+                        continue;
+                    }
+                    Vector velocity = rider.getVelocity();
+                    velocity.setY(deckNext - feet.getY() + HOLD);
+                    rider.setVelocity(velocity);
                 }
                 if ((int) (moved / SPEED) % 10 == 0) at.getWorld().playSound(at, Sound.BLOCK_CHAIN_STEP, 0.8F, 0.6F);
                 if (moved < distance) return;
@@ -327,9 +352,13 @@ public class Elevators implements BuildPart {
                 platform.base = platform.base.getRelative(0, (int) (direction * distance), 0);
                 platform.barriers(Material.BARRIER);
                 if (platform.base.equals(platform.origin)) NexoBarriers.close(platform.display);
-                // Riders that sank into the floor stand on it again
+                // Riders that sank into the floor stand on it again, flying as before
                 for (Player rider : riders) {
                     if (!rider.isOnline()) continue;
+                    if (!couldFly.get(rider) && rider.getGameMode() != GameMode.CREATIVE && rider.getGameMode() != GameMode.SPECTATOR) {
+                        rider.setFlying(false);
+                        rider.setAllowFlight(false);
+                    }
                     double floor = platform.base.getY() + 1;
                     if (rider.getLocation().getY() < floor && platform.carries(rider)) {
                         Location up = rider.getLocation();
