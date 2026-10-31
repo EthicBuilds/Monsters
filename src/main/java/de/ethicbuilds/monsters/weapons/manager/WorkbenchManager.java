@@ -415,6 +415,25 @@ public class WorkbenchManager implements Listener {
                 ArmorSet.name(player, level + 1), level + 1, price));
     }
 
+    /** At a vest stand: exactly the set its dummy wears, skipped levels are paid too */
+    public void buyArmor(GamePlayer gamePlayer, int set) {
+        Player player = gamePlayer.getPlayer();
+        int level = gamePlayer.getArmorLevel();
+        if (level >= set) {
+            Lang.note(player, Lang.f(player, "§7Du trägst schon §a%s", "§7You already wear §a%s", ArmorSet.name(player, level)));
+            Sounds.deny(player);
+            return;
+        }
+        int price = 0;
+        for (int step = level; step < set; step++) price += ArmorSet.price(step);
+        if (!pay(gamePlayer, price)) return;
+        gamePlayer.setArmorLevel(set);
+        ArmorSet.equip(player, set);
+        Sounds.upgrade(player, set >= ArmorSet.MAX_LEVEL);
+        Lang.note(player, Lang.f(player, "%s§7Deine Rüstung ist jetzt §a%s §7(Stufe §6%d§7)! §c-%d Coins",
+                "%s§7Your armor is now §a%s §7(level §6%d§7)! §c-%d Coins", plugin.getMonstersPrefix(), ArmorSet.name(player, set), set, price));
+    }
+
     // Whoever has the rest unlocks it for everyone, otherwise all own coins go in
     private void unlock(GamePlayer gamePlayer) {
         Player player = gamePlayer.getPlayer();

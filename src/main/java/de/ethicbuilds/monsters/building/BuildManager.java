@@ -8,6 +8,7 @@ import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.PauseManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
+import de.ethicbuilds.monsters.items.ArmorSet;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
@@ -33,7 +34,9 @@ import java.util.List;
  */
 public class BuildManager {
     public static final String RUBBLE = "schutt#", BARRICADE = "barrikade#";
-    private static final String VEST_STAND = "weste";
+    private static final String VEST_STAND = "weste#";
+    // The dummy of each stand wears one set: westenstaender (bronze), _silber, _gold, _diamant, _netherit
+    private static final List<String> VEST_SETS = List.of("", "_silber", "_gold", "_diamant", "_netherit");
     // The vest stand comes with the armor of every set (westenstaender, westenstaender_silber ...), break-outs in many shapes (ausbruch_<name>)
     private static final String RUBBLE_ID = "monsters_schutt", BARRICADE_ID = "monsters_barrikade_", BREAKOUT_ID = "monsters_ausbruch",
             VEST_STAND_ID = "monsters_westenstaender";
@@ -127,8 +130,10 @@ public class BuildManager {
         } else if (id.startsWith(BREAKOUT_ID)) {
             Breakouts.add(display);
         } else if (id.startsWith(VEST_STAND_ID)) {
-            decorationManager.createStation(block, VEST_STAND, "Westen", "Vests", "<#9AA6B8>Rüstung verbessern", "<#9AA6B8>Upgrade armor",
-                    "Rechtsklick zum Kaufen", "Right-click to buy", 1.0F, 2.0F);
+            int set = Math.max(1, VEST_SETS.indexOf(id.substring(VEST_STAND_ID.length())) + 1);
+            String price = DecorationManager.price(ArmorSet.price(set - 1));
+            decorationManager.createStation(block, VEST_STAND + set, ArmorSet.name(set, false) + "-Rüstung", ArmorSet.name(set, true) + " armor",
+                    price, price, "Rechtsklick zum Anziehen", "Right-click to put on", 1.0F, 2.0F);
         } else if (parts().stream().noneMatch(part -> part.register(display, id, block))) {
             return false;
         }
@@ -181,8 +186,9 @@ public class BuildManager {
             useBarricade(gamePlayer, barricades.get(index));
             return true;
         }
-        if (VEST_STAND.equals(station)) {
-            workbenchManager.upgradeArmor(gamePlayer);
+        int set = index(station, VEST_STAND);
+        if (set > 0) {
+            workbenchManager.buyArmor(gamePlayer, set);
             return true;
         }
         return parts().stream().anyMatch(part -> part.use(gamePlayer, station));

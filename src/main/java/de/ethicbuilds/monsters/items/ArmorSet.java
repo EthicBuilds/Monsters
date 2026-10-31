@@ -46,6 +46,10 @@ public final class ArmorSet {
         return (Lang.english(player) ? NAMES_EN : NAMES)[Math.max(0, Math.min(level, MAX_LEVEL))];
     }
 
+    public static String name(int level, boolean english) {
+        return (english ? NAMES_EN : NAMES)[Math.max(0, Math.min(level, MAX_LEVEL))];
+    }
+
     public static int protection(int level) {
         return PROTECTION[Math.max(0, Math.min(level, MAX_LEVEL))];
     }
