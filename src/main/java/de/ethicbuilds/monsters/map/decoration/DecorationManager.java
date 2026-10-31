@@ -195,11 +195,12 @@ public class DecorationManager implements Listener {
     public List<Block> barriers(Block base, String id) {
         List<int[]> offsets = look().barriers(id);
         if (offsets.isEmpty()) return List.of();
-        for (int turn = 0; turn < 4; turn++) {
+        // Nexo mirrors x, so also the mirrored turns are tried
+        for (int turn = 0; turn < 8; turn++) {
             List<Block> blocks = new ArrayList<>();
             for (int[] offset : offsets) {
-                int x = offset[0], z = offset[2];
-                for (int i = 0; i < turn; i++) {
+                int x = turn < 4 ? offset[0] : -offset[0], z = offset[2];
+                for (int i = 0; i < turn % 4; i++) {
                     int old = x;
                     x = -z;
                     z = old;
