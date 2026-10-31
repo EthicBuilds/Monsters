@@ -31,6 +31,11 @@ public final class NexoStandIns {
         return standIn;
     }
 
+    /** Nexo runs here and the function test is on */
+    public static boolean active() {
+        return NexoBarriers.nexo();
+    }
+
     public static boolean is(ItemDisplay display) {
         return standIns.contains(display);
     }

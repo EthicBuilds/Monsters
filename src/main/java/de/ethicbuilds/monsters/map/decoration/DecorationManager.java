@@ -247,6 +247,14 @@ public class DecorationManager implements Listener {
     }
 
     /** Shows another Nexo model on the furniture, with the look Nexo gives it */
+    /** The item that shows a model: the real Nexo item where Nexo runs, else ours from the Monsters pack */
+    public ItemStack modelItem(String id) {
+        if (NexoStandIns.active()) return NexoStandIns.item(id);
+        ItemStack item = new ItemStack(Material.PAPER);
+        GameItems.setModel(item, id);
+        return item;
+    }
+
     /** Nexo's scale and transform for an id, for displays we spawn ourselves */
     public void look(ItemDisplay display, String id) {
         look().apply(display, id);

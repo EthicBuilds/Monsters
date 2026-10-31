@@ -21,8 +21,6 @@ import org.bukkit.entity.Interaction;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
-import org.bukkit.util.Transformation;
-import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,8 +38,6 @@ public class RollerDoors implements BuildPart {
     private static final int[] UPGRADE = {0, 0, 10, 16};
     private static final int[] HEALTH = {0, 250, 500, 900};
     private static final double SWITCH_REACH = 12, ATTACK_REACH = 1.8, ALARM_REACH = 6;
-    private static final float RISE = 2.6F, ROLLED = 0.08F;
-    private static final int ROLL_TICKS = 30;
 
     @Inject private DecorationManager decorationManager;
     @Inject private MonsterManager monsterManager;
@@ -66,9 +62,8 @@ public class RollerDoors implements BuildPart {
         private final List<Block> barriers;
         private final Location center;
         private Interaction hitbox;
-        private int level, health, paid, rolls;
-        // Look as Nexo shows it, the roll animation starts and ends there
-        private Transformation rest;
+        private int level, health, paid;
+        private RollerShutter shutter;
         private boolean bought, open;
 
         private Door(ItemDisplay display, Block block, List<Block> barriers, int level) {
@@ -113,9 +108,12 @@ public class RollerDoors implements BuildPart {
         door.hitbox = decorationManager.hitbox(block, DOOR + doors.size(), 2.0F, 3.0F);
         door.hitbox.teleport(door.center);
         doors.add(door);
+        // The furniture only marks the place, frame and slats are our own displays
+        Restore.display(door.display);
+        door.display.setItemStack(null);
+        door.shutter = new RollerShutter(decorationManager, door.display.getLocation(), door.level);
         // At the start it is closed, whatever model the map builder placed
         show(door);
-        door.rest = door.display.getTransformation();
         return true;
     }
 
@@ -180,6 +178,7 @@ public class RollerDoors implements BuildPart {
             int price = UPGRADE[door.level + 1];
             if (!Parts.take(gamePlayer, price)) return;
             door.level++;
+            door.shutter.level(door.level, door.open);
             door.health = HEALTH[door.level];
             show(door);
             note(player, door.level == 2 ? "Rolltor verstärkt" : "Rolltor aus Stahl", door.level == 2 ? "Reinforced roller door" : "Steel roller door", price);
@@ -220,7 +219,7 @@ public class RollerDoors implements BuildPart {
             return;
         }
         door.open = !door.open;
-        show(door);
+        show(door, true);
         roll(door);
         Location at = lever.block.getLocation().add(0.5, 1.0, 0.5);
         at.getWorld().playSound(at, Sound.BLOCK_LEVER_CLICK, 1.0F, door.open ? 0.9F : 0.6F);
@@ -271,17 +270,13 @@ public class RollerDoors implements BuildPart {
 
     // Model, barriers, click area and switches for the current state
     private void show(Door door) {
-        if (door.whole()) {
-            decorationManager.setModel(door.display, DOOR_ID + door.level + (door.open ? "_auf" : "_zu"));
-            // A roll still running stops, the door stands where it belongs
-            if (door.rest != null) {
-                door.rolls++;
-                place(door.display, door.rest, 0);
-            }
-        } else {
-            Restore.display(door.display);
-            door.display.setItemStack(null);
-        }
+        show(door, false);
+    }
+
+    // Model, barriers, click area and switches for the current state; while it rolls the shutter moves itself
+    private void show(Door door, boolean rolling) {
+        if (!door.whole()) door.shutter.broken();
+        else if (!rolling) door.shutter.place(door.open);
         setBarriers(door, !door.passable());
         // Open, the door is rolled up under the top
         boolean up = door.whole() && door.open;
@@ -290,34 +285,11 @@ public class RollerDoors implements BuildPart {
         for (Lever lever : switches) if (nearest(lever.block) == door) lever(lever, door);
     }
 
-    // User 31.10.: it rolls up and vanishes into the top, closing it comes down; the closed model moves, the open one shows at the end
+    // User 31.10.: frame and box stay, the slats roll up into the box one after the other
     private void roll(Door door) {
         door.center.getWorld().playSound(door.center, door.open ? Sound.BLOCK_IRON_DOOR_OPEN : Sound.BLOCK_IRON_DOOR_CLOSE, 1.0F, 0.6F);
         door.center.getWorld().playSound(door.center, Sound.BLOCK_CHAIN_PLACE, 0.8F, 0.6F);
-        if (door.rest == null || !door.display.isValid()) return;
-        int roll = ++door.rolls;
-        boolean opening = door.open;
-        Transformation rest = door.rest;
-        Transformation up = new Transformation(new Vector3f(rest.getTranslation()).add(0, RISE, 0), rest.getLeftRotation(),
-                new Vector3f(rest.getScale()).mul(1, ROLLED, 1), rest.getRightRotation());
-        decorationManager.setModel(door.display, DOOR_ID + door.level + "_zu");
-        place(door.display, opening ? rest : up, 0);
-        Main plugin = Main.getINSTANCE();
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            if (door.rolls == roll && door.display.isValid()) place(door.display, opening ? up : rest, ROLL_TICKS);
-        }, 2L);
-        if (!opening) return;
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            if (door.rolls != roll || !door.display.isValid() || !door.open || !door.whole()) return;
-            decorationManager.setModel(door.display, DOOR_ID + door.level + "_auf");
-            place(door.display, rest, 0);
-        }, ROLL_TICKS + 2L);
-    }
-
-    private static void place(ItemDisplay display, Transformation transformation, int ticks) {
-        display.setInterpolationDelay(0);
-        display.setInterpolationDuration(ticks);
-        display.setTransformation(transformation);
+        door.shutter.roll(door.open);
     }
 
     // The switch shows how the door stands, if Nexo knows both lever models
@@ -356,7 +328,7 @@ public class RollerDoors implements BuildPart {
                 // From level 2 the door closes by itself when monsters come
                 if (door.level >= 2 && monsters(ALARM_REACH, door) > 0 && !blocked(door)) {
                     door.open = false;
-                    show(door);
+                    show(door, true);
                     roll(door);
                 }
                 continue;
