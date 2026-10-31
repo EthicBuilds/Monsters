@@ -314,7 +314,7 @@ public class WaveListener implements Listener {
         useStation(event.getPlayer(), station);
     }
 
-    private void useStation(Player player, String station) {
+    public void useStation(Player player, String station) {
         GamePlayer gamePlayer = userManager.getGamePlayer(player.getUniqueId());
         if (gamePlayer == null || userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) return;
 

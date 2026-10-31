@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.di;
 
 import com.google.inject.AbstractModule;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.bautest.BauTest;
 import de.ethicbuilds.monsters.building.BuildManager;
 import de.ethicbuilds.monsters.building.Deployables;
 import de.ethicbuilds.monsters.building.Elevators;
@@ -55,6 +56,7 @@ public class DiModule extends AbstractModule {
         bind(ReviveManager.class).asEagerSingleton();
         bind(ClassManager.class).asEagerSingleton();
         bind(WatcherManager.class).asEagerSingleton();
+        bind(BauTest.class).asEagerSingleton();
         bind(GameManager.class).asEagerSingleton();
         bind(RoundLoader.class).asEagerSingleton();
         bind(WaveManager.class).asEagerSingleton();

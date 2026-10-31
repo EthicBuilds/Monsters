@@ -1,4 +1,7 @@
 server-name: " "
+
+# Nur auf monsters-bau: keine Runden, Spiel-Modelle funktionieren nur im Funktionsmodus von MonstersBau (/monster)
+bau-test: false
 # Lebensanzeige ueber den Monstern (Schrift monsters:healthbar im Monsters-Paket)
 health-bars: true
 

@@ -2,6 +2,8 @@ package de.ethicbuilds.monsters.map.decoration;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.bautest.BauTest;
+import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.building.BuildManager;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.lang.Lang;
@@ -127,14 +129,27 @@ public class DecorationManager implements Listener {
         }, 5L);
     }
 
-    private void showSigns(Player player) {
+    public void showSigns(Player player) {
         signs.removeIf(sign -> !sign.isValid());
         signs.forEach(sign -> show(player, sign));
+    }
+
+    public void hideSigns(Player player) {
+        signs.forEach(sign -> {
+            toggle(player, sign.de(), false);
+            toggle(player, sign.en(), false);
+        });
+    }
+
+    /** Unloaded furniture on the build server registers again when it comes back */
+    public void forget(Entity entity) {
+        registered.remove(entity.getUniqueId());
     }
 
     // German or English sign, workbench signs depending on whether it is unlocked
     private void show(Player player, Sign sign) {
         boolean shown = workbenchOpen.contains(sign) ? workbenchUnlocked : !(workbenchUnlocked && workbenchLocked.contains(sign));
+        if (BauTest.on() && !BauTest.active(player)) shown = false;
         boolean english = Lang.english(player);
         toggle(player, sign.de(), shown && !english);
         toggle(player, sign.en(), shown && english);
@@ -145,14 +160,14 @@ public class DecorationManager implements Listener {
         else player.hideEntity(plugin, holo);
     }
 
-    private void register(Entity entity) {
+    public void register(Entity entity) {
         if (!entity.isValid() || !isFurniture(entity) || !registered.add(entity.getUniqueId())) return;
 
         String id = entity.getPersistentDataContainer().get(FURNITURE, PersistentDataType.STRING);
         Block block = entity.getLocation().getBlock();
 
-        // Nexo sends the item only via packets
-        if (entity instanceof ItemDisplay display && (display.getItemStack() == null || display.getItemStack().getType().isAir())) {
+        // Nexo sends the item only via packets; on the build server Nexo is there itself
+        if (!BauTest.on() && entity instanceof ItemDisplay display && (display.getItemStack() == null || display.getItemStack().getType().isAir())) {
             ItemStack item = new ItemStack(Material.PAPER);
             GameItems.setModel(item, id);
             display.setItemStack(item);
@@ -172,12 +187,13 @@ public class DecorationManager implements Listener {
                 interaction.setInteractionHeight(WRECK_HEIGHT);
                 interaction.setPersistent(false);
             });
+            BauTest.limit(hitbox);
             stations.put(hitbox.getUniqueId(), station);
         } else if (SOLID.contains(id) && entity instanceof ItemDisplay display) {
             crateManager.register(display, block, false);
         } else if (PARTS_CRATE.equals(id) && entity instanceof ItemDisplay display) {
             crateManager.register(display, block, true);
-        } else if (entity instanceof ItemDisplay display && buildManager.register(display, id, block)) {
+        } else if (!BauTest.on() && entity instanceof ItemDisplay display && buildManager.register(display, id, block)) {
             return;
         } else if (WEAPON_CRATES.containsKey(id)) {
             createWeaponStation(block, WEAPON_CRATES.get(id));
@@ -204,6 +220,7 @@ public class DecorationManager implements Listener {
 
     /** Shows another Nexo model on the furniture, with the look Nexo gives it */
     public void setModel(ItemDisplay display, String id) {
+        Restore.display(display);
         ItemStack item = new ItemStack(Material.PAPER);
         GameItems.setModel(item, id);
         display.setItemStack(item);
@@ -238,6 +255,7 @@ public class DecorationManager implements Listener {
             interaction.setInteractionHeight(height);
             interaction.setPersistent(false);
         });
+        BauTest.limit(hitbox);
         stations.put(hitbox.getUniqueId(), station);
         return hitbox;
     }
@@ -318,6 +336,7 @@ public class DecorationManager implements Listener {
             interaction.setInteractionHeight(height);
             interaction.setPersistent(false);
         });
+        BauTest.limit(hitbox);
         stations.put(hitbox.getUniqueId(), station);
         Sign sign = signAbove(block, name, nameEn, prices, pricesEn, hint, hintEn, lift);
         Bukkit.getOnlinePlayers().forEach(player -> show(player, sign));
@@ -343,6 +362,7 @@ public class DecorationManager implements Listener {
             holo.setBackgroundColor(Color.fromARGB(0xB3, 0x14, 0x10, 0x0C));
             holo.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(0.9F), new AxisAngle4f()));
             holo.setPersistent(false);
+            if (BauTest.on()) holo.setVisibleByDefault(false);
         });
     }
 }

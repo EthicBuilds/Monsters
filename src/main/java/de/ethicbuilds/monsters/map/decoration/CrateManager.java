@@ -1,6 +1,8 @@
 package de.ethicbuilds.monsters.map.decoration;
 
 import com.google.inject.Inject;
+import de.ethicbuilds.monsters.bautest.BauTest;
+import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.building.Parts;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.player.manager.ClassManager;
@@ -84,7 +86,8 @@ public class CrateManager implements Listener {
     }
 
     public void register(ItemDisplay display, Block block, boolean parts) {
-        if (block.getType().isAir()) block.setType(Material.BARRIER, false);
+        // On the build server Nexo places the barrier itself
+        if (!BauTest.on() && block.getType().isAir()) block.setType(Material.BARRIER, false);
         crates.put(block.getLocation(), new Crate(display, block, parts));
     }
 
@@ -132,6 +135,8 @@ public class CrateManager implements Listener {
     private void hit(GamePlayer gamePlayer, Crate crate) {
         Player player = gamePlayer.getPlayer();
         Location center = crate.block.getLocation().add(0.5, 0.5, 0.5);
+        Restore.display(crate.display);
+        Restore.block(crate.block);
         crate.damage++;
         // A better crowbar needs fewer hits
         int hits = Math.max(1, (int) Math.round(STAGES / ClassManager.crowbarSpeed(gamePlayer)));

@@ -5,6 +5,7 @@ import com.google.inject.Injector;
 import de.ethicbuilds.monsters.building.BuildManager;
 import de.ethicbuilds.monsters.commands.RoundEndCommand;
 import de.ethicbuilds.monsters.commands.SurrenderCommand;
+import de.ethicbuilds.monsters.bautest.BauTest;
 import de.ethicbuilds.monsters.di.DiModule;
 import de.ethicbuilds.monsters.gameplay.EffectLimit;
 import de.ethicbuilds.monsters.gameplay.RoundEndCard;
@@ -69,6 +70,10 @@ public final class Main extends JavaPlugin {
         injector = Guice.createInjector(new DiModule(INSTANCE));
 
         saveDefaultConfig();
+        if (getConfig().getBoolean("bau-test")) {
+            startBauTest();
+            return;
+        }
         injector.getInstance(ScoreboardManager.class).init();
 
         registerCommandsAndListeners();
@@ -87,6 +92,22 @@ public final class Main extends JavaPlugin {
                 if (weapon != null && !userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) AmmoHud.show(gamePlayer.getPlayer(), weapon);
             }
         }, 20L, 20L);
+    }
+
+    // Build server: only the stations, for players in function mode, no round
+    private void startBauTest() {
+        PluginManager pm = getServer().getPluginManager();
+        pm.registerEvents(injector.getInstance(DecorationManager.class), this);
+        pm.registerEvents(injector.getInstance(CrateManager.class), this);
+        pm.registerEvents(injector.getInstance(WorkbenchManager.class), this);
+        pm.registerEvents(injector.getInstance(RocketLoot.class), this);
+        pm.registerEvents(injector.getInstance(BauTest.class), this);
+        injector.getInstance(BauTest.class).start();
+    }
+
+    @Override
+    public void onDisable() {
+        if (BauTest.on()) injector.getInstance(BauTest.class).stop();
     }
 
     private void registerCommandsAndListeners() {

@@ -36,6 +36,13 @@ public class UserManager {
         }
     }
 
+    /** Function test on the build server, without a round */
+    public GamePlayer addTestPlayer(Player player) {
+        GamePlayer gamePlayer = new GamePlayer(player);
+        gamePlayers.put(player.getUniqueId(), gamePlayer);
+        return gamePlayer;
+    }
+
     public void removePlayer(UUID uuid) {
         if (isGamePlayer(uuid)) {
             gamePlayers.remove(uuid);

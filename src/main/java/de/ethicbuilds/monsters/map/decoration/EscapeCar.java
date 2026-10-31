@@ -2,6 +2,8 @@ package de.ethicbuilds.monsters.map.decoration;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.bautest.BauTest;
+import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.player.GamePlayer;
@@ -89,6 +91,13 @@ public class EscapeCar {
         cars.add(new Car(display, barriers, hitbox, middle.toVector().subtract(display.getLocation().toVector()).setY(0)));
     }
 
+    /** Function test on the build server: broken again for the next test */
+    public void reset() {
+        cars.forEach(car -> car.fixed = false);
+        tyre = battery = false;
+        fuel = 0;
+    }
+
     /** Out of a crate or a wreck: with luck a part the car still needs */
     public void maybePart(Player finder) {
         if (cars.isEmpty() || ThreadLocalRandom.current().nextDouble() >= PART_CHANCE) return;
@@ -117,6 +126,11 @@ public class EscapeCar {
         Car car = cars.get(index);
         Player player = gamePlayer.getPlayer();
         if (car.driving) return;
+        // Function test on the build server: the parts are there
+        if (BauTest.on()) {
+            tyre = battery = true;
+            fuel = Math.max(fuel, 1);
+        }
         if (!car.fixed) {
             if (!tyre || !battery || fuel <= 0) {
                 Lang.note(player, Lang.f(player, "§7Fluchtauto braucht: %s §7Reifen §8· %s §7Batterie §8· %s §7Benzin",
@@ -148,7 +162,11 @@ public class EscapeCar {
     // The player sits on an invisible seat, the car follows; steering with the look, W/S for gas and brake
     private void drive(Car car, Player driver) {
         car.driving = true;
-        car.barriers.forEach(block -> block.setType(Material.AIR, false));
+        car.barriers.forEach(block -> {
+            Restore.block(block);
+            block.setType(Material.AIR, false);
+        });
+        Restore.display(car.display);
         Location start = car.display.getLocation();
         Location seatAt = start.clone().add(0, 0.4, 0);
         seatAt.setYaw(0);

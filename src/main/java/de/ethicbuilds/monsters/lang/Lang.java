@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.lang;
 
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.bautest.BauTest;
 import de.ethicbuilds.monsters.weapons.AmmoHud;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -61,13 +62,13 @@ public final class Lang {
 
     /** Note for everyone online in the chat, the console gets the German one */
     public static void noteAll(String de, String en, Object... args) {
-        for (Player player : Bukkit.getOnlinePlayers()) player.sendMessage(f(player, de, en, args));
+        for (Player player : BauTest.audience()) player.sendMessage(f(player, de, en, args));
         Bukkit.getConsoleSender().sendMessage(String.format(Locale.GERMANY, de, args));
     }
 
     /** Chat message to everyone online, each in their language, the console gets the German one */
     public static void broadcast(String de, String en, Object... args) {
-        for (Player player : Bukkit.getOnlinePlayers()) player.sendMessage(f(player, de, en, args));
+        for (Player player : BauTest.audience()) player.sendMessage(f(player, de, en, args));
         Bukkit.getConsoleSender().sendMessage(String.format(Locale.GERMANY, de, args));
     }
 }

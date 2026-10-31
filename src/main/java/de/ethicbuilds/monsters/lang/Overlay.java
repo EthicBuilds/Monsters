@@ -1,10 +1,10 @@
 package de.ethicbuilds.monsters.lang;
 
+import de.ethicbuilds.monsters.bautest.BauTest;
 import de.ethicbuilds.monsters.weapons.AmmoHud;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.time.Duration;
@@ -125,14 +125,14 @@ public final class Overlay {
     }
 
     public static void bigAll(String color, String titleDe, String titleEn, String subDe, String subEn) {
-        for (Player player : Bukkit.getOnlinePlayers()) big(player, color, titleDe, titleEn, subDe, subEn);
+        for (Player player : BauTest.audience()) big(player, color, titleDe, titleEn, subDe, subEn);
     }
 
     public static void mediumAll(String color, String de, String en) {
-        for (Player player : Bukkit.getOnlinePlayers()) medium(player, color, de, en);
+        for (Player player : BauTest.audience()) medium(player, color, de, en);
     }
 
     public static void smallAll(String de, String en) {
-        for (Player player : Bukkit.getOnlinePlayers()) small(player, de, en);
+        for (Player player : BauTest.audience()) small(player, de, en);
     }
 }

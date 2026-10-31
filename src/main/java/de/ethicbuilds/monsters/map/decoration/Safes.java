@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.map.decoration;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.bautest.BauTest;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.player.GamePlayer;
@@ -92,10 +93,28 @@ public class Safes {
                 text.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(0.8F), new AxisAngle4f()));
                 text.setPersistent(false);
             });
+            BauTest.limit(display);
+            BauTest.limit(digit);
             Interaction hitbox = decorationManager.hitbox(at.getBlock(), NOTE + notes.size(), 0.7F, 0.4F);
             hitbox.teleport(at.clone().subtract(0, 0.05, 0));
             notes.add(new Note(display, digit, hitbox, position));
         }
+    }
+
+    /** Function test on the build server: a fresh code and new notes for the next test */
+    public void reset() {
+        notes.forEach(note -> {
+            note.display().remove();
+            note.digit().remove();
+            decorationManager.removeHitbox(note.hitbox());
+        });
+        notes.clear();
+        opened = false;
+        found = 0;
+        safes.stream().filter(ItemDisplay::isValid).findFirst().ifPresentOrElse(safe -> {
+            for (int i = 0; i < NOTES; i++) code[i] = ThreadLocalRandom.current().nextInt(10);
+            placeNotes(safe.getLocation().getBlock());
+        }, () -> placed = false);
     }
 
     public void use(GamePlayer gamePlayer, String station) {
