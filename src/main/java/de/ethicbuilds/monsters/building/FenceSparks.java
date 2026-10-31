@@ -107,12 +107,12 @@ final class FenceSparks {
         return at.add(side.multiply(random.nextDouble(-amount, amount))).add(0, random.nextDouble(-amount, amount), 0);
     }
 
-    // Glow on the corners, a thin white core between them
+    // Glow on every second corner (DESIGN: else it reads as one line from afar), a thin white core between them
     private static void draw(List<Location> points) {
         World world = points.getFirst().getWorld();
         for (int i = 0; i < points.size(); i++) {
             Location point = points.get(i);
-            world.spawnParticle(Particle.DUST, point, 1, 0, 0, 0, 0, GLOW);
+            if (i % 2 == 0) world.spawnParticle(Particle.DUST, point, 1, 0, 0, 0, 0, GLOW);
             if (i == 0) continue;
             Location previous = points.get(i - 1);
             Vector step = point.toVector().subtract(previous.toVector());
