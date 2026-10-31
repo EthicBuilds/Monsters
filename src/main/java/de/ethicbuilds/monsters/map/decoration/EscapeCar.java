@@ -49,12 +49,22 @@ public class EscapeCar {
         private final ItemDisplay display;
         private final List<Block> barriers;
         private final Interaction hitbox;
+        // Middle of the barriers seen from the model origin, at the placed yaw
+        private final Vector offset;
+        private final float yaw;
         private boolean fixed, driving;
 
-        private Car(ItemDisplay display, List<Block> barriers, Interaction hitbox) {
+        private Car(ItemDisplay display, List<Block> barriers, Interaction hitbox, Vector offset) {
             this.display = display;
             this.barriers = barriers;
             this.hitbox = hitbox;
+            this.offset = offset;
+            this.yaw = display.getLocation().getYaw();
+        }
+
+        private Location middle() {
+            Location at = display.getLocation();
+            return at.clone().add(offset.clone().rotateAroundY(-Math.toRadians(at.getYaw() - yaw)));
         }
     }
 
@@ -73,8 +83,10 @@ public class EscapeCar {
             }
         }
         int n = Math.max(1, barriers.size());
-        Block middle = block.getRelative((int) Math.round(x / n), 0, (int) Math.round(z / n));
-        cars.add(new Car(display, barriers, decorationManager.hitbox(middle, STATION + cars.size(), 3.2F, 1.8F)));
+        Location middle = block.getLocation().add(0.5 + x / n, 0, 0.5 + z / n);
+        Interaction hitbox = decorationManager.hitbox(block, STATION + cars.size(), 3.2F, 1.8F);
+        hitbox.teleport(middle);
+        cars.add(new Car(display, barriers, hitbox, middle.toVector().subtract(display.getLocation().toVector()).setY(0)));
     }
 
     /** Out of a crate or a wreck: with luck a part the car still needs */
@@ -160,7 +172,7 @@ public class EscapeCar {
                 if (end) {
                     seat.eject();
                     seat.remove();
-                    car.hitbox.teleport(car.display.getLocation());
+                    car.hitbox.teleport(car.middle());
                     car.driving = false;
                     cancel();
                     return;
@@ -187,8 +199,8 @@ public class EscapeCar {
                     next = now.clone();
                     speed = 0;
                 }
-                // The model's front is -z, so it turns half round from the look
-                next.setYaw(yaw + 180);
+                // The model's front is -x, so it turns a quarter from the look
+                next.setYaw(yaw + 90);
                 next.setPitch(0);
                 car.display.teleport(next);
                 // A turned seat would turn the driver too, so it keeps its yaw
