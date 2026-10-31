@@ -64,12 +64,15 @@ public class DecorationManager implements Listener {
             "fass_1", "fass_2", "fass_3", "kiste_leer_2", "kiste_leer_3", "kiste_voll_1", "kiste_voll_2"
     );
 
+    // Clickable area over the whole car body
+    private static final float WRECK_WIDTH = 3.2F, WRECK_HEIGHT = 1.8F;
     // Sign height above the block, the perk machines are taller
     private static final double SIGN = 1.6, PERK_SIGN = 2.5;
 
     @Inject private Main plugin;
     @Inject private WeaponManager weaponManager;
     @Inject private CrateManager crateManager;
+    @Inject private Wrecks wrecks;
 
     private final Set<UUID> registered = new HashSet<>();
     private final Map<UUID, String> stations = new HashMap<>();
@@ -151,7 +154,17 @@ public class DecorationManager implements Listener {
             look().apply(display, id);
         }
 
-        if (SOLID.contains(id) && entity instanceof ItemDisplay display) {
+        if (entity instanceof ItemDisplay display) Sirens.register(display, id);
+        if (Wrecks.isWreck(id)) {
+            String station = wrecks.register(block);
+            Location center = wrecks.center(station);
+            Interaction hitbox = block.getWorld().spawn(center, Interaction.class, interaction -> {
+                interaction.setInteractionWidth(WRECK_WIDTH);
+                interaction.setInteractionHeight(WRECK_HEIGHT);
+                interaction.setPersistent(false);
+            });
+            stations.put(hitbox.getUniqueId(), station);
+        } else if (SOLID.contains(id) && entity instanceof ItemDisplay display) {
             crateManager.register(display, block);
         } else if (WEAPON_CRATES.containsKey(id)) {
             createWeaponStation(block, WEAPON_CRATES.get(id));

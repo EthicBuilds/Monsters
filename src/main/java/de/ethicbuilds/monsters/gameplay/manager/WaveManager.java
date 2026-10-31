@@ -8,6 +8,7 @@ import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.gameplay.repository.GameStates;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.decoration.CrateManager;
+import de.ethicbuilds.monsters.map.decoration.Sirens;
 import de.ethicbuilds.monsters.monster.EliteTier;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -161,6 +162,7 @@ public class WaveManager {
         Overlay.bigAll(HORDE_COLOR, Overlay.line(Overlay.HORDE, HORDE_COLOR, "HORDE!", null), Overlay.line(Overlay.HORDE, HORDE_COLOR, "HORDE!", null),
                 "<color:" + Overlay.GREY + ">Haltet zusammen</color>", "<color:" + Overlay.GREY + ">Stick together</color>");
         for (Player player : Bukkit.getOnlinePlayers()) player.playSound(player.getLocation(), Sound.EVENT_RAID_HORN, 0.5F, 1.2F);
+        Sirens.howl();
     }
 
     private boolean roundOver() {
