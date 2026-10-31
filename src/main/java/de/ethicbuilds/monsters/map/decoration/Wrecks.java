@@ -31,13 +31,14 @@ public class Wrecks {
     private final List<Wreck> wrecks = new ArrayList<>();
 
     private static final class Wreck {
-        private final List<Location> blocks;
         private final Location center;
+        // One body per wreck, so clicking again does not start a second search
+        private final Door body;
         private int searchedWave = -1;
 
         private Wreck(List<Location> blocks, Location center) {
-            this.blocks = blocks;
             this.center = center;
+            this.body = new Door("Wrack", new ArrayList<>(blocks), center);
         }
     }
 
@@ -45,29 +46,33 @@ public class Wrecks {
         return id.startsWith("monsters_autowrack") || id.startsWith("monsters_wrack_");
     }
 
-    /** The barriers around the furniture block are the car body, the hitbox sits in their middle; returns the station */
     /** Function test on the build server */
     public void clear() {
         wrecks.clear();
     }
 
-    String register(Block block) {
+    /** The car body are its barriers (from Nexo where the world has none), the hitbox sits in their middle; returns the station */
+    String register(Block block, List<Block> barriers) {
         List<Location> blocks = new ArrayList<>();
-        double x = 0, y = 0, z = 0;
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dy = 0; dy <= 1; dy++) {
-                for (int dz = -2; dz <= 2; dz++) {
-                    Block part = block.getRelative(dx, dy, dz);
-                    if (part.getType() != Material.BARRIER) continue;
-                    blocks.add(part.getLocation());
-                    x += dx;
-                    y += dy;
-                    z += dz;
+        double x = 0, z = 0;
+        List<Block> parts = new ArrayList<>(barriers);
+        if (parts.isEmpty()) {
+            for (int dx = -2; dx <= 2; dx++) {
+                for (int dy = 0; dy <= 1; dy++) {
+                    for (int dz = -2; dz <= 2; dz++) {
+                        Block part = block.getRelative(dx, dy, dz);
+                        if (part.getType() == Material.BARRIER) parts.add(part);
+                    }
                 }
             }
         }
+        for (Block part : parts) {
+            blocks.add(part.getLocation());
+            x += part.getX() - block.getX();
+            z += part.getZ() - block.getZ();
+        }
         if (blocks.isEmpty()) blocks.add(block.getLocation());
-        int n = blocks.size();
+        int n = Math.max(1, parts.size());
         Location center = block.getLocation().add(0.5 + x / n, 0, 0.5 + z / n);
         wrecks.add(new Wreck(blocks, center));
         return STATION + (wrecks.size() - 1);
@@ -93,8 +98,7 @@ public class Wrecks {
             Sounds.deny(player);
             return;
         }
-        Door body = new Door("Wrack", new ArrayList<>(wreck.blocks), wreck.center);
-        doorManager.breakOpen(gamePlayer, body, () -> {
+        doorManager.breakOpen(gamePlayer, wreck.body, () -> {
             if (wreck.searchedWave == waveManager.getCurrentWave()) return;
             wreck.searchedWave = waveManager.getCurrentWave();
             Location at = wreck.center.clone().add(0, 1, 0);

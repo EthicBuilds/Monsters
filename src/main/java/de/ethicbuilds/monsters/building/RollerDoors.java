@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.building;
 
 import com.google.inject.Inject;
+import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.bautest.NexoBarriers;
 import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.lang.Lang;
@@ -24,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /***
- * Roller doors (user 31.10.): 2 wide and 3 high, closed at the start. The switch beside it buys it free once,
+ * Roller doors (user 31.10.): 2 wide and 3 high, closed at the start. The switch beside it buys it free once (the team can chip in),
  * then opens and closes it and shows how it stands. Monsters break closed doors, parts repair and upgrade them
  * at the door, from level 2 they close by themselves when monsters come.
  */
@@ -60,7 +61,7 @@ public class RollerDoors implements BuildPart {
         private final List<Block> barriers;
         private final Location center;
         private Interaction hitbox;
-        private int level, health;
+        private int level, health, paid;
         private boolean bought, open;
 
         private Door(ItemDisplay display, Block block, List<Block> barriers, int level) {
@@ -92,9 +93,8 @@ public class RollerDoors implements BuildPart {
         if (id.startsWith(SWITCH_ID)) {
             decorationManager.hitbox(block, SWITCH + switches.size(), 0.8F, 1.4F);
             Lever lever = new Lever(display, block);
-            lever.sign = decorationManager.sign(block, "Rolltor", "Roller door", DecorationManager.price(UNLOCK), DecorationManager.price(UNLOCK),
-                    "Rechtsklick zum Freikaufen", "Right-click to buy free", 1.0);
             switches.add(lever);
+            sign(lever, UNLOCK);
             Door door = nearest(block);
             if (door != null) lever(lever, door);
             return true;
@@ -194,19 +194,15 @@ public class RollerDoors implements BuildPart {
             return;
         }
         if (!door.bought) {
-            if (gamePlayer.getCoins() < UNLOCK) {
-                Lang.note(player, Lang.f(player, "§cDu brauchst noch §6%d Coins", "§cNot enough coins, §6%d Coins §cmissing", UNLOCK - gamePlayer.getCoins()));
-                Sounds.deny(player);
+            int remaining = UNLOCK - door.paid;
+            if (gamePlayer.getCoins() < remaining) {
+                contribute(gamePlayer, door, remaining);
                 return;
             }
-            gamePlayer.setCoins(gamePlayer.getCoins() - UNLOCK);
+            gamePlayer.setCoins(gamePlayer.getCoins() - remaining);
             door.bought = true;
-            for (Lever other : switches) {
-                if (other.sign == null || nearest(other.block) != door) continue;
-                decorationManager.removeSign(other.sign);
-                other.sign = null;
-            }
-            Lang.note(player, Lang.f(player, "§7Rolltor freigekauft §c-%d Coins", "§7Roller door bought free §c-%d Coins", UNLOCK));
+            for (Lever other : switches) if (nearest(other.block) == door) sign(other, 0);
+            Lang.note(player, Lang.f(player, "§7Rolltor freigekauft §c-%d Coins", "§7Roller door bought free §c-%d Coins", remaining));
             Sounds.buy(player);
         } else if (door.open && blocked(door)) {
             Overlay.small(player, Overlay.line((char) 0, COLOR, "ROLLTOR", "Jemand steht im Tor"),
@@ -223,6 +219,31 @@ public class RollerDoors implements BuildPart {
         at.getWorld().spawnParticle(Particle.DUST, at, 8, 0.15, 0.15, 0.15, new Particle.DustOptions(color, 1.0F));
         Overlay.small(player, Overlay.line((char) 0, COLOR, "ROLLTOR", door.open ? "offen" : "zu"),
                 Overlay.line((char) 0, COLOR, "ROLLER DOOR", door.open ? "open" : "closed"));
+    }
+
+    // Not enough coins: everything the player has goes in, like at the doors of the map
+    private void contribute(GamePlayer gamePlayer, Door door, int remaining) {
+        Player player = gamePlayer.getPlayer();
+        int coins = gamePlayer.getCoins();
+        if (coins <= 0) {
+            Lang.note(player, Lang.f(player, "§cNoch §6%d Coins §cfür das Rolltor, legt zusammen!", "§cThe roller door still needs §6%d Coins§c, chip in!", remaining));
+            Sounds.deny(player);
+            return;
+        }
+        gamePlayer.setCoins(0);
+        door.paid += coins;
+        for (Lever lever : switches) if (nearest(lever.block) == door) sign(lever, UNLOCK - door.paid);
+        Lang.noteAll("%s§a%s §7legt §6%d Coins §7fürs §aRolltor §7ein (§6%d§7/§6%d§7). Noch §6%d Coins§7, legt zusammen!",
+                "%s§a%s §7puts §6%d Coins §7into the §aroller door §7(§6%d§7/§6%d§7). §6%d Coins §7to go, chip in!",
+                Main.getINSTANCE().getMonstersPrefix(), player.getName(), coins, door.paid, UNLOCK, UNLOCK - door.paid);
+        player.playSound(player.getLocation(), Sound.BLOCK_CHAIN_PLACE, 1.0F, 1.2F);
+    }
+
+    // Price sign over the switch with what is still missing, gone once the door is free
+    private void sign(Lever lever, int remaining) {
+        if (lever.sign != null) decorationManager.removeSign(lever.sign);
+        lever.sign = remaining <= 0 ? null : decorationManager.sign(lever.block, "Rolltor", "Roller door",
+                DecorationManager.price(remaining), DecorationManager.price(remaining), "Rechtsklick zum Freikaufen", "Right-click to buy free", 1.0);
     }
 
     private Door nearest(Block lever) {

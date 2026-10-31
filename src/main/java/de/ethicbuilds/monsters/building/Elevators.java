@@ -39,7 +39,7 @@ public class Elevators implements BuildPart {
     private static final double CRANK_REACH = 8, SPEED = 0.15;
     // From DESIGN: deck 1 block above the platform block, posts beside it at model x ±1.583, bottom posts 2 high
     private static final double DECK = 1.0, POST_SIDE = 1.583, BOTTOM_POSTS = 2.0;
-    private static final int SHAFT_HEIGHT = 48;
+    private static final int SHAFT_HEIGHT = 96;
 
     @Inject private Main plugin;
     @Inject private DecorationManager decorationManager;

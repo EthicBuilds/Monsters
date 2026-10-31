@@ -206,7 +206,7 @@ public class DecorationManager implements Listener {
         } else if (EscapeCar.BROKEN_ID.equals(id) && entity instanceof ItemDisplay display) {
             escapeCar.register(display, block);
         } else if (Wrecks.isWreck(id)) {
-            String station = wrecks.register(block);
+            String station = wrecks.register(block, entity instanceof ItemDisplay display ? barriers(display, id) : List.of());
             Location center = wrecks.center(station);
             Interaction hitbox = block.getWorld().spawn(center, Interaction.class, interaction -> {
                 interaction.setInteractionWidth(WRECK_WIDTH);
