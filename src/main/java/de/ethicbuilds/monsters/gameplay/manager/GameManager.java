@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.player.manager.ClassManager;
 import de.ethicbuilds.monsters.dto.StopServerDto;
 import de.ethicbuilds.monsters.event.WaveEvents;
 import de.ethicbuilds.monsters.gameplay.RoundEndCard;
@@ -55,6 +56,7 @@ public class GameManager {
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
     @Inject private Main plugin;
+    @Inject private ClassManager classManager;
     @Inject private UserManager userManager;
     @Inject private GameStates gameStates;
     @Inject private WaveManager waveManager;
@@ -137,6 +139,7 @@ public class GameManager {
                     for (var gamePlayer : userManager.getGamePlayers()) {
                         // JoinMe only before the start, the slot stays empty for lying on the ground
                         gamePlayer.getPlayer().getInventory().setItem(JoinMeListener.SLOT, null);
+                        classManager.apply(gamePlayer);
                         for (var weapon : gamePlayer.getWeapons().values()) {
                             weapon.refill();
                             weapon.reload(gamePlayer.getPlayer());

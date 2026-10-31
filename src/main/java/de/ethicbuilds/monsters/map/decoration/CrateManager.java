@@ -3,10 +3,13 @@ package de.ethicbuilds.monsters.map.decoration;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.building.Parts;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
+import de.ethicbuilds.monsters.player.manager.ClassManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.items.CrowbarLevel;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.lang.Overlay;
+import de.ethicbuilds.monsters.monster.MonsterRat;
+import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.powerup.PowerupManager;
@@ -28,6 +31,7 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -47,12 +51,16 @@ public class CrateManager implements Listener {
     private static final String PARTS_STAGE = "monsters_bauteilkiste_";
     private static final double REACH = 5;
     private static final double WRECK_POWERUP = 0.05;
+    private static final double RAT_CHANCE = 0.12;
+    private static final int RATS_MIN = 3;
     private static final String COLOR = "#F9A11E";
 
     @Inject private UserManager userManager;
     @Inject private GameManager gameManager;
     @Inject private GrenadeManager grenadeManager;
     @Inject private PowerupManager powerupManager;
+    @Inject private MonsterManager monsterManager;
+    @Inject private EscapeCar escapeCar;
 
     private final Map<Location, Crate> crates = new HashMap<>();
     private final Map<UUID, Long> lastHits = new HashMap<>();
@@ -78,6 +86,11 @@ public class CrateManager implements Listener {
     public void register(ItemDisplay display, Block block, boolean parts) {
         if (block.getType().isAir()) block.setType(Material.BARRIER, false);
         crates.put(block.getLocation(), new Crate(display, block, parts));
+    }
+
+    /** Where the crates stand, e.g. for code notes on top */
+    public List<Block> crateBlocks() {
+        return crates.values().stream().map(crate -> crate.block).toList();
     }
 
     /** Called at the start of every wave */
@@ -110,7 +123,7 @@ public class CrateManager implements Listener {
         }
 
         long now = System.currentTimeMillis();
-        if (now - lastHits.getOrDefault(player.getUniqueId(), 0L) < HIT_COOLDOWN / CrowbarLevel.speed(gamePlayer.getCrowbarLevel())) return;
+        if (now - lastHits.getOrDefault(player.getUniqueId(), 0L) < HIT_COOLDOWN / ClassManager.crowbarSpeed(gamePlayer)) return;
         lastHits.put(player.getUniqueId(), now);
 
         hit(gamePlayer, crate);
@@ -121,7 +134,7 @@ public class CrateManager implements Listener {
         Location center = crate.block.getLocation().add(0.5, 0.5, 0.5);
         crate.damage++;
         // A better crowbar needs fewer hits
-        int hits = Math.max(1, (int) Math.round(STAGES / CrowbarLevel.speed(gamePlayer.getCrowbarLevel())));
+        int hits = Math.max(1, (int) Math.round(STAGES / ClassManager.crowbarSpeed(gamePlayer)));
         if (crate.damage >= hits) crate.damage = STAGES;
 
         player.swingMainHand();
@@ -153,7 +166,16 @@ public class CrateManager implements Listener {
             return;
         }
         crate.display.setItemStack(null);
+        // Now and then rats live in it, they go for whoever disturbed them (user 31.10.)
+        if (ThreadLocalRandom.current().nextDouble() < RAT_CHANCE) {
+            int rats = RATS_MIN + ThreadLocalRandom.current().nextInt(RATS_MIN);
+            for (int i = 0; i < rats; i++) monsterManager.summonAt(new MonsterRat(), player, center.clone().add(0, -0.4, 0));
+            center.getWorld().playSound(center, Sound.ENTITY_SILVERFISH_AMBIENT, 1.2F, 0.6F);
+            crate(player, bold("Ratten") + grey("!"), bold("Rats") + grey("!"));
+            return;
+        }
         loot(gamePlayer);
+        escapeCar.maybePart(player);
         if (ThreadLocalRandom.current().nextDouble() < CrowbarLevel.powerupChance(gamePlayer.getCrowbarLevel())) powerupManager.dropAt(center);
     }
 
@@ -171,6 +193,7 @@ public class CrateManager implements Listener {
     /** Searched car wreck: what a crate has, now and then also a powerup */
     public void search(GamePlayer gamePlayer, Location at) {
         loot(gamePlayer);
+        escapeCar.maybePart(gamePlayer.getPlayer());
         if (ThreadLocalRandom.current().nextDouble() < WRECK_POWERUP) powerupManager.dropAt(at);
     }
 

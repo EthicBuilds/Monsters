@@ -52,11 +52,10 @@ import java.util.UUID;
 
 /***
  * Downed players: a mannequin with their skin lies where they died, they themselves are hidden and
- * look up from the ground until the next wave or until a teammate revives them for coins.
+ * look up from the ground until the next wave or until a teammate revives them with a medkit (user 31.10.).
  * With two items (keys 4/5 or the mouse wheel) they watch the living teammates meanwhile, through their eyes in spectator mode.
  */
 public class ReviveManager implements Listener {
-    private static final int BASE_COST = 1000;
     private static final float HITBOX_WIDTH = 1.8F, HITBOX_HEIGHT = 0.7F;
     // Reviving: hold the click for 3 seconds, the bar stops where it is when letting go
     private static final int REVIVE_MILLIS = 3000, STEP_MILLIS = 200;
@@ -80,7 +79,6 @@ public class ReviveManager implements Listener {
     private final Map<UUID, Location> views = new HashMap<>();
     private final Map<UUID, Interaction> hitboxes = new HashMap<>();
     private final Map<UUID, Long> lastClick = new HashMap<>();
-    private final Map<UUID, Integer> revives = new HashMap<>();
     private final Map<UUID, Integer> reviveProgress = new HashMap<>();
     // Self revive with a stored medkit, once per round
     private final Set<UUID> selfRevived = new HashSet<>();
@@ -93,11 +91,6 @@ public class ReviveManager implements Listener {
     private final Map<UUID, Player> lastWatched = new HashMap<>();
     private final Set<UUID> switching = new HashSet<>();
     private BukkitRunnable watchCheck;
-
-    /** Every revive of the same player costs 1000 more */
-    public int cost(UUID uuid) {
-        return BASE_COST * (revives.getOrDefault(uuid, 0) + 1);
-    }
 
     /** Lies down, but a stored medkit gets the player up in a moment */
     public boolean revivesSelf(UUID uuid) {
@@ -116,7 +109,6 @@ public class ReviveManager implements Listener {
         Location spot = view.clone();
         spot.setYaw(freeYaw(spot));
         spot.setPitch(0);
-        int cost = cost(player.getUniqueId());
 
         Mannequin body = spot.getWorld().spawn(spot, Mannequin.class, mannequin -> {
             mannequin.setBodyYaw(spot.getYaw());
@@ -129,7 +121,7 @@ public class ReviveManager implements Listener {
             mannequin.setPersistent(false);
             mannequin.setCustomName("§c" + player.getName());
             mannequin.setCustomNameVisible(true);
-            mannequin.setDescription(Component.text(String.format("§a♥ §6%d Coins", cost)));
+            mannequin.setDescription(Component.text("§a♥ Medkit"));
         });
         bodies.put(player.getUniqueId(), body);
         spots.put(player.getUniqueId(), spot);
@@ -175,7 +167,8 @@ public class ReviveManager implements Listener {
     // A stored medkit gets the player back up after a few seconds, once per round
     private void trySelfRevive(Player player) {
         ItemStack stored = player.getInventory().getItem(MEDKIT_SLOT);
-        if (stored == null || stored.getType().isAir() || selfRevived.contains(player.getUniqueId())) return;
+        boolean medkit = stored != null && !stored.getType().isAir() && !selfRevived.contains(player.getUniqueId());
+        if (!medkit) return;
         Overlay.medium(player, GREEN, Overlay.line(Overlay.MEDKIT, GREEN, "MEDKIT", "Du stehst gleich wieder auf"),
                 Overlay.line(Overlay.MEDKIT, GREEN, "MEDKIT", "you'll be back up in a moment"));
         selfReviving.add(player.getUniqueId());
@@ -444,16 +437,14 @@ public class ReviveManager implements Listener {
         if (helperPlayer == null || downedPlayer == null || userManager.isPlayerDead(helper.getUniqueId())) return;
         if (helper.getGameMode() == GameMode.SPECTATOR || !nearBody(helper, downed)) return;
 
-        int cost = cost(downed);
-        if (helperPlayer.getCoins() < cost) {
-            String missing = Overlay.num(cost - helperPlayer.getCoins()) + " " + Overlay.coin();
+        if (!hasMedkit(helper)) {
             String name = downedPlayer.getPlayer().getName();
-            Overlay.small(helper, Overlay.icon(Overlay.REVIVE, GREEN, grey("Du brauchst noch ") + missing + grey(" um " + name + " wiederzubeleben")),
-                    Overlay.icon(Overlay.REVIVE, GREEN, grey("You need ") + missing + grey(" more to revive " + name)));
+            Overlay.small(helper, Overlay.icon(Overlay.MEDKIT, GREEN, grey("Du brauchst ein ") + green("Medkit") + grey(" um " + name + " wiederzubeleben")),
+                    Overlay.icon(Overlay.MEDKIT, GREEN, grey("You need a ") + green("medkit") + grey(" to revive " + name)));
             if (reviveProgress.putIfAbsent(downed, 0) == null) Sounds.deny(helper);
             return;
         }
-        int step = perkManager.has(helper, Perk.QUICK_REVIVE) ? STEP_MILLIS * 2 : STEP_MILLIS;
+        int step = (int) Math.round((perkManager.has(helper, Perk.QUICK_REVIVE) ? STEP_MILLIS * 2 : STEP_MILLIS) * ClassManager.reviveFactor(helper));
         int progress = reviveProgress.merge(downed, step, Integer::sum);
         if (progress < REVIVE_MILLIS) {
             String bar = progressBar(progress / (double) REVIVE_MILLIS);
@@ -465,9 +456,8 @@ public class ReviveManager implements Listener {
         }
         reviveProgress.remove(downed);
 
-        helperPlayer.setCoins(helperPlayer.getCoins() - cost);
+        helper.getInventory().setItem(MEDKIT_SLOT, null);
         helperPlayer.setRevives(helperPlayer.getRevives() + 1);
-        revives.merge(downed, 1, Integer::sum);
         Location spot = spots.get(downed).clone();
         spot.setPitch(0);
         userManager.revivePlayer(downed, spot);
@@ -475,8 +465,13 @@ public class ReviveManager implements Listener {
                 Overlay.line(Overlay.REVIVE, GREEN, "REVIVED", "by " + helper.getName()));
 
         spot.getWorld().spawnParticle(Particle.HEART, spot.clone().add(0, 1, 0), 8, 0.4, 0.4, 0.4, 0);
-        Lang.noteAll("%s§a%s §7hat §a%s §7wiederbelebt! §c-%d Coins", "%s§a%s §7revived §a%s§7! §c-%d Coins", plugin.getMonstersPrefix(),
-                helper.getName(), downedPlayer.getPlayer().getName(), cost);
+        Lang.noteAll("%s§a%s §7hat §a%s §7mit einem §aMedkit §7wiederbelebt!", "%s§a%s §7revived §a%s §7with a §amedkit§7!", plugin.getMonstersPrefix(),
+                helper.getName(), downedPlayer.getPlayer().getName());
+    }
+
+    private static boolean hasMedkit(Player player) {
+        ItemStack stored = player.getInventory().getItem(MEDKIT_SLOT);
+        return stored != null && !stored.getType().isAir();
     }
 
     private static String progressBar(double done) {

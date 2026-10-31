@@ -33,10 +33,12 @@ public class WaveManager {
     private static final long HORDE_WARNING = 3000;
     // Every weaver is about 40 animated displays, so fewer of them at once (8 players would bring over 100)
     private static final int MAX_SPIDERS_ALIVE = 40;
+    private static final double SOLO_SHARE = 0.4;
     private static final String[] TIERS = {"", "Bronze", "Silber", "Gold", "Diamant", "Netherit"};
     private static final String[] TIERS_EN = {"", "Bronze", "Silver", "Gold", "Diamond", "Netherite"};
     private static final String[] TIER_COLORS = {"", "#E3A46A", "#C0C8D4", "#FFCC2E", "#5EE0E0", "#8B7A8E"};
     private static final String WAVE_COLOR = "#F9A11E", BOSS_COLOR = "#A970FF", HORDE_COLOR = "#FF4838";
+    private static final String EXPLOSIVE_COLOR = "#FF7A2E";
     private static final long ELITE_DELAY = 60;
 
     @Inject
@@ -111,6 +113,8 @@ public class WaveManager {
         boolean bounty = currentWave >= BOUNTY_FROM && currentWave % MonsterManager.SPIDER_WAVE != 0
                 && ThreadLocalRandom.current().nextDouble() < BOUNTY_CHANCE;
         int cap = currentWave % MonsterManager.SPIDER_WAVE == 0 ? MAX_SPIDERS_ALIVE : MAX_ALIVE;
+        // Alone fewer at once, the wave takes a bit longer instead (user 31.10.)
+        if (userManager.getGamePlayers().size() == 1) cap = (int) Math.round(cap * SOLO_SHARE);
         while (monsterManager.hasPendingSpawns() || !monsterManager.getMonsters().isEmpty()) {
             if (roundOver()) return;
             if (PauseManager.isPaused()) {
@@ -147,6 +151,12 @@ public class WaveManager {
             return;
         }
         String count = Overlay.num(monsterManager.remaining());
+        if (MonsterManager.isExplosiveWave(wave)) {
+            Overlay.bigAll(EXPLOSIVE_COLOR, Overlay.line(Overlay.HORDE, EXPLOSIVE_COLOR, "EXPLOSIV", null), Overlay.line(Overlay.HORDE, EXPLOSIVE_COLOR, "EXPLOSIVE", null),
+                    Overlay.line((char) 0, EXPLOSIVE_COLOR, "Welle " + wave, count + " Explodierer · Abstand halten"),
+                    Overlay.line((char) 0, EXPLOSIVE_COLOR, "Wave " + wave, count + " bloaters · keep your distance"));
+            return;
+        }
         boolean spiders = wave % MonsterManager.SPIDER_WAVE == 0;
         Overlay.mediumAll(WAVE_COLOR, Overlay.line(Overlay.WAVE, WAVE_COLOR, "WELLE " + wave, spiders ? "Die Weberinnen kommen" : count + " Monster"),
                 Overlay.line(Overlay.WAVE, WAVE_COLOR, "WAVE " + wave, spiders ? "the weavers are coming" : count + " monsters"));

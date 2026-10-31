@@ -16,6 +16,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
 
 
@@ -29,6 +31,9 @@ public class GamePlayer extends GameUser {
     @Getter @Setter private int crowbarLevel;
     // Building parts, each player collects their own
     @Getter @Setter private int parts;
+    // For the round end card: kills per weapon ("German|English" name) and defeated bosses
+    @Getter private final Map<String, Integer> weaponKills = new HashMap<>();
+    @Getter @Setter private int bossKills;
 
 
     public GamePlayer(Player player) {

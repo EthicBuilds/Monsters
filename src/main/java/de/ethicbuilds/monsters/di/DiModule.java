@@ -20,15 +20,19 @@ import de.ethicbuilds.monsters.gameplay.repository.GameStates;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.decoration.CrateManager;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
+import de.ethicbuilds.monsters.map.decoration.EscapeCar;
+import de.ethicbuilds.monsters.map.decoration.Safes;
 import de.ethicbuilds.monsters.map.decoration.Wrecks;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.perk.PerkManager;
+import de.ethicbuilds.monsters.player.manager.ClassManager;
 import de.ethicbuilds.monsters.player.manager.ReviveManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.player.manager.WatcherManager;
 import de.ethicbuilds.monsters.powerup.PowerupManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import de.ethicbuilds.monsters.statistic.manager.StatisticManager;
+import de.ethicbuilds.monsters.weapons.RocketLoot;
 import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 import de.ethicbuilds.monsters.weapons.manager.WorkbenchManager;
@@ -49,6 +53,7 @@ public class DiModule extends AbstractModule {
         //Manager
         bind(UserManager.class).asEagerSingleton();
         bind(ReviveManager.class).asEagerSingleton();
+        bind(ClassManager.class).asEagerSingleton();
         bind(WatcherManager.class).asEagerSingleton();
         bind(GameManager.class).asEagerSingleton();
         bind(RoundLoader.class).asEagerSingleton();
@@ -63,7 +68,10 @@ public class DiModule extends AbstractModule {
         bind(DecorationManager.class).asEagerSingleton();
         bind(CrateManager.class).asEagerSingleton();
         bind(Wrecks.class).asEagerSingleton();
+        bind(Safes.class).asEagerSingleton();
+        bind(EscapeCar.class).asEagerSingleton();
         bind(GrenadeManager.class).asEagerSingleton();
+        bind(RocketLoot.class).asEagerSingleton();
         bind(PowerupManager.class).asEagerSingleton();
         bind(WorkbenchManager.class).asEagerSingleton();
         bind(PerkManager.class).asEagerSingleton();

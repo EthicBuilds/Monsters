@@ -20,7 +20,7 @@ import java.util.UUID;
  */
 public final class AmmoHud {
     private static final Key FONT = Key.key("monsters", "munition");
-    private static final long PAUSE_MILLIS = 2000;
+    private static final long PAUSE_MILLIS = 1000;
     private static final Map<UUID, Long> pausedUntil = new HashMap<>();
 
     private AmmoHud() {}

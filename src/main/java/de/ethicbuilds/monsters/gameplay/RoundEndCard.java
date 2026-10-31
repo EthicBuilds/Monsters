@@ -1,6 +1,8 @@
 package de.ethicbuilds.monsters.gameplay;
 
 import com.google.inject.Inject;
+import de.ethicbuilds.monsters.player.manager.ClassManager;
+import de.ethicbuilds.monsters.player.PlayerClass;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.lang.MenuTitle;
@@ -130,13 +132,16 @@ public class RoundEndCard implements Listener {
         }
 
         inventory.setItem(WAVE_SLOT, stat(Material.CLOCK, Lang.t(player, "Welle", "Wave"), number(player, card.wave),
-                Lang.t(player, "So weit seid ihr gekommen", "How far you made it")));
+                Lang.t(player, "So weit seid ihr gekommen", "How far you made it"),
+                Lang.f(player, "Bosse besiegt: %d", "Bosses defeated: %d", card.gamePlayer.getBossKills())));
         inventory.setItem(KILLS_SLOT, stat(Material.BONE, "Kills", number(player, card.gamePlayer.getKilledZombies()),
-                Lang.t(player, "Deine besiegten Monster", "Monsters you killed")));
+                Lang.t(player, "Deine besiegten Monster", "Monsters you killed"), favourite(player, card.gamePlayer)));
         inventory.setItem(HEADSHOTS_SLOT, stat(Material.SKELETON_SKULL, Lang.t(player, "Kopfschüsse", "Headshots"), number(player, card.gamePlayer.getHeadshots()),
                 Lang.t(player, "Kills mit Kopfschuss", "Kills with a headshot")));
+        PlayerClass type = ClassManager.of(player.getUniqueId());
         inventory.setItem(REVIVES_SLOT, stat(Material.TOTEM_OF_UNDYING, Lang.t(player, "Wiederbelebt", "Revives"), number(player, card.gamePlayer.getRevives()),
-                Lang.t(player, "Mitspieler, die du aufgehoben hast", "Teammates you got back up")));
+                Lang.t(player, "Mitspieler, die du aufgehoben hast", "Teammates you got back up"),
+                Lang.t(player, "Klasse: ", "Class: ") + (type == null ? Lang.t(player, "keine", "none") : Lang.t(player, type.getNameDe(), type.getNameEn()))));
 
         RoundReward.Parts parts = card.parts;
         int round = parts == null ? 0 : parts.base() + parts.waves();
@@ -204,13 +209,25 @@ public class RoundEndCard implements Listener {
         return Lang.f(player, "%,d", "%,d", value);
     }
 
-    private static ItemStack stat(Material material, String label, String value, String hint) {
+    private static ItemStack stat(Material material, String label, String value, String hint, String... extra) {
         ItemStack item = new ItemStack(material);
         item.editMeta(meta -> {
             meta.displayName(text(label + ": ", GREY).append(text(value, LIGHT)));
-            meta.lore(List.of(text(hint, GREY)));
+            List<Component> lore = new ArrayList<>(List.of(text(hint, GREY)));
+            for (String line : extra) lore.add(text(line, LIGHT));
+            meta.lore(lore);
         });
         return item;
+    }
+
+    // The weapon with the most kills this round
+    private static String favourite(Player player, GamePlayer gamePlayer) {
+        return gamePlayer.getWeaponKills().entrySet().stream().max(Map.Entry.comparingByValue())
+                .map(entry -> {
+                    String[] names = entry.getKey().split("[|]", 2);
+                    return Lang.f(player, "Meiste Kills: %s (%d)", "Most kills: %s (%d)", Lang.t(player, names[0], names[names.length - 1]), entry.getValue());
+                })
+                .orElse(Lang.t(player, "Meiste Kills: –", "Most kills: –"));
     }
 
     private static ItemStack coins(Player player, Material material, String label, long coins, String... lore) {

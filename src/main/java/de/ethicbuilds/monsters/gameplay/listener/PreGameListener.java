@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.gameplay.listener;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.player.manager.ClassManager;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.RoundLoader;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
@@ -28,6 +29,7 @@ import java.util.HexFormat;
 
 public class PreGameListener implements Listener {
     @Inject private UserManager userManager;
+    @Inject private ClassManager classManager;
     @Inject private GameManager gameManager;
     @Inject private ScoreboardManager scoreboardManager;
     @Inject private MapManager mapManager;
@@ -67,6 +69,7 @@ public class PreGameListener implements Listener {
         sendPack(player);
         player.setScoreboard(scoreboardManager.getScoreboard(player));
         if (!userManager.isFull()) player.getInventory().setItem(JoinMeListener.SLOT, JoinMeListener.item(player));
+        classManager.give(player);
 
         player.sendMessage(String.format("%sMap: §6%s", plugin.getMonstersPrefix(), gameManager.getGameConfig().getMapName()));
         player.sendMessage(Lang.f(player, "%s§aGebaut von §2%s", "%s§aBuilt by §2%s", plugin.getMonstersPrefix(),  String.join("§7, §2", gameManager.getGameConfig().getMapBuilder())));

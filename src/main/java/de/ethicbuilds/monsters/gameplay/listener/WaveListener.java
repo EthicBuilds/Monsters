@@ -2,9 +2,12 @@ package de.ethicbuilds.monsters.gameplay.listener;
 
 import de.ethicbuilds.monsters.event.WaveEvents;
 import de.ethicbuilds.monsters.monster.MonsterSpiderBoss;
+import de.ethicbuilds.monsters.monster.MonsterBounty;
+import de.ethicbuilds.monsters.monster.MonsterMiniBoss;
 import de.ethicbuilds.monsters.reward.RoundReward;
 import de.ethicbuilds.monsters.sound.Sounds;
 import de.ethicbuilds.monsters.weapons.AmmoHud;
+import de.ethicbuilds.monsters.weapons.RocketLoot;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.building.BuildManager;
@@ -15,8 +18,11 @@ import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.map.MapConfiguration;
 import de.ethicbuilds.monsters.items.GameItems;
+import de.ethicbuilds.monsters.items.GasMask;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
+import de.ethicbuilds.monsters.map.decoration.EscapeCar;
+import de.ethicbuilds.monsters.map.decoration.Safes;
 import de.ethicbuilds.monsters.map.decoration.Wrecks;
 import de.ethicbuilds.monsters.map.elements.Door;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
@@ -36,6 +42,7 @@ import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 import de.ethicbuilds.monsters.weapons.manager.WorkbenchManager;
+import org.bukkit.ChatColor;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.*;
@@ -79,6 +86,9 @@ public class WaveListener implements Listener {
     @Inject private PerkManager perkManager;
     @Inject private BuildManager buildManager;
     @Inject private Wrecks wrecks;
+    @Inject private Safes safes;
+    @Inject private EscapeCar escapeCar;
+    @Inject private RocketLoot rocketLoot;
     @Inject private Main plugin;
 
     public static final int AMMO_PRICE = 500;
@@ -99,12 +109,13 @@ public class WaveListener implements Listener {
     // Coins already put into a door by players who did not have enough
     private final Map<Door, Integer> doorPayments = new IdentityHashMap<>();
 
-    // Insta-kill powerup: shots, grenades and the knife kill at once, not the bare hand. Only the boss keeps its health
+    // Insta-kill powerup: shots, grenades and the knife kill at once, not the bare hand. Bosses keep their health
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onInstakill(EntityDamageByEntityEvent event) {
         if (!powerupManager.isInstakill() || !(event.getEntity() instanceof Monster monster) || !(event.getDamager() instanceof Player player)) return;
         if (!ShotDamage.isActive() && player.getInventory().getItemInMainHand().getType() != GameItems.KNIFE) return;
-        if (monsterManager.getEnemyMonster(monster) instanceof MonsterSpiderBoss) return;
+        EnemyMonster enemy = monsterManager.getEnemyMonster(monster);
+        if (enemy instanceof MonsterSpiderBoss || enemy instanceof MonsterMiniBoss || enemy instanceof MonsterBounty) return;
         event.setDamage(monster.getHealth() + 100);
     }
 
@@ -147,8 +158,11 @@ public class WaveListener implements Listener {
         }
 
         boolean kill = event.getFinalDamage() >= monster.getHealth();
-        if (kill) gamePlayer.setKilledZombies(gamePlayer.getKilledZombies() + 1);
-        if (kill && buildManager.isUsed() && ThreadLocalRandom.current().nextDouble() < PART_DROP) Parts.give(gamePlayer, 1);
+        if (kill) {
+            gamePlayer.setKilledZombies(gamePlayer.getKilledZombies() + 1);
+            gamePlayer.getWeaponKills().merge(killWeapon(gamePlayer, knife), 1, Integer::sum);
+            if (buildManager.isUsed() && ThreadLocalRandom.current().nextDouble() < PART_DROP) Parts.give(gamePlayer, 1);
+        }
 
         // Only headshot kills count (tab, awards, challenge, stats), the coin bonus stays for every headshot
         boolean headshot = ShotDamage.isHeadshot();
@@ -183,6 +197,12 @@ public class WaveListener implements Listener {
 
         enemyMonster.onDeath();
         monsterManager.removeMonster(enemyMonster);
+        if (enemyMonster instanceof MonsterMiniBoss || enemyMonster instanceof MonsterSpiderBoss) {
+            rocketLoot.roll(monster.getKiller(), monster.getLocation());
+            if (enemyMonster instanceof MonsterMiniBoss) GasMask.roll(monster.getKiller());
+            GamePlayer killer = monster.getKiller() == null ? null : userManager.getGamePlayer(monster.getKiller().getUniqueId());
+            if (killer != null) killer.setBossKills(killer.getBossKills() + 1);
+        }
         powerupManager.dropFrom(monster.getLocation());
         if (monsterManager.remaining() <= 3) {
             for (EnemyMonster m : monsterManager.getMonsters().values()) {
@@ -304,6 +324,14 @@ public class WaveListener implements Listener {
             return;
         }
         if (buildManager.use(gamePlayer, station)) return;
+        if (station.startsWith(Safes.SAFE) || station.startsWith(Safes.NOTE)) {
+            safes.use(gamePlayer, station);
+            return;
+        }
+        if (station.startsWith(EscapeCar.STATION)) {
+            escapeCar.use(gamePlayer, station);
+            return;
+        }
         if (station.startsWith(Wrecks.STATION)) {
             wrecks.search(gamePlayer, station);
             return;
@@ -412,6 +440,16 @@ public class WaveListener implements Listener {
             buildManager.clear(rubble);
             Sounds.buy(player);
         });
+    }
+
+    // Name of what killed, German and English, for the round end card
+    private static String killWeapon(GamePlayer gamePlayer, boolean knife) {
+        if (knife) return "Messer|Knife";
+        if (!ShotDamage.isAimed()) return "Granate|Grenade";
+        Weapon weapon = gamePlayer.getWeapon(gamePlayer.getPlayer().getInventory().getItemInMainHand());
+        if (weapon == null) return "Granate|Grenade";
+        String name = ChatColor.stripColor(weapon.getName());
+        return name + "|" + (weapon.getNameEn() != null ? ChatColor.stripColor(weapon.getNameEn()) : name);
     }
 
     private void breakDoor(GamePlayer gamePlayer, Door door) {

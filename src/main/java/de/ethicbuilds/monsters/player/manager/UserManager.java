@@ -82,12 +82,11 @@ public class UserManager {
             if (!allPlayersDead()) {
                 if (reviveManager.revivesSelf(uuid)) return;
                 Player player = gamePlayer.getPlayer();
-                String cost = Overlay.num(reviveManager.cost(uuid)) + " " + Overlay.coin();
                 Overlay.big(player, Overlay.RED,
                         Overlay.line(Overlay.REVIVE, Overlay.RED, "AM BODEN", null),
                         Overlay.line(Overlay.REVIVE, Overlay.RED, "DOWNED", null),
-                        "<color:" + Overlay.GREY + ">Ein Mitspieler belebt dich für </color>" + cost,
-                        "<color:" + Overlay.GREY + ">A teammate can revive you for </color>" + cost);
+                        "<color:" + Overlay.GREY + ">Ein Mitspieler mit Medkit belebt dich wieder</color>",
+                        "<color:" + Overlay.GREY + ">A teammate with a medkit can revive you</color>");
                 return;
             }
 

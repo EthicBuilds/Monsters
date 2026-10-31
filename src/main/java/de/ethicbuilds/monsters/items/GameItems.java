@@ -22,12 +22,17 @@ public final class GameItems {
     private GameItems() {}
 
     public static ItemStack knife(Player player) {
+        return knife(player, 6);
+    }
+
+    /** Knife with this much extra damage on top of the bare hand */
+    public static ItemStack knife(Player player, double extraDamage) {
         ItemStack item = create(KNIFE, Lang.t(player, "§aMesser", "§aKnife"), "messer_v2");
         ItemMeta meta = item.getItemMeta();
         meta.setUnbreakable(true);
         // Same hit as the old wooden axe: 7 damage, 0.8 attacks per second
         meta.addAttributeModifier(Attribute.ATTACK_DAMAGE, new AttributeModifier(new NamespacedKey("monsters", "knife_damage"),
-                6, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+                extraDamage, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
         meta.addAttributeModifier(Attribute.ATTACK_SPEED, new AttributeModifier(new NamespacedKey("monsters", "knife_speed"),
                 -3.2, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);

@@ -37,6 +37,13 @@ public class MonsterSpider extends EnemyMonster {
         this.coin = 40;
     }
 
+    // Small weavers: as much health as a zombie in the first spider wave, 8 more with each spider wave after (user 31.10.)
+    @Override
+    public void setWave(int wave) {
+        super.setWave(wave);
+        if (getClass() == MonsterSpider.class) health = 20 + 8 * Math.max(0, wave / 5 - 1);
+    }
+
     static BoneModel weaver() {
         if (weaver == null) {
             try {

@@ -76,6 +76,8 @@ public class DecorationManager implements Listener {
     @Inject private CrateManager crateManager;
     @Inject private BuildManager buildManager;
     @Inject private Wrecks wrecks;
+    @Inject private Safes safes;
+    @Inject private EscapeCar escapeCar;
 
     private final Set<UUID> registered = new HashSet<>();
     private final Map<UUID, String> stations = new HashMap<>();
@@ -158,7 +160,11 @@ public class DecorationManager implements Listener {
         }
 
         if (entity instanceof ItemDisplay display) Sirens.register(display, id);
-        if (Wrecks.isWreck(id)) {
+        if (Safes.SAFE_ID.equals(id) && entity instanceof ItemDisplay display) {
+            safes.register(display, block);
+        } else if (EscapeCar.BROKEN_ID.equals(id) && entity instanceof ItemDisplay display) {
+            escapeCar.register(display, block);
+        } else if (Wrecks.isWreck(id)) {
             String station = wrecks.register(block);
             Location center = wrecks.center(station);
             Interaction hitbox = block.getWorld().spawn(center, Interaction.class, interaction -> {

@@ -6,6 +6,7 @@ import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.RoundLoader;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import de.ethicbuilds.monsters.player.manager.WatcherManager;
 import de.ethicbuilds.monsters.weapons.AmmoHud;
 import de.ethicbuilds.monsters.weapons.Sniper;
 import de.ethicbuilds.monsters.weapons.SniperScope;
@@ -26,6 +27,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.UUID;
 
 /***
  * Listener for the whole Game (Pregame, Wave, AfterGame)
@@ -39,6 +41,8 @@ public class GameListener implements Listener {
     private RoundLoader roundLoader;
     @Inject
     private GameManager gameManager;
+    @Inject
+    private WatcherManager watcherManager;
 
     //Weapon Shoot
     @EventHandler
@@ -91,11 +95,12 @@ public class GameListener implements Listener {
         AmmoHud.show(gamePlayer.getPlayer(), weapon);
     }
 
-    // Everyone stays in adventure mode, also the team; only players who rejoined watch in spectator mode until the next wave
+    // Everyone stays in adventure mode, also the team; only the fallen, players who rejoined and watchers from the lobby use spectator mode
     @EventHandler
     public void onGameModeChange(PlayerGameModeChangeEvent event) {
         if (event.getNewGameMode() == GameMode.ADVENTURE) return;
-        if (event.getNewGameMode() == GameMode.SPECTATOR && userManager.isSpectator(event.getPlayer().getUniqueId())) return;
+        UUID uuid = event.getPlayer().getUniqueId();
+        if (event.getNewGameMode() == GameMode.SPECTATOR && (userManager.isSpectator(uuid) || watcherManager.isWatcher(uuid))) return;
         event.setCancelled(true);
     }
 
