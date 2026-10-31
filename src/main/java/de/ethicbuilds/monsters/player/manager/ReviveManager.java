@@ -5,6 +5,7 @@ import com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent;
 import de.ethicbuilds.monsters.sound.Sounds;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.perk.Perk;
@@ -84,6 +85,9 @@ public class ReviveManager implements Listener {
     private final Map<UUID, Integer> reviveProgress = new HashMap<>();
     // Self revive with a stored medkit, once per round
     private final Set<UUID> selfRevived = new HashSet<>();
+    // Alone a second chance, one more every 10 waves (user 31.10.)
+    private static final int SOLO_CHANCE_EVERY = 10;
+    private int soloChancesUsed;
     private final Set<UUID> selfReviving = new HashSet<>();
     // Own values of the player before going down (the attribute default of movement speed is 0.7, players walk with 0.1)
     private final Map<UUID, Map<Attribute, Double>> savedBases = new HashMap<>();
@@ -173,11 +177,20 @@ public class ReviveManager implements Listener {
     }
 
     // A stored medkit gets the player back up after a few seconds, once per round
+    private boolean soloChance() {
+        if (userManager.getGamePlayers().size() != 1) return false;
+        int wave = plugin.getInjector().getInstance(WaveManager.class).getCurrentWave();
+        return soloChancesUsed < wave / SOLO_CHANCE_EVERY + 1;
+    }
+
     private void trySelfRevive(Player player) {
         ItemStack stored = player.getInventory().getItem(MEDKIT_SLOT);
-        if (stored == null || stored.getType().isAir() || selfRevived.contains(player.getUniqueId())) return;
-        Overlay.medium(player, GREEN, Overlay.line(Overlay.MEDKIT, GREEN, "MEDKIT", "Du stehst gleich wieder auf"),
+        boolean medkit = stored != null && !stored.getType().isAir() && !selfRevived.contains(player.getUniqueId());
+        if (!medkit && !soloChance()) return;
+        if (medkit) Overlay.medium(player, GREEN, Overlay.line(Overlay.MEDKIT, GREEN, "MEDKIT", "Du stehst gleich wieder auf"),
                 Overlay.line(Overlay.MEDKIT, GREEN, "MEDKIT", "you'll be back up in a moment"));
+        else Overlay.medium(player, GREEN, Overlay.line(Overlay.REVIVE, GREEN, "ZWEITE CHANCE", "Du stehst gleich wieder auf"),
+                Overlay.line(Overlay.REVIVE, GREEN, "SECOND CHANCE", "you'll be back up in a moment"));
         selfReviving.add(player.getUniqueId());
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             selfReviving.remove(player.getUniqueId());
@@ -185,13 +198,18 @@ public class ReviveManager implements Listener {
                 userManager.endIfAllDown();
                 return;
             }
-            selfRevived.add(player.getUniqueId());
-            player.getInventory().setItem(MEDKIT_SLOT, null);
+            if (medkit) {
+                selfRevived.add(player.getUniqueId());
+                player.getInventory().setItem(MEDKIT_SLOT, null);
+            } else {
+                soloChancesUsed++;
+            }
             Location spot = spots.get(player.getUniqueId()).clone();
             spot.setPitch(0);
             userManager.revivePlayer(player.getUniqueId(), spot);
             spot.getWorld().spawnParticle(Particle.HEART, spot.clone().add(0, 1, 0), 8, 0.4, 0.4, 0.4, 0);
-            Lang.noteAll("%s§a%s §7steht mit einem §aMedkit §7wieder auf!", "%s§a%s §7is back up with a §aMedkit§7!", plugin.getMonstersPrefix(), player.getName());
+            if (medkit) Lang.noteAll("%s§a%s §7steht mit einem §aMedkit §7wieder auf!", "%s§a%s §7is back up with a §aMedkit§7!", plugin.getMonstersPrefix(), player.getName());
+            else Lang.noteAll("%s§a%s §7nutzt die §azweite Chance §7und steht wieder auf!", "%s§a%s §7uses the §asecond chance §7and is back up!", plugin.getMonstersPrefix(), player.getName());
         }, SELF_REVIVE_DELAY);
     }
 

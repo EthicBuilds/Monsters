@@ -37,6 +37,7 @@ import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 import de.ethicbuilds.monsters.weapons.manager.WorkbenchManager;
+import org.bukkit.ChatColor;
 import org.bukkit.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
@@ -141,7 +142,10 @@ public class WaveListener implements Listener {
         }
 
         boolean kill = event.getFinalDamage() >= monster.getHealth();
-        if (kill) gamePlayer.setKilledZombies(gamePlayer.getKilledZombies() + 1);
+        if (kill) {
+            gamePlayer.setKilledZombies(gamePlayer.getKilledZombies() + 1);
+            gamePlayer.getWeaponKills().merge(killWeapon(gamePlayer, knife), 1, Integer::sum);
+        }
 
         // Only headshot kills count (tab, awards, challenge, stats), the coin bonus stays for every headshot
         boolean headshot = ShotDamage.isHeadshot();
@@ -176,7 +180,11 @@ public class WaveListener implements Listener {
 
         enemyMonster.onDeath();
         monsterManager.removeMonster(enemyMonster);
-        if (enemyMonster instanceof MonsterMiniBoss || enemyMonster instanceof MonsterSpiderBoss) rocketLoot.roll(monster.getKiller(), monster.getLocation());
+        if (enemyMonster instanceof MonsterMiniBoss || enemyMonster instanceof MonsterSpiderBoss) {
+            rocketLoot.roll(monster.getKiller(), monster.getLocation());
+            GamePlayer killer = monster.getKiller() == null ? null : userManager.getGamePlayer(monster.getKiller().getUniqueId());
+            if (killer != null) killer.setBossKills(killer.getBossKills() + 1);
+        }
         powerupManager.dropFrom(monster.getLocation());
         if (monsterManager.remaining() <= 3) {
             for (EnemyMonster m : monsterManager.getMonsters().values()) {
@@ -369,6 +377,16 @@ public class WaveListener implements Listener {
         AmmoHud.refresh(player, weapon);
         Lang.note(player, Lang.f(player, "§7Munition von §a%s §7aufgefüllt! §c-%d Coins", "§7Refilled ammo for §a%s§7! §c-%d Coins", weapon.getName(player), AMMO_PRICE));
         Sounds.buy(player);
+    }
+
+    // Name of what killed, German and English, for the round end card
+    private static String killWeapon(GamePlayer gamePlayer, boolean knife) {
+        if (knife) return "Messer|Knife";
+        if (!ShotDamage.isAimed()) return "Granate|Grenade";
+        Weapon weapon = gamePlayer.getWeapon(gamePlayer.getPlayer().getInventory().getItemInMainHand());
+        if (weapon == null) return "Granate|Grenade";
+        String name = ChatColor.stripColor(weapon.getName());
+        return name + "|" + (weapon.getNameEn() != null ? ChatColor.stripColor(weapon.getNameEn()) : name);
     }
 
     private void breakDoor(GamePlayer gamePlayer, Door door) {

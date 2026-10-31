@@ -33,7 +33,10 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -70,14 +73,26 @@ public class MonsterMiniBoss extends MonsterZombie {
     private int nextSkill = SKILL_FIRST;
     private boolean burrowed;
 
-    // Counted over the zombie waves only, every fifth wave belongs to the spiders
-    private static int kindOf(int wave) {
-        return (wave - wave / MonsterManager.SPIDER_WAVE) % NAMES.length;
+    // Each kind once before one comes again, in a new order each time (the grave keeper came far less often, 31.10.)
+    private static final Deque<Integer> nextKinds = new ArrayDeque<>();
+
+    private static int nextKind() {
+        if (nextKinds.isEmpty()) {
+            List<Integer> kinds = new ArrayList<>();
+            for (int i = 0; i < NAMES.length; i++) kinds.add(i);
+            Collections.shuffle(kinds);
+            nextKinds.addAll(kinds);
+        }
+        return nextKinds.poll();
     }
 
     public MonsterMiniBoss(int wave) {
-        super(EntityType.ZOMBIE, "§c" + NAMES[kindOf(wave)]);
-        this.kind = kindOf(wave);
+        this(wave, nextKind());
+    }
+
+    private MonsterMiniBoss(int wave, int kind) {
+        super(EntityType.ZOMBIE, "§c" + NAMES[kind]);
+        this.kind = kind;
         this.round = wave;
         this.title = NAMES[kind];
         this.titleEn = NAMES_EN[kind];
