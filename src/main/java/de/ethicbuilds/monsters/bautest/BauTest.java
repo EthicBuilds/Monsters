@@ -22,6 +22,7 @@ import de.ethicbuilds.monsters.monster.MonsterZombie;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
+import io.papermc.paper.event.player.PlayerTrackEntityEvent;
 import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -319,6 +320,11 @@ public class BauTest implements Listener {
         if (event.getHand() != EquipmentSlot.HAND || !active(event.getPlayer())) return;
         String station = decorationManager.stationLookedAt(event.getPlayer(), NEXO_REACH);
         if (station != null) waveListener.useStation(event.getPlayer(), station);
+    }
+
+    @EventHandler
+    public void onTrack(PlayerTrackEntityEvent event) {
+        if (session()) NexoLooks.tracked(event.getPlayer(), event.getEntity());
     }
 
     @EventHandler

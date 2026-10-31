@@ -33,6 +33,15 @@ final class NexoHook {
         if (mechanic != null && packets != null) packets.sendFurnitureMetadataPacket(display, mechanic);
     }
 
+    /** Nexo's model of another furniture id on this one, to everyone who sees it or to one player */
+    static void showAs(ItemDisplay display, String id, Player player) {
+        FurnitureMechanic mechanic = NexoFurniture.furnitureMechanic(id);
+        IFurniturePacketManager packets = packets();
+        if (mechanic == null || packets == null) return;
+        if (player == null) packets.sendFurnitureMetadataPacket(display, mechanic);
+        else packets.sendFurnitureMetadataPacket(display, mechanic, player);
+    }
+
     static boolean isFurniture(ItemDisplay display) {
         return NexoFurniture.isFurniture(display);
     }

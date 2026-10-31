@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.map.decoration;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.bautest.BauTest;
+import de.ethicbuilds.monsters.bautest.NexoLooks;
 import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.building.BuildManager;
 import de.ethicbuilds.monsters.items.GameItems;
@@ -256,6 +257,7 @@ public class DecorationManager implements Listener {
         GameItems.setModel(item, id);
         display.setItemStack(item);
         look().apply(display, id);
+        NexoLooks.show(display, id);
     }
 
     /** The barrier blocks Nexo placed for this furniture: the turn is found by trying which one hits barriers */
