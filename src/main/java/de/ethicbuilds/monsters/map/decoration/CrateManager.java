@@ -7,6 +7,8 @@ import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.items.CrowbarLevel;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.lang.Overlay;
+import de.ethicbuilds.monsters.monster.MonsterRat;
+import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.powerup.PowerupManager;
@@ -44,12 +46,15 @@ public class CrateManager implements Listener {
     private static final int COINS = 100;
     private static final double REACH = 5;
     private static final double WRECK_POWERUP = 0.05;
+    private static final double RAT_CHANCE = 0.12;
+    private static final int RATS_MIN = 3;
     private static final String COLOR = "#F9A11E";
 
     @Inject private UserManager userManager;
     @Inject private GameManager gameManager;
     @Inject private GrenadeManager grenadeManager;
     @Inject private PowerupManager powerupManager;
+    @Inject private MonsterManager monsterManager;
 
     private final Map<Location, Crate> crates = new HashMap<>();
     private final Map<UUID, Long> lastHits = new HashMap<>();
@@ -137,6 +142,14 @@ public class CrateManager implements Listener {
         center.getWorld().spawnParticle(Particle.CLOUD, center, 8, 0.3, 0.3, 0.3, 0.02);
         crate.display.setItemStack(null);
         crate.block.setType(Material.AIR, false);
+        // Now and then rats live in it, they go for whoever disturbed them (user 31.10.)
+        if (ThreadLocalRandom.current().nextDouble() < RAT_CHANCE) {
+            int rats = RATS_MIN + ThreadLocalRandom.current().nextInt(RATS_MIN);
+            for (int i = 0; i < rats; i++) monsterManager.summonAt(new MonsterRat(), player, center.clone().add(0, -0.4, 0));
+            center.getWorld().playSound(center, Sound.ENTITY_SILVERFISH_AMBIENT, 1.2F, 0.6F);
+            crate(player, bold("Ratten") + grey("!"), bold("Rats") + grey("!"));
+            return;
+        }
         loot(gamePlayer);
         if (ThreadLocalRandom.current().nextDouble() < CrowbarLevel.powerupChance(gamePlayer.getCrowbarLevel())) powerupManager.dropAt(center);
     }

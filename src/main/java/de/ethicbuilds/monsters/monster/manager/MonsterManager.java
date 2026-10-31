@@ -16,6 +16,9 @@ import de.ethicbuilds.monsters.monster.MonsterBloater;
 import de.ethicbuilds.monsters.monster.MonsterCrawler;
 import de.ethicbuilds.monsters.monster.MonsterMiniBoss;
 import de.ethicbuilds.monsters.monster.MonsterBounty;
+import de.ethicbuilds.monsters.monster.MonsterClimber;
+import de.ethicbuilds.monsters.monster.MonsterMedic;
+import de.ethicbuilds.monsters.monster.MonsterToxic;
 import de.ethicbuilds.monsters.monster.MonsterScarab;
 import de.ethicbuilds.monsters.monster.MonsterShieldbearer;
 import de.ethicbuilds.monsters.monster.MonsterSpider;
@@ -143,7 +146,11 @@ public class MonsterManager {
         // The special kinds come earlier, so every stage brings something new (user 31.10.)
         if (wave >= 30 && (roll -= 0.10) < 0) return new MonsterZombie(EntityType.VINDICATOR, "§7Diener");
         if (wave >= 18 && (roll -= 0.15) < 0) return new MonsterZombie(EntityType.ZOMBIE_VILLAGER, "§7Zombiedorfbewohner");
+        // New kinds of 31.10. (user): poison zombie, field medic, climber
+        if (wave >= 16 && (roll -= 0.07) < 0) return new MonsterToxic();
+        if (wave >= 14 && (roll -= 0.05) < 0) return new MonsterMedic();
         if (wave >= 12 && (roll -= 0.06) < 0) return new MonsterShieldbearer();
+        if (wave >= 10 && (roll -= 0.08) < 0) return new MonsterClimber();
         if (wave >= 9 && (roll -= 0.07) < 0) return new MonsterSpitter();
         if (wave >= 12 && (roll -= 0.10) < 0) return new MonsterZombie(EntityType.PARCHED, "§7Vertrockneter");
         if (wave >= 9 && (roll -= 0.07) < 0) return new MonsterBloater();
