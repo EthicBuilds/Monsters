@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.building;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.bautest.NexoBarriers;
+import de.ethicbuilds.monsters.bautest.NexoStandIns;
 import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.lang.Overlay;
@@ -98,7 +99,8 @@ public class RollerDoors implements BuildPart {
     public boolean register(ItemDisplay display, String id, Block block) {
         if (id.startsWith(SWITCH_ID)) {
             decorationManager.hitbox(block, SWITCH + switches.size(), 0.8F, 1.4F);
-            Lever lever = new Lever(display, block);
+            // On the build server our own display instead of the Nexo furniture, Nexo would overwrite every change
+            Lever lever = new Lever(NexoStandIns.of(display, id), block);
             switches.add(lever);
             sign(lever, UNLOCK);
             Door door = nearest(block);
@@ -107,13 +109,13 @@ public class RollerDoors implements BuildPart {
         }
         if (!id.startsWith(DOOR_ID) || !id.endsWith("_zu") && !id.endsWith("_auf")) return false;
         String closed = id.endsWith("_zu") ? id : id.substring(0, id.length() - "_auf".length()) + "_zu";
-        Door door = new Door(display, block, decorationManager.barriers(display, closed), level(closed));
+        Door door = new Door(NexoStandIns.of(display, closed), block, decorationManager.barriers(display, closed), level(closed));
         door.hitbox = decorationManager.hitbox(block, DOOR + doors.size(), 2.0F, 3.0F);
         door.hitbox.teleport(door.center);
         doors.add(door);
         // At the start it is closed, whatever model the map builder placed
         show(door);
-        door.rest = display.getTransformation();
+        door.rest = door.display.getTransformation();
         return true;
     }
 

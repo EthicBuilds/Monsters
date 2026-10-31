@@ -8,6 +8,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Transformation;
 
@@ -44,6 +45,15 @@ public final class Restore {
     public static void hide(Entity entity) {
         hidden.add(entity);
         BauTest.audience().forEach(player -> player.hideEntity(Main.getINSTANCE(), entity));
+    }
+
+    /** A tester comes or goes: what is hidden for testers */
+    static void hideFor(Player player, boolean tester) {
+        Main plugin = Main.getINSTANCE();
+        hidden.forEach(entity -> {
+            if (tester) player.hideEntity(plugin, entity);
+            else player.showEntity(plugin, entity);
+        });
     }
 
     /** Sets everything back, returns the displays whose look came back */

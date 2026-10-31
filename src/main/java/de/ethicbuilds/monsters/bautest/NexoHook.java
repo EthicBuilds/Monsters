@@ -1,11 +1,15 @@
 package de.ethicbuilds.monsters.bautest;
 
 import com.nexomc.nexo.api.NexoFurniture;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 import com.nexomc.nexo.mechanics.furniture.FurnitureFactory;
 import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import com.nexomc.nexo.mechanics.furniture.IFurniturePacketManager;
+import org.bukkit.Material;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 /***
  * Calls into Nexo, only loaded when Nexo runs (build server): its furniture lives in packets,
@@ -40,6 +44,11 @@ final class NexoHook {
         if (mechanic == null || packets == null) return;
         if (player == null) packets.sendFurnitureMetadataPacket(display, mechanic);
         else packets.sendFurnitureMetadataPacket(display, mechanic, player);
+    }
+
+    static ItemStack item(String id) {
+        ItemBuilder builder = NexoItems.itemFromId(id);
+        return builder != null ? builder.build() : new ItemStack(Material.PAPER);
     }
 
     static boolean isFurniture(ItemDisplay display) {

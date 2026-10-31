@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.bautest.BauTest;
 import de.ethicbuilds.monsters.bautest.NexoLooks;
+import de.ethicbuilds.monsters.bautest.NexoStandIns;
 import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.building.BuildManager;
 import de.ethicbuilds.monsters.items.GameItems;
@@ -253,6 +254,12 @@ public class DecorationManager implements Listener {
 
     public void setModel(ItemDisplay display, String id) {
         Restore.display(display);
+        // Our stand-in for Nexo furniture carries the real Nexo item
+        if (NexoStandIns.is(display)) {
+            display.setItemStack(NexoStandIns.item(id));
+            look().apply(display, id);
+            return;
+        }
         ItemStack item = new ItemStack(Material.PAPER);
         GameItems.setModel(item, id);
         display.setItemStack(item);

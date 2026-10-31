@@ -61,6 +61,7 @@ public final class NexoBarriers {
         Set<ItemDisplay> back = new HashSet<>(touched);
         back.addAll(restored);
         NexoLooks.clear();
+        NexoStandIns.clear();
         open.clear();
         touched.clear();
         Main plugin = Main.getINSTANCE();

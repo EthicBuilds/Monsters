@@ -169,6 +169,7 @@ public class BauTest implements Listener {
         player.setInvulnerable(true);
         player.getInventory().setItem(MONSTER_SLOT, monsterItem(player));
         limited.forEach(entity -> player.showEntity(plugin, entity));
+        Restore.hideFor(player, true);
         decorationManager.showSigns(player);
         Lang.note(player, Lang.f(player, "§aFunktionsmodus §8· §6%,d Test-Coins §8· §e%d Bauteile", "§aFunction mode §8· §6%,d test coins §8· §e%d parts",
                 COINS, PARTS));
@@ -177,6 +178,7 @@ public class BauTest implements Listener {
     private void leave(Player player) {
         active.remove(player.getUniqueId());
         NexoBarriers.forget(player);
+        Restore.hideFor(player, false);
         limited.forEach(entity -> player.hideEntity(plugin, entity));
         decorationManager.hideSigns(player);
         giveBack(player);
