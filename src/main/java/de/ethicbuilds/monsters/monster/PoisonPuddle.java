@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.monster;
 
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.items.GasMask;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -57,6 +58,7 @@ public final class PoisonPuddle {
                 for (Player player : at.getWorld().getPlayers()) {
                     if (!LivingPlayers.alive(player) || player.getLocation().distanceSquared(at) > RADIUS * RADIUS
                             || Math.abs(player.getLocation().getY() - at.getY()) > 1) continue;
+                    if (GasMask.protects(player)) continue;
                     player.damage(DAMAGE);
                     player.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 60, 0, false, false));
                 }

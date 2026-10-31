@@ -67,6 +67,7 @@ public final class ArmorSet {
         inventory.setChestplate(part(set, 1));
         inventory.setLeggings(part(set, 2));
         inventory.setBoots(part(set, 3));
+        GasMask.dress(player);
     }
 
     // Vanilla piece for the protection, look and icon from the Monsters pack (once it has them, config custom-armor)

@@ -16,6 +16,7 @@ import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.map.MapConfiguration;
 import de.ethicbuilds.monsters.items.GameItems;
+import de.ethicbuilds.monsters.items.GasMask;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.map.decoration.Wrecks;
@@ -182,6 +183,7 @@ public class WaveListener implements Listener {
         monsterManager.removeMonster(enemyMonster);
         if (enemyMonster instanceof MonsterMiniBoss || enemyMonster instanceof MonsterSpiderBoss) {
             rocketLoot.roll(monster.getKiller(), monster.getLocation());
+            if (enemyMonster instanceof MonsterMiniBoss) GasMask.roll(monster.getKiller());
             GamePlayer killer = monster.getKiller() == null ? null : userManager.getGamePlayer(monster.getKiller().getUniqueId());
             if (killer != null) killer.setBossKills(killer.getBossKills() + 1);
         }
