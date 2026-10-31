@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.building;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import org.bukkit.Location;
@@ -48,7 +49,10 @@ public class Elevators implements BuildPart {
         private void barriers(Material material) {
             for (int[] offset : footprint) {
                 Block block = base.getRelative(offset[0], offset[1], offset[2]);
-                if (material == Material.BARRIER ? block.getType().isAir() : block.getType() == Material.BARRIER) block.setType(material, false);
+                if (material == Material.BARRIER ? block.getType().isAir() : block.getType() == Material.BARRIER) {
+                    Restore.block(block);
+                    block.setType(material, false);
+                }
             }
         }
 
@@ -76,6 +80,12 @@ public class Elevators implements BuildPart {
             return false;
         }
         return true;
+    }
+
+    @Override
+    public void clear() {
+        platforms.clear();
+        cranks.clear();
     }
 
     @Override
@@ -123,6 +133,7 @@ public class Elevators implements BuildPart {
     private void move(Platform platform, int targetY) {
         platform.moving = true;
         platform.barriers(Material.AIR);
+        Restore.display(platform.display);
         double direction = Math.signum(targetY - platform.base.getY());
         Location start = platform.display.getLocation();
         double distance = Math.abs(targetY - platform.base.getY());

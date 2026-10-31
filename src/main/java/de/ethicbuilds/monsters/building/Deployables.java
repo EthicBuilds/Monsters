@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.building;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
@@ -73,8 +74,12 @@ public class Deployables implements BuildPart {
         if (!LADDER_ID.equals(id) && !BRIDGE_ID.equals(id) && !BRIDGE_END_ID.equals(id)) return false;
         Spot spot = new Spot(display, id, block, decorationManager.barriers(block, id));
         // Not there yet: no model, the gap stays open
+        Restore.display(display);
         display.setItemStack(null);
-        spot.barriers.forEach(barrier -> barrier.setType(Material.AIR, false));
+        spot.barriers.forEach(barrier -> {
+            Restore.block(barrier);
+            barrier.setType(Material.AIR, false);
+        });
         boolean ladder = spot.ladder();
         int price = ladder ? LADDER_PRICE : BRIDGE_PRICE;
         if (!ladder && join(spot)) {
@@ -88,6 +93,12 @@ public class Deployables implements BuildPart {
         decorationManager.hitbox(block, STATION + spots.size(), ladder ? 1.0F : 1.6F, ladder ? 2.5F : 1.0F);
         spots.add(spot);
         return true;
+    }
+
+    @Override
+    public void clear() {
+        spots.clear();
+        climbing.clear();
     }
 
     @Override
@@ -113,7 +124,10 @@ public class Deployables implements BuildPart {
         for (Spot piece : spots) {
             if (piece.group() != spot) continue;
             decorationManager.setModel(piece.display, piece.id);
-            piece.barriers.forEach(barrier -> barrier.setType(Material.BARRIER, false));
+            piece.barriers.forEach(barrier -> {
+                Restore.block(barrier);
+                barrier.setType(Material.BARRIER, false);
+            });
         }
         if (spot.sign != null) decorationManager.removeSign(spot.sign);
         Location center = spot.block.getLocation().add(0.5, 0.5, 0.5);

@@ -2,6 +2,8 @@ package de.ethicbuilds.monsters.building;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.bautest.BauTest;
+import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.PauseManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
@@ -96,6 +98,15 @@ public class BuildManager {
         plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 20L, 20L);
     }
 
+    /** Function test on the build server: forgets everything, it registers again in the next test */
+    public void clear() {
+        rubble.clear();
+        barricades.clear();
+        parts().forEach(BuildPart::clear);
+        Breakouts.clear();
+        used = false;
+    }
+
     /** True when a map has building parts, only then monsters drop parts */
     public boolean isUsed() {
         return used;
@@ -149,8 +160,13 @@ public class BuildManager {
         center.getWorld().spawnParticle(Particle.BLOCK, center, 40, 0.8, 0.8, 0.8, Material.GRAVEL.createBlockData());
         center.getWorld().spawnParticle(Particle.POOF, center, 10, 0.6, 0.6, 0.6, 0.02);
         center.getWorld().playSound(center, Sound.BLOCK_GRAVEL_BREAK, 1.2F, 0.8F);
-        piece.barriers().forEach(block -> block.setType(Material.AIR, false));
-        piece.display().remove();
+        piece.barriers().forEach(block -> {
+            Restore.block(block);
+            block.setType(Material.AIR, false);
+        });
+        // On the build server the furniture only disappears for the test
+        if (BauTest.on()) Restore.hide(piece.display());
+        else piece.display().remove();
         decorationManager.removeHitbox(piece.hitbox());
     }
 
@@ -185,7 +201,10 @@ public class BuildManager {
             if (!Parts.take(gamePlayer, price)) return;
             barricade.health = HEALTH[barricade.level];
             decorationManager.setModel(barricade.display, BARRICADE_ID + barricade.level);
-            barricade.barriers.forEach(block -> block.setType(Material.BARRIER, false));
+            barricade.barriers.forEach(block -> {
+                Restore.block(block);
+                block.setType(Material.BARRIER, false);
+            });
             note(player, "Barrikade aufgebaut", "Barricade rebuilt", price);
             sound(barricade, Sound.BLOCK_WOOD_PLACE);
         } else if (barricade.health < HEALTH[barricade.level]) {
@@ -254,7 +273,11 @@ public class BuildManager {
         Location center = barricade.center();
         center.getWorld().playSound(center, barricade.level == 1 ? Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR : Sound.ENTITY_GENERIC_EXPLODE, 1.0F, 1.2F);
         center.getWorld().spawnParticle(Particle.POOF, center, 12, 0.5, 0.6, 0.5, 0.02);
-        barricade.barriers.forEach(block -> block.setType(Material.AIR, false));
+        barricade.barriers.forEach(block -> {
+            Restore.block(block);
+            block.setType(Material.AIR, false);
+        });
+        Restore.display(barricade.display);
         barricade.display.setItemStack(null);
         Overlay.smallAll(Overlay.icon(Overlay.PARTS, Parts.COLOR, "<b>Barrikade zerstört</b> " + grey("· mit Bauteilen neu aufbauen")),
                 Overlay.icon(Overlay.PARTS, Parts.COLOR, "<b>Barricade destroyed</b> " + grey("· rebuild it with parts")));

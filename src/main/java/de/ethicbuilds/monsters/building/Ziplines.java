@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.building;
 
 import com.google.inject.Inject;
+import de.ethicbuilds.monsters.bautest.BauTest;
 import io.papermc.paper.entity.TeleportFlag;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.items.GameItems;
@@ -50,6 +51,7 @@ public class Ziplines implements BuildPart {
     private final List<Block> bottoms = new ArrayList<>();
     private final List<Line> lines = new ArrayList<>();
     private final Set<UUID> riding = new HashSet<>();
+    private final List<ItemDisplay> ropes = new ArrayList<>();
 
     private record Line(Location from, Location to) {}
 
@@ -93,14 +95,26 @@ public class Ziplines implements BuildPart {
         float pitch = (float) -Math.atan2(along.getY(), Math.hypot(along.getX(), along.getZ()));
         ItemStack item = new ItemStack(Material.PAPER);
         GameItems.setModel(item, ROPE_ID);
-        from.getWorld().spawn(middle, ItemDisplay.class, rope -> {
-            rope.setItemStack(item);
-            rope.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
-            rope.setPersistent(false);
-            rope.setTransformation(new Transformation(new Vector3f(), new Quaternionf().rotateY(yaw).rotateX(pitch),
+        ItemDisplay rope = from.getWorld().spawn(middle, ItemDisplay.class, display -> {
+            display.setItemStack(item);
+            display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
+            display.setPersistent(false);
+            display.setTransformation(new Transformation(new Vector3f(), new Quaternionf().rotateY(yaw).rotateX(pitch),
                     new Vector3f(1, 1, length), new Quaternionf()));
-            rope.setViewRange(4.0F);
+            display.setViewRange(4.0F);
         });
+        BauTest.limit(rope);
+        ropes.add(rope);
+    }
+
+    @Override
+    public void clear() {
+        ropes.forEach(ItemDisplay::remove);
+        ropes.clear();
+        tops.clear();
+        bottoms.clear();
+        lines.clear();
+        riding.clear();
     }
 
     @Override

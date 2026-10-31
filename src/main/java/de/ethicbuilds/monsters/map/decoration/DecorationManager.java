@@ -117,6 +117,7 @@ public class DecorationManager implements Listener {
 
     @EventHandler
     public void onEntitiesLoad(EntitiesLoadEvent event) {
+        if (BauTest.on() && !BauTest.session()) return;
         var entities = event.getEntities();
         Bukkit.getScheduler().runTask(plugin, () -> entities.forEach(this::register));
     }
@@ -193,7 +194,7 @@ public class DecorationManager implements Listener {
             crateManager.register(display, block, false);
         } else if (PARTS_CRATE.equals(id) && entity instanceof ItemDisplay display) {
             crateManager.register(display, block, true);
-        } else if (!BauTest.on() && entity instanceof ItemDisplay display && buildManager.register(display, id, block)) {
+        } else if (entity instanceof ItemDisplay display && buildManager.register(display, id, block)) {
             return;
         } else if (WEAPON_CRATES.containsKey(id)) {
             createWeaponStation(block, WEAPON_CRATES.get(id));
@@ -271,6 +272,24 @@ public class DecorationManager implements Listener {
         signs.remove(sign);
         sign.de().remove();
         sign.en().remove();
+    }
+
+    /** Function test on the build server: removes our hitboxes and signs, everything registers again in the next test */
+    public void clearAll() {
+        stations.keySet().forEach(uuid -> {
+            Entity hitbox = Bukkit.getEntity(uuid);
+            if (hitbox != null) hitbox.remove();
+        });
+        stations.clear();
+        signs.forEach(sign -> {
+            sign.de().remove();
+            sign.en().remove();
+        });
+        signs.clear();
+        workbenchLocked.clear();
+        workbenchOpen.clear();
+        workbenchUnlocked = false;
+        registered.clear();
     }
 
     public void removeHitbox(Interaction hitbox) {

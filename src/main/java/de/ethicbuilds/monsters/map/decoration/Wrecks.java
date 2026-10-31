@@ -46,6 +46,11 @@ public class Wrecks {
     }
 
     /** The barriers around the furniture block are the car body, the hitbox sits in their middle; returns the station */
+    /** Function test on the build server */
+    public void clear() {
+        wrecks.clear();
+    }
+
     String register(Block block) {
         List<Location> blocks = new ArrayList<>();
         double x = 0, y = 0, z = 0;

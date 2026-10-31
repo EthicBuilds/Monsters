@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.building;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.items.GameItems;
@@ -58,6 +59,9 @@ public class Flares implements BuildPart, Listener {
                 "Rechtsklick zum Kaufen", "Right-click to buy", 1.2F, 1.1F);
         return true;
     }
+
+    @Override
+    public void clear() {}
 
     @Override
     public boolean use(GamePlayer gamePlayer, String station) {
@@ -132,6 +136,7 @@ public class Flares implements BuildPart, Listener {
                     if (light.getType().isAir()) {
                         Light data = (Light) Material.LIGHT.createBlockData();
                         data.setLevel(13);
+                        Restore.block(light);
                         light.setBlockData(data, false);
                     }
                 }

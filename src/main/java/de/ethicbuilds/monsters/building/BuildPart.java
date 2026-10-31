@@ -16,4 +16,7 @@ interface BuildPart {
 
     /** Every second while the wave runs */
     default void tick() {}
+
+    /** Function test on the build server: forget all registered pieces */
+    void clear();
 }

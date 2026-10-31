@@ -86,7 +86,7 @@ public abstract class EnemyMonster {
             speed = Math.min(sprinter ? SPRINTER_MAX_SPEED : WaveScaling.MAX_SPEED, speed * WaveScaling.speed(wave) * (sprinter ? SPRINTER_SPEED : 1)
                     * WaveEvents.speedFactor());
         }
-        monster = (Monster) plugin.getWorld().spawnEntity(spawnLocation, type);
+        monster = (Monster) spawnLocation.getWorld().spawnEntity(spawnLocation, type);
         if (elite) EliteTier.dress(monster, tier);
         monster.setCustomNameVisible(false);
         if (monster instanceof Ageable ageable) ageable.setAdult();

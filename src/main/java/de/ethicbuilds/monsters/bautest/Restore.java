@@ -1,16 +1,21 @@
 package de.ethicbuilds.monsters.bautest;
 
+import de.ethicbuilds.monsters.Main;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Transformation;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 /***
  * The build server is the source of the live maps: everything a function test changes in the world
@@ -21,6 +26,7 @@ public final class Restore {
 
     private static final Map<ItemDisplay, Look> displays = new HashMap<>();
     private static final Map<Block, BlockData> blocks = new HashMap<>();
+    private static final Set<Entity> hidden = new HashSet<>();
 
     private Restore() {}
 
@@ -34,7 +40,14 @@ public final class Restore {
         if (BauTest.on()) blocks.putIfAbsent(block, block.getBlockData().clone());
     }
 
+    /** Gone for the testers, still there in the world */
+    public static void hide(Entity entity) {
+        hidden.add(entity);
+        BauTest.audience().forEach(player -> player.hideEntity(Main.getINSTANCE(), entity));
+    }
+
     public static void all() {
+        showHidden();
         displays.forEach(Restore::back);
         displays.clear();
         blocks.forEach((block, data) -> block.setBlockData(data, false));
@@ -58,6 +71,12 @@ public final class Restore {
             entry.getKey().setBlockData(entry.getValue(), false);
             it.remove();
         }
+    }
+
+    private static void showHidden() {
+        Main plugin = Main.getINSTANCE();
+        if (plugin.isEnabled()) hidden.forEach(entity -> Bukkit.getOnlinePlayers().forEach(player -> player.showEntity(plugin, entity)));
+        hidden.clear();
     }
 
     private static void back(ItemDisplay display, Look look) {

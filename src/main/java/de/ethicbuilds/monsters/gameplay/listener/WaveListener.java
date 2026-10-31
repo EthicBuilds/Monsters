@@ -413,7 +413,9 @@ public class WaveListener implements Listener {
 
     // Rubble at a door opens that door, otherwise it is bought on its own
     private void clearRubble(GamePlayer gamePlayer, BuildManager.Rubble rubble) {
-        for (Door door : mapManager.getMapConfiguration().getDoors()) {
+        // On the build server there is no round map with doors
+        List<Door> doors = mapManager.getMapConfiguration() == null ? List.of() : mapManager.getMapConfiguration().getDoors();
+        for (Door door : doors) {
             if (!door.getClickableLocations().isEmpty() && door.getHoloLocation().getWorld().equals(rubble.center().getWorld())
                     && door.getHoloLocation().distanceSquared(rubble.center()) <= RUBBLE_DOOR * RUBBLE_DOOR) {
                 breakDoor(gamePlayer, door);

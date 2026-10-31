@@ -91,9 +91,9 @@ public class EscapeCar {
         cars.add(new Car(display, barriers, hitbox, middle.toVector().subtract(display.getLocation().toVector()).setY(0)));
     }
 
-    /** Function test on the build server: broken again for the next test */
-    public void reset() {
-        cars.forEach(car -> car.fixed = false);
+    /** Function test on the build server: forgets the cars, they register again in the next test */
+    public void clear() {
+        cars.clear();
         tyre = battery = false;
         fuel = 0;
     }

@@ -102,6 +102,8 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(injector.getInstance(WorkbenchManager.class), this);
         pm.registerEvents(injector.getInstance(RocketLoot.class), this);
         pm.registerEvents(injector.getInstance(BauTest.class), this);
+        injector.getInstance(BuildManager.class).start();
+        startAmmoHud();
         injector.getInstance(BauTest.class).start();
     }
 

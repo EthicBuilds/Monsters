@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.building;
 
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.bautest.Restore;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -42,7 +43,12 @@ public final class Breakouts {
         }
     }
 
+    public static void clear() {
+        breakouts.clear();
+    }
+
     private static void shake(ItemDisplay display) {
+        Restore.display(display);
         Transformation rest = display.getTransformation();
         display.setInterpolationDelay(0);
         display.setInterpolationDuration(2);

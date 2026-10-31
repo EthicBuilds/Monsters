@@ -101,20 +101,17 @@ public class Safes {
         }
     }
 
-    /** Function test on the build server: a fresh code and new notes for the next test */
-    public void reset() {
+    /** Function test on the build server: forgets the safes, they register again in the next test */
+    public void clear() {
         notes.forEach(note -> {
             note.display().remove();
             note.digit().remove();
-            decorationManager.removeHitbox(note.hitbox());
         });
         notes.clear();
+        safes.clear();
+        placed = false;
         opened = false;
         found = 0;
-        safes.stream().filter(ItemDisplay::isValid).findFirst().ifPresentOrElse(safe -> {
-            for (int i = 0; i < NOTES; i++) code[i] = ThreadLocalRandom.current().nextInt(10);
-            placeNotes(safe.getLocation().getBlock());
-        }, () -> placed = false);
     }
 
     public void use(GamePlayer gamePlayer, String station) {

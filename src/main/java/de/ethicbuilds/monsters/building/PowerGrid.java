@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.building;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
@@ -124,6 +125,18 @@ public class PowerGrid implements BuildPart {
         List<Fence> lines = new ArrayList<>();
         for (Fence other : fences) if (!lines.contains(other.line())) lines.add(other.line());
         return lines.indexOf(fence.line()) < points();
+    }
+
+    @Override
+    public void clear() {
+        lamps.clear();
+        fences.clear();
+        powerSwitch = null;
+        generator = null;
+        level = 1;
+        health = GENERATOR_HEALTH;
+        outage = 0;
+        on = false;
     }
 
     @Override
@@ -255,6 +268,7 @@ public class PowerGrid implements BuildPart {
         if (on && block.getType().isAir()) {
             Light light = (Light) Material.LIGHT.createBlockData();
             light.setLevel(15);
+            Restore.block(block);
             block.setBlockData(light, false);
         } else if (!on && block.getType() == Material.LIGHT) {
             block.setType(Material.AIR, false);

@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.building;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.items.CrowbarLevel;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.lang.Lang;
@@ -75,6 +76,12 @@ public class Nests implements BuildPart {
     }
 
     @Override
+    public void clear() {
+        nests.clear();
+        destroyed.clear();
+    }
+
+    @Override
     public boolean use(GamePlayer gamePlayer, String station) {
         if (!station.startsWith(STATION)) return false;
         int index;
@@ -109,6 +116,7 @@ public class Nests implements BuildPart {
         if (nest.hits < HITS) {
             // Shrinks a little with every hit
             float scale = 1 - 0.04F * nest.hits;
+            Restore.display(nest.display);
             nest.display.setInterpolationDelay(0);
             nest.display.setInterpolationDuration(3);
             nest.display.setTransformation(new Transformation(nest.rest.getTranslation(), nest.rest.getLeftRotation(),

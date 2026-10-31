@@ -96,6 +96,11 @@ public class CrateManager implements Listener {
         return crates.values().stream().map(crate -> crate.block).toList();
     }
 
+    /** Function test on the build server */
+    public void clear() {
+        crates.clear();
+    }
+
     /** Called at the start of every wave */
     public void resetAll() {
         for (Crate crate : crates.values()) {

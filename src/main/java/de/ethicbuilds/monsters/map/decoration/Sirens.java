@@ -30,6 +30,11 @@ public final class Sirens {
 
     private Sirens() {}
 
+    /** Function test on the build server */
+    public static void clear() {
+        horns.clear();
+    }
+
     static boolean register(ItemDisplay display, String id) {
         if (!id.startsWith(ID)) return false;
         horns.add(display.getLocation().add(0, id.endsWith("_mast") ? MAST_TOP : WALL_TOP, 0));
