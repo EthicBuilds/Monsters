@@ -41,6 +41,10 @@ public class UpgradeMenu implements Listener {
                        String[] namesDe, String[] namesEn) {}
 
     private static final int OBJECT_SLOT = 10;
+    // Level dots per number of levels (index = max), DESIGN 01.11.
+    private static final char[] DOT_START = {0, 0, '', '', '', ''};
+    private static final int[] DOT_X = {0, 0, 21, 15, 9, 3};
+    private static final int[][] DOT_WIDTHS = {{}, {}, {24, 27, 27}, {36, 36, 39, 39}, {48, 48, 48, 51, 51}, {60, 60, 60, 60, 63, 63}};
     private static final int[] BUTTON_SLOTS = {21, 22, 23, 24, 25, 26, 30, 31, 32, 33, 34, 35};
     private static final char PART = '';
     private static final String ARROW = " → ";
@@ -99,11 +103,10 @@ public class UpgradeMenu implements Listener {
             default -> english ? "Upgrade " + object : object + " ausbauen";
         });
 
-        // Level dots under the object (DESIGN: E025..E028 for 3 levels)
-        if (view.max() == 3) {
-            int dots = view.kind() == Kind.MAX ? 3 : view.level();
-            title.glyph((char) ('' + dots), 18, 33);
-        }
+        // Level dots under the object, from DESIGN's script: first glyph, x and the width of each state
+        int dots = view.kind() == Kind.MAX ? view.max() : view.level();
+        int[] widths = DOT_WIDTHS.length > view.max() ? DOT_WIDTHS[view.max()] : null;
+        if (widths != null && dots < widths.length) title.glyph((char) (DOT_START[view.max()] + dots), DOT_X[view.max()], widths[dots]);
 
         String level = english ? "Level " : "Stufe ";
         switch (view.kind()) {
@@ -141,20 +144,25 @@ public class UpgradeMenu implements Listener {
         String missingText = english ? "Missing " + missing + (missing == 1 ? " part" : " parts")
                 : (missing == 1 ? "Fehlt 1 Bauteil" : "Fehlen " + missing + " Bauteile");
         switch (view.kind()) {
-            case UPGRADE -> title.glyph(enough ? '' : '', 64, 109)
+            case UPGRADE -> button(title, enough, '')
                     .centered("knopf", BUTTON_MIDDLE, part(english ? "Upgrade" : "Ausbauen", enough ? WHITE : LOCKED))
                     .centered("knopf_2", BUTTON_MIDDLE, enough ? part((english ? "to level " : "auf Stufe ") + (view.level() + 1), NEXT) : part(missingText, RED));
-            case REPAIR -> title.glyph(enough ? '' : '', 64, 109)
+            case REPAIR -> button(title, enough, '')
                     .centered("knopf", BUTTON_MIDDLE, part(english ? "Repair" : "Reparieren", enough ? WHITE : LOCKED))
                     .centered("knopf_2", BUTTON_MIDDLE, enough ? part("100 %", FULL) : part(missingText, RED));
-            case REBUILD -> title.glyph(enough ? '' : '', 64, 109)
+            case REBUILD -> button(title, enough, '')
                     .centered("knopf", BUTTON_MIDDLE, part(english ? "Rebuild" : "Wieder aufbauen", enough ? WHITE : LOCKED))
                     .centered("knopf_2", BUTTON_MIDDLE, enough ? part(level + view.level(), FULL) : part(missingText, RED));
-            case MAX -> title.glyph('', 64, 109)
+            case MAX -> button(title, true, '')
                     .centered("knopf", BUTTON_MIDDLE, part("max.", MAX_TEXT))
                     .centered("knopf_2", BUTTON_MIDDLE, part(level + view.max() + (english ? " of " : " von ") + view.max(), MAX_DETAIL));
         }
         return title.build();
+    }
+
+    // The lit buttons glow 2 px further left than the locked one
+    private static MenuTitle button(MenuTitle title, boolean enough, char lit) {
+        return enough ? title.glyph(lit, 62, 109) : title.glyph('', 64, 105);
     }
 
     // Name and costs again as tooltip of the button area

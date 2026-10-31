@@ -55,7 +55,9 @@ public class Elevators implements BuildPart, Listener {
             STATION = "kurbel#", CAR_STATION = "fahrkorb#";
     private static final double CRANK_REACH = 8, SPEED = 0.12;
     // Riders: this far off the deck they are put back, farther away they left the ride
-    private static final double LOST = 0.5, SUNK = 0.25, GONE = 3;
+    private static final double LOST = 0.5, GONE = 3;
+    // At the stop riders this close to the deck are put exactly onto it
+    private static final double SNAP = 0.6, SNAP_BELOW = 1.5;
     // Share of the remaining gap corrected per tick, divided by the ping in ticks (a higher gain swings with latency)
     private static final double GAIN = 0.6;
     private static final int MAX_LAG = 20;
@@ -442,13 +444,14 @@ public class Elevators implements BuildPart, Listener {
                     riding.remove(rider.getUniqueId());
                 });
                 if (platform.base.equals(platform.origin)) NexoBarriers.close(platform.display);
-                // Only who really sank in goes up, no snap for the others
+                // Exactly onto the deck: the last steps leave the client a hair below the new barriers, and a player
+                // already inside a block falls through it (user 01.11.: pushed down at the top, with shift too)
                 double floor = platform.base.getY() + 1;
                 for (Player rider : riders.keySet()) {
                     if (!rider.isOnline() || !over(platform, rider.getLocation())) continue;
                     Location feet = rider.getLocation();
                     rider.setVelocity(new Vector());
-                    if (feet.getY() < floor - SUNK) {
+                    if (feet.getY() < floor + SNAP && feet.getY() > floor - SNAP_BELOW) {
                         feet.setY(floor);
                         rider.teleport(feet);
                     }
