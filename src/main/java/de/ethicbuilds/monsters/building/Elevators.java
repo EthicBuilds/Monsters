@@ -42,7 +42,11 @@ public class Elevators implements BuildPart {
             STATION = "kurbel#", CAR_STATION = "fahrkorb#";
     private static final double CRANK_REACH = 8, SPEED = 0.12;
     // Riders: a little lift against sinking, above this they jump, below this they lost the deck
-    private static final double HOLD = 0.01, JUMP = 0.6, LOST = 0.5;
+    private static final double HOLD = 0.0, JUMP = 0.6, LOST = 0.5, SUNK = 0.25, MAX_WALK = 0.6;
+    // Soft start and stop over this part of the way (blocks), never slower than MIN_STEP per tick
+    private static final double EASE = 0.6, EASE_START = 0.15, MIN_STEP = 0.02;
+    private static final double TOP_DROP = 0.15;
+    private static final long FLY_BACK_TICKS = 10;
     // From DESIGN: deck 1 block above the platform block, posts beside it at model x ±1.583, bottom posts 2 high
     private static final double DECK = 1.0, POST_SIDE = 1.583, BOTTOM_POSTS = 2.0;
     private static final int SHAFT_HEIGHT = 96;
@@ -297,7 +301,8 @@ public class Elevators implements BuildPart {
         return best;
     }
 
-    // Floor away while moving, the riders are carried by velocity, at the end the floor comes back at the new height
+    // Floor away while moving, the riders are carried by velocity, at the end the floor comes back at the new height.
+    // It starts and stops softly; riders keep walking freely, only their height follows the deck (user 31.10.)
     private void move(Platform platform, int targetY) {
         platform.moving = true;
         platform.barriers(Material.AIR);
@@ -308,11 +313,16 @@ public class Elevators implements BuildPart {
         Location start = platform.display.getLocation();
         Location crankStart = platform.crank == null ? null : platform.crank.getLocation();
         double distance = Math.abs(targetY - platform.base.getY());
-        List<Player> riders = new ArrayList<>();
+        // At the top of a shaft the model may sit a little lower than the floor it stops at
+        boolean top = platform.shaft != null && targetY == platform.shaft.upper().getY();
+        double displayTravel = targetY - (top ? plugin.getConfig().getDouble("aufzug-oben-tiefer", TOP_DROP) : 0) - start.getY();
+        double crankOffset = crankStart == null ? 0 : crankStart.getY() - start.getY();
+        int baseY = platform.base.getY();
+        Map<Player, Location> riders = new HashMap<>();
         Map<Player, Boolean> couldFly = new HashMap<>();
         for (Player player : start.getWorld().getPlayers()) {
             if (!platform.carries(player)) continue;
-            riders.add(player);
+            riders.put(player, player.getLocation());
             // Standing on air while it moves: no kick for flying, also on servers without allow-flight
             couldFly.put(player, player.getAllowFlight());
             player.setAllowFlight(true);
@@ -321,55 +331,84 @@ public class Elevators implements BuildPart {
 
         new BukkitRunnable() {
             double moved;
+            int ticks;
 
             @Override
             public void run() {
-                moved = Math.min(distance, moved + SPEED);
-                Location at = start.clone().add(0, direction * moved, 0);
+                moved = Math.min(distance, moved + step(moved, distance));
+                double share = distance == 0 ? 1 : moved / distance;
+                Location at = start.clone().add(0, displayTravel * share, 0);
                 platform.display.teleport(at);
-                if (crankStart != null && platform.crank.isValid()) platform.crank.teleport(crankStart.clone().add(0, direction * moved, 0));
-                if (platform.shaft != null) hang(platform.shaft);
-                // Each rider gets exactly the step to where the deck is next tick, measured from where he really is
-                double deckNext = start.getY() + DECK + direction * Math.min(distance, moved + SPEED);
-                for (Player rider : riders) {
-                    if (!rider.isOnline()) continue;
-                    Location feet = rider.getLocation();
-                    rider.setFallDistance(0);
-                    // Jumping on it is fine, sunk in or fallen behind it goes back onto the deck
-                    if (feet.getY() > deckNext + JUMP) continue;
-                    if (feet.getY() < deckNext - LOST) {
-                        feet.setY(deckNext);
-                        rider.teleport(feet, TeleportFlag.EntityState.RETAIN_PASSENGERS);
-                        continue;
-                    }
-                    Vector velocity = rider.getVelocity();
-                    velocity.setY(deckNext - feet.getY() + HOLD);
-                    rider.setVelocity(velocity);
+                if (crankStart != null && platform.crank.isValid()) {
+                    Location crank = crankStart.clone();
+                    crank.setY(at.getY() + crankOffset);
+                    platform.crank.teleport(crank);
                 }
-                if ((int) (moved / SPEED) % 10 == 0) at.getWorld().playSound(at, Sound.BLOCK_CHAIN_STEP, 0.8F, 0.6F);
+                if (platform.shaft != null) hang(platform.shaft);
+                carry(Math.min(distance, moved + step(moved, distance)));
+                if (++ticks % 10 == 0) at.getWorld().playSound(at, Sound.BLOCK_CHAIN_STEP, 0.8F, 0.6F);
                 if (moved < distance) return;
 
                 platform.base = platform.base.getRelative(0, (int) (direction * distance), 0);
                 platform.barriers(Material.BARRIER);
                 if (platform.base.equals(platform.origin)) NexoBarriers.close(platform.display);
-                // Riders that sank into the floor stand on it again, flying as before
-                for (Player rider : riders) {
-                    if (!rider.isOnline()) continue;
-                    if (!couldFly.get(rider) && rider.getGameMode() != GameMode.CREATIVE && rider.getGameMode() != GameMode.SPECTATOR) {
-                        rider.setFlying(false);
-                        rider.setAllowFlight(false);
-                    }
-                    double floor = platform.base.getY() + 1;
-                    if (rider.getLocation().getY() < floor && platform.carries(rider)) {
-                        Location up = rider.getLocation();
-                        up.setY(floor);
-                        rider.teleport(up);
+                // Only who really sank in goes up, no snap for the others
+                double floor = platform.base.getY() + 1;
+                for (Player rider : riders.keySet()) {
+                    if (!rider.isOnline() || !over(platform, rider.getLocation())) continue;
+                    Location feet = rider.getLocation();
+                    if (feet.getY() < floor - SUNK) {
+                        feet.setY(floor);
+                        rider.teleport(feet, TeleportFlag.Relative.VELOCITY_X, TeleportFlag.Relative.VELOCITY_Y, TeleportFlag.Relative.VELOCITY_Z);
                     }
                 }
+                // Flying goes back once everyone stands on the floor again
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> couldFly.forEach((rider, could) -> {
+                    if (!rider.isOnline() || could || rider.getGameMode() == GameMode.CREATIVE || rider.getGameMode() == GameMode.SPECTATOR) return;
+                    rider.setFlying(false);
+                    rider.setAllowFlight(false);
+                }), FLY_BACK_TICKS);
                 at.getWorld().playSound(at, Sound.BLOCK_PISTON_CONTRACT, 1.0F, 0.6F);
                 platform.moving = false;
                 cancel();
             }
+
+            // Height follows the deck exactly, the walking of the rider (measured from his real steps) stays
+            private void carry(double next) {
+                double deckNext = baseY + DECK + direction * next;
+                for (Map.Entry<Player, Location> entry : riders.entrySet()) {
+                    Player rider = entry.getKey();
+                    if (!rider.isOnline()) continue;
+                    Location feet = rider.getLocation();
+                    Location last = entry.getValue();
+                    entry.setValue(feet);
+                    rider.setFallDistance(0);
+                    // Walked off, jumping, or lost: the deck does not hold him
+                    if (!over(platform, feet) || feet.getY() > deckNext + JUMP) continue;
+                    if (feet.getY() < deckNext - LOST) {
+                        feet.setY(deckNext);
+                        rider.teleport(feet, TeleportFlag.Relative.VELOCITY_X, TeleportFlag.Relative.VELOCITY_Z);
+                        continue;
+                    }
+                    double dx = feet.getX() - last.getX(), dz = feet.getZ() - last.getZ();
+                    if (dx * dx + dz * dz > MAX_WALK * MAX_WALK) dx = dz = 0;
+                    rider.setVelocity(new Vector(dx, deckNext - feet.getY() + HOLD, dz));
+                }
+            }
         }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    // Soft start and stop: slower in the first and the last part of the way
+    private static double step(double moved, double distance) {
+        double ease = Math.min(1, Math.min((moved + EASE_START) / EASE, (distance - moved) / EASE));
+        return Math.max(MIN_STEP, SPEED * ease);
+    }
+
+    // Above the platform area, at any height
+    private static boolean over(Platform platform, Location at) {
+        for (int[] offset : platform.footprint) {
+            if (at.getBlockX() == platform.base.getX() + offset[0] && at.getBlockZ() == platform.base.getZ() + offset[2]) return true;
+        }
+        return at.getBlockX() == platform.base.getX() && at.getBlockZ() == platform.base.getZ();
     }
 }

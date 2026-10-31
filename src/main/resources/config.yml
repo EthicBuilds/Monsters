@@ -21,3 +21,6 @@ resource-pack:
 
 # Nexo-Items des Bauservers: daraus kommt, wie die Moebel gedreht und verschoben angezeigt werden (Nexo speichert das nicht in der Welt)
 nexo-items: "../monsters-bau/plugins/Nexo/items"
+
+# Aufzug mit Schacht: so viel tiefer steht das Modell oben als die Etage (Bloecke)
+aufzug-oben-tiefer: 0.15
