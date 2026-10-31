@@ -134,6 +134,7 @@ public class WaveListener implements Listener {
         double factor = enemyMonster.damageFactor(player);
         if (factor != 1 && !powerupManager.isInstakill()) event.setDamage(event.getDamage() * factor);
         enemyMonster.onHit(player);
+        if (ShotDamage.point() != null) enemyMonster.onShot(ShotDamage.point(), event.getFinalDamage());
 
         // Coins only for shots, grenades and the knife, not for hitting with a gun or other items.
         // The hand does not matter for grenades, after the last one it is empty

@@ -22,8 +22,9 @@ public final class ShotDamage {
 
     private static boolean active;
     private static boolean headshot;
-    // A gun shot, not a grenade
+    // A gun shot, not a grenade, and where it hit
     private static boolean aimed;
+    private static Location point;
     private static MonsterManager monsters;
 
     private ShotDamage() {}
@@ -43,6 +44,7 @@ public final class ShotDamage {
         headshot = target.getEyeLocation().getY() - point.getY() < HEAD_SIZE
                 && (!target.isInvisible() || target.getType() == EntityType.ZOMBIE);
         aimed = true;
+        ShotDamage.point = point;
         try {
             boolean armor = armored(target);
             if (headshot) {
@@ -56,6 +58,7 @@ public final class ShotDamage {
         } finally {
             headshot = false;
             aimed = false;
+            ShotDamage.point = null;
         }
     }
 
@@ -77,5 +80,10 @@ public final class ShotDamage {
 
     public static boolean isAimed() {
         return aimed;
+    }
+
+    /** Where the current gun shot hit, null for grenades and melee */
+    public static Location point() {
+        return point;
     }
 }

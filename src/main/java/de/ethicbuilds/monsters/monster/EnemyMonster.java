@@ -243,6 +243,9 @@ public abstract class EnemyMonster {
     /** A player hit it */
     public void onHit() {}
 
+    /** A gun shot hit this point and does this much damage (hit zones) */
+    public void onShot(Location point, double damage) {}
+
     /** A player hit it, knowing who: models push away from him */
     public void onHit(Player by) {
         onHit();
