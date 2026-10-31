@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.building;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.bautest.BauTest;
+import de.ethicbuilds.monsters.gameplay.LagGuard;
 import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.lang.Overlay;
@@ -46,6 +47,7 @@ public class PowerGrid implements BuildPart {
     // Nexo puts the light of the flood light at the top of the mast
     private static final int LAMP_HEIGHT = 3;
     private static final double SPARK_VIEW = 24, ARC_CHANCE = 0.3;
+    private static final int MAX_PULSES = 16;
 
     @Inject private DecorationManager decorationManager;
     @Inject private MonsterManager monsterManager;
@@ -225,9 +227,16 @@ public class PowerGrid implements BuildPart {
     public void animate() {
         if (fences.isEmpty() || !isPowered()) return;
         step++;
+        // Under load fewer sparks (user 31.10.: it must never lag): every second time, heavy only the arcs
+        int load = LagGuard.level();
         List<Fence> powered = new ArrayList<>();
         for (Fence fence : fences) if (fence.display.isValid() && fencePowered(fence) && seen(fence)) powered.add(fence);
-        for (Fence fence : powered) FenceSparks.pulse(FenceSparks.base(fence.display), fence.wires, step, fence.display.getEntityId());
+        if (load == 0 || load == 1 && step % 2 == 0) {
+            for (int i = 0; i < Math.min(MAX_PULSES, powered.size()); i++) {
+                Fence fence = powered.get((i + step) % powered.size());
+                FenceSparks.pulse(FenceSparks.base(fence.display), fence.wires, step, fence.display.getEntityId());
+            }
+        }
         if (step % 10 != 0) return;
         for (Fence[] gap : gaps) {
             if (!powered.contains(gap[0]) || !powered.contains(gap[1]) || ThreadLocalRandom.current().nextDouble() >= ARC_CHANCE) continue;

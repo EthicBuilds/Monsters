@@ -20,6 +20,8 @@ import org.bukkit.entity.Interaction;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Transformation;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +39,8 @@ public class RollerDoors implements BuildPart {
     private static final int[] UPGRADE = {0, 0, 10, 16};
     private static final int[] HEALTH = {0, 250, 500, 900};
     private static final double SWITCH_REACH = 12, ATTACK_REACH = 1.8, ALARM_REACH = 6;
+    private static final float RISE = 2.6F, ROLLED = 0.08F;
+    private static final int ROLL_TICKS = 30;
 
     @Inject private DecorationManager decorationManager;
     @Inject private MonsterManager monsterManager;
@@ -61,7 +65,9 @@ public class RollerDoors implements BuildPart {
         private final List<Block> barriers;
         private final Location center;
         private Interaction hitbox;
-        private int level, health, paid;
+        private int level, health, paid, rolls;
+        // Look as Nexo shows it, the roll animation starts and ends there
+        private Transformation rest;
         private boolean bought, open;
 
         private Door(ItemDisplay display, Block block, List<Block> barriers, int level) {
@@ -107,6 +113,7 @@ public class RollerDoors implements BuildPart {
         doors.add(door);
         // At the start it is closed, whatever model the map builder placed
         show(door);
+        door.rest = display.getTransformation();
         return true;
     }
 
@@ -264,6 +271,11 @@ public class RollerDoors implements BuildPart {
     private void show(Door door) {
         if (door.whole()) {
             decorationManager.setModel(door.display, DOOR_ID + door.level + (door.open ? "_auf" : "_zu"));
+            // A roll still running stops, the door stands where it belongs
+            if (door.rest != null) {
+                door.rolls++;
+                place(door.display, door.rest, 0);
+            }
         } else {
             Restore.display(door.display);
             door.display.setItemStack(null);
@@ -276,8 +288,34 @@ public class RollerDoors implements BuildPart {
         for (Lever lever : switches) if (nearest(lever.block) == door) lever(lever, door);
     }
 
-    private static void roll(Door door) {
+    // User 31.10.: it rolls up and vanishes into the top, closing it comes down; the closed model moves, the open one shows at the end
+    private void roll(Door door) {
         door.center.getWorld().playSound(door.center, door.open ? Sound.BLOCK_IRON_DOOR_OPEN : Sound.BLOCK_IRON_DOOR_CLOSE, 1.0F, 0.6F);
+        door.center.getWorld().playSound(door.center, Sound.BLOCK_CHAIN_PLACE, 0.8F, 0.6F);
+        if (door.rest == null || !door.display.isValid()) return;
+        int roll = ++door.rolls;
+        boolean opening = door.open;
+        Transformation rest = door.rest;
+        Transformation up = new Transformation(new Vector3f(rest.getTranslation()).add(0, RISE, 0), rest.getLeftRotation(),
+                new Vector3f(rest.getScale()).mul(1, ROLLED, 1), rest.getRightRotation());
+        decorationManager.setModel(door.display, DOOR_ID + door.level + "_zu");
+        place(door.display, opening ? rest : up, 0);
+        Main plugin = Main.getINSTANCE();
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (door.rolls == roll && door.display.isValid()) place(door.display, opening ? up : rest, ROLL_TICKS);
+        }, 2L);
+        if (!opening) return;
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (door.rolls != roll || !door.display.isValid() || !door.open || !door.whole()) return;
+            decorationManager.setModel(door.display, DOOR_ID + door.level + "_auf");
+            place(door.display, rest, 0);
+        }, ROLL_TICKS + 2L);
+    }
+
+    private static void place(ItemDisplay display, Transformation transformation, int ticks) {
+        display.setInterpolationDelay(0);
+        display.setInterpolationDuration(ticks);
+        display.setTransformation(transformation);
     }
 
     // The switch shows how the door stands, if Nexo knows both lever models
