@@ -88,7 +88,9 @@ public class Safes {
             TextDisplay digit = at.getWorld().spawn(at.clone().add(0, 0.45, 0), TextDisplay.class, text -> {
                 text.text(Component.text(code[position] + "", TextColor.fromHexString(COLOR)));
                 text.setBillboard(Display.Billboard.CENTER);
-                text.setBackgroundColor(Color.fromARGB(0x80, 0x14, 0x10, 0x0C));
+                text.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
+                text.setDefaultBackground(false);
+                text.setShadowed(true);
                 text.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(0.8F), new AxisAngle4f()));
                 text.setPersistent(false);
             });
