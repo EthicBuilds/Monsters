@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.bautest;
 
+import io.papermc.paper.entity.TeleportFlag;
 import de.ethicbuilds.monsters.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -160,7 +161,7 @@ public final class Restore {
         if (!display.isValid()) return;
         display.setItemStack(look.item());
         display.setTransformation(look.transformation());
-        if (!display.getLocation().equals(look.at())) display.teleport(look.at());
+        if (!display.getLocation().equals(look.at())) display.teleport(look.at(), TeleportFlag.EntityState.RETAIN_PASSENGERS);
     }
 
     // Everything still to set back; our own displays vanish anyway

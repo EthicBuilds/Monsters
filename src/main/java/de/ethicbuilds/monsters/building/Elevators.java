@@ -72,8 +72,8 @@ public class Elevators implements BuildPart, Listener {
     // From DESIGN: two ropes at model x ±1.25, from the bottom of the top piece to the eyes of the platform
     private static final double ROPE_SIDE = 1.25, ROPE_EYE = 0.765625, ROPE_TOP = 0.5;
     private static final int SHAFT_HEIGHT = 96;
-    // Crank arm of the platform model (DESIGN): turns about the model x axis through the drum, one turn per block
-    private static final Vector3f ARM_PIVOT = new Vector3f((24.75F - 8) / 16, (20F - 8) / 16, (25F - 8) / 16);
+    // Crank arm (DESIGN): its model is centred on the drum, which sits here in the platform model; one turn per block
+    private static final Vector3f ARM_PIVOT = new Vector3f(0, (20F - 8) / 16, (25F - 8) / 16);
     private static final double ARM_TURN = Math.PI * 2;
 
     @Inject private Main plugin;
@@ -241,17 +241,18 @@ public class Elevators implements BuildPart, Listener {
         decorationManager.setModel(platform.display, CAR_PLAIN_ID);
         Location at = platform.display.getLocation();
         platform.arm = spawn(at, ARM_ID, at.getYaw());
-        platform.arm.setTeleportDuration(1);
+        // As passenger it rides exactly with the platform, only the turn is its own
+        platform.display.addPassenger(platform.arm);
         turn(platform, 0, 0);
     }
 
-    // Rotation about the drum on top of the platform's own transformation
+    // Turn about the drum: the translation never changes, so the client only interpolates the rotation
     private static void turn(Platform platform, double angle, int ticks) {
         if (platform.arm == null || !platform.arm.isValid()) return;
         Transformation base = platform.display.getTransformation();
         Quaternionf spin = new Quaternionf().rotateX((float) angle);
-        Vector3f shift = new Vector3f(ARM_PIVOT).sub(spin.transform(new Vector3f(ARM_PIVOT)));
-        Vector3f translation = new Vector3f(base.getTranslation()).add(new Quaternionf(base.getLeftRotation()).transform(shift.mul(base.getScale())));
+        Vector3f translation = new Vector3f(base.getTranslation())
+                .add(new Quaternionf(base.getLeftRotation()).transform(new Vector3f(ARM_PIVOT).mul(base.getScale())));
         platform.arm.setInterpolationDelay(0);
         platform.arm.setInterpolationDuration(ticks);
         platform.arm.setTransformation(new Transformation(translation, new Quaternionf(base.getLeftRotation()).mul(spin), base.getScale(),
@@ -421,9 +422,8 @@ public class Elevators implements BuildPart, Listener {
                 path.add(moved);
                 double share = distance == 0 ? 1 : moved / distance;
                 Location at = start.clone().add(0, displayTravel * share, 0);
-                platform.display.teleport(at);
+                platform.display.teleport(at, TeleportFlag.EntityState.RETAIN_PASSENGERS);
                 if (platform.arm != null && platform.arm.isValid()) {
-                    platform.arm.teleport(at);
                     platform.armAngle += direction * (moved - before) * ARM_TURN;
                     turn(platform, platform.armAngle, 1);
                 }
