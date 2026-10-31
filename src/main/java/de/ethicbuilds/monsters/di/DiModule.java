@@ -23,6 +23,7 @@ import de.ethicbuilds.monsters.player.manager.WatcherManager;
 import de.ethicbuilds.monsters.powerup.PowerupManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import de.ethicbuilds.monsters.statistic.manager.StatisticManager;
+import de.ethicbuilds.monsters.weapons.RocketLoot;
 import de.ethicbuilds.monsters.weapons.manager.GrenadeManager;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 import de.ethicbuilds.monsters.weapons.manager.WorkbenchManager;
@@ -59,6 +60,7 @@ public class DiModule extends AbstractModule {
         bind(CrateManager.class).asEagerSingleton();
         bind(Wrecks.class).asEagerSingleton();
         bind(GrenadeManager.class).asEagerSingleton();
+        bind(RocketLoot.class).asEagerSingleton();
         bind(PowerupManager.class).asEagerSingleton();
         bind(WorkbenchManager.class).asEagerSingleton();
         bind(PerkManager.class).asEagerSingleton();

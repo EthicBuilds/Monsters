@@ -7,6 +7,7 @@ import de.ethicbuilds.monsters.monster.MonsterMiniBoss;
 import de.ethicbuilds.monsters.reward.RoundReward;
 import de.ethicbuilds.monsters.sound.Sounds;
 import de.ethicbuilds.monsters.weapons.AmmoHud;
+import de.ethicbuilds.monsters.weapons.RocketLoot;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.DoorManager;
@@ -74,6 +75,7 @@ public class WaveListener implements Listener {
     @Inject private PowerupManager powerupManager;
     @Inject private PerkManager perkManager;
     @Inject private Wrecks wrecks;
+    @Inject private RocketLoot rocketLoot;
     @Inject private Main plugin;
 
     public static final int AMMO_PRICE = 500;
@@ -174,6 +176,7 @@ public class WaveListener implements Listener {
 
         enemyMonster.onDeath();
         monsterManager.removeMonster(enemyMonster);
+        if (enemyMonster instanceof MonsterMiniBoss || enemyMonster instanceof MonsterSpiderBoss) rocketLoot.roll(monster.getKiller(), monster.getLocation());
         powerupManager.dropFrom(monster.getLocation());
         if (monsterManager.remaining() <= 3) {
             for (EnemyMonster m : monsterManager.getMonsters().values()) {
