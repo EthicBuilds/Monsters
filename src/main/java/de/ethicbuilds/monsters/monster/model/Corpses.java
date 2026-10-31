@@ -4,10 +4,10 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 
 /***
- * Corpses and dropped limbs lying around at once (design session): at most 8, the oldest sinks into the ground first
+ * Corpses and dropped limbs lying around at once (design session): at most 5, the oldest sinks into the ground first
  */
 public final class Corpses {
-    private static final int MAX = 8;
+    private static final int MAX = 5;
     private static final Deque<Corpse> lying = new ArrayDeque<>();
 
     public interface Corpse {

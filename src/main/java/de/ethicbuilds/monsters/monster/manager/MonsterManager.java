@@ -23,6 +23,7 @@ import de.ethicbuilds.monsters.monster.MonsterSpiderBoss;
 import de.ethicbuilds.monsters.monster.MonsterSpitter;
 import de.ethicbuilds.monsters.monster.MonsterZombie;
 import de.ethicbuilds.monsters.monster.OpenGround;
+import de.ethicbuilds.monsters.monster.Sight;
 import de.ethicbuilds.monsters.monster.PlayerTrail;
 import de.ethicbuilds.monsters.monster.WaveScaling;
 import de.ethicbuilds.monsters.player.GamePlayer;
@@ -55,7 +56,8 @@ public class MonsterManager {
     private static final int HORDE_PER_PLAYER = 5, HORDE_MAX = 10, HORDE_BONUS = 100;
     private static final String HORDE_COLOR = "#FF4838", BEATEN_COLOR = "#3CDC6E";
     private static final int SCARABS_PER_PLAYER = 8;
-    private static final double BOSS_LEASH = 40;
+    // Further away the boss weaver is brought back to the players, only where nobody sees it vanish or appear
+    private static final double BOSS_LEASH = 64;
     public static final int BOSS_WAVE = 10;
     private static final int MINI_BOSS_WAVE = 2;
 
@@ -269,6 +271,12 @@ public class MonsterManager {
         return best;
     }
 
+    private Location hiddenSpiderSpot(MonsterSpider spider, List<Player> players) {
+        int height = spider.getRoom() + 1;
+        if (spider instanceof MonsterSpiderBoss) return OpenGround.hiddenNearPlayers(players, spider.getRoom(), height);
+        return OpenGround.hiddenRandom(players, spider.getRoom(), height);
+    }
+
     private Location spiderSpot(MonsterSpider spider, List<Player> players) {
         int height = spider.getRoom() + 1;
         if (spider instanceof MonsterSpiderBoss) return OpenGround.nearPlayers(players, spider.getRoom(), height);
@@ -357,8 +365,9 @@ public class MonsterManager {
 
             Player nearest = nearest(living, loc);
             // The boss weaver never stays far away from the players
-            if (enemyMonster instanceof MonsterSpiderBoss boss && nearest != null && nearest.getLocation().distanceSquared(loc) > BOSS_LEASH * BOSS_LEASH) {
-                Location open = spiderSpot(boss, living);
+            if (enemyMonster instanceof MonsterSpiderBoss boss && nearest != null && nearest.getLocation().distanceSquared(loc) > BOSS_LEASH * BOSS_LEASH
+                    && !Sight.seen(living, loc, boss.getRoom() + 1)) {
+                Location open = hiddenSpiderSpot(boss, living);
                 if (open != null) entity.teleport(open, TeleportFlag.EntityState.RETAIN_PASSENGERS);
             }
 
@@ -369,7 +378,9 @@ public class MonsterManager {
                 long lastMoved = lastMoveTime.getOrDefault(enemyMonster, now);
                 // A stuck spider gets free ground instead of being removed, the boss ends the wave
                 if (now - lastMoved >= 10_000 && enemyMonster instanceof MonsterSpider spider) {
-                    Location open = spiderSpot(spider, living);
+                    // Only out of sight, otherwise it tries again next time
+                    if (Sight.seen(living, loc, spider.getRoom() + 1)) continue;
+                    Location open = hiddenSpiderSpot(spider, living);
                     // The model parts ride on it and come along
                     if (open != null) entity.teleport(open, TeleportFlag.EntityState.RETAIN_PASSENGERS);
                     lastMoveTime.put(enemyMonster, now);

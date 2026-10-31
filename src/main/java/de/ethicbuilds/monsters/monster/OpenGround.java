@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -43,6 +44,32 @@ public final class OpenGround {
             }
         }
         return spots.stream().min(Comparator.comparingDouble(s -> Math.abs(nearest(players, s) - NEAR_DISTANCE))).orElse(null);
+    }
+
+    /** Like nearPlayers, but only where no player could see a monster this high appear, null if there is none */
+    public static Location hiddenNearPlayers(Collection<Player> players, int radius, int height) {
+        List<Location> spots = new ArrayList<>();
+        for (Player player : players) {
+            for (Location spot : PlayerTrail.of(player)) {
+                Location block = spot.toBlockLocation().add(0.5, 0, 0.5);
+                if (isFree(block, radius, height)) spots.add(block);
+            }
+        }
+        spots.sort(Comparator.comparingDouble(s -> Math.abs(nearest(players, s) - NEAR_DISTANCE)));
+        for (Location spot : spots) {
+            if (!Sight.seen(players, spot, height)) return spot;
+        }
+        return null;
+    }
+
+    /** Any free spot nobody could see, null if there is none */
+    public static Location hiddenRandom(Collection<Player> players, int radius, int height) {
+        List<Location> spots = new ArrayList<>(freeSpots(players, radius, height));
+        Collections.shuffle(spots);
+        for (Location spot : spots) {
+            if (!Sight.seen(players, spot, height)) return spot;
+        }
+        return null;
     }
 
     private static double nearest(Collection<Player> players, Location spot) {

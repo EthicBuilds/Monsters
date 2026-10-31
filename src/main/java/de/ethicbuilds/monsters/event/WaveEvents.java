@@ -14,7 +14,6 @@ import de.ethicbuilds.monsters.player.manager.UserManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
@@ -47,7 +46,6 @@ public class WaveEvents {
     private static final double STORM_RADIUS = 8;
     private static final int STORM_WARNING = 4 * 20, STORM_TICKS = 20 * 20;
     private static final double STORM_DAMAGE = 2;
-    private static final Particle.DustOptions SAND = new Particle.DustOptions(Color.fromRGB(0xD9B26F), 1.6F);
     private static final Particle.DustOptions BLOOD = new Particle.DustOptions(Color.fromRGB(0x8B1A1A), 1.2F);
     public static final Particle.DustOptions GOLD = new Particle.DustOptions(Color.fromRGB(0xFFCC2E), 1.0F);
     private static final String SAND_COLOR = "#D9B26F", BLOOD_COLOR = "#E04848";
@@ -184,29 +182,20 @@ public class WaveEvents {
                 Overlay.line(Overlay.STORM, SAND_COLOR, "SANDSTORM", extraEn));
         sound(Sound.ENTITY_BREEZE_WIND_BURST, 1.0F, 0.6F);
         World world = center.getWorld();
+        SandstormLook look = new SandstormLook(center);
         new BukkitRunnable() {
             int ticks = 0;
 
             @Override
             public void run() {
                 if (gameManager.getCurrentPhase() != GamePhase.WAVE || ticks > STORM_WARNING + STORM_TICKS) {
+                    look.end(Bukkit.getOnlinePlayers());
                     cancel();
                     return;
                 }
                 boolean active = ticks >= STORM_WARNING;
-                if (ticks % 5 == 0) {
-                    // Ring as warning, sand everywhere inside once it blows
-                    for (int i = 0; i < 24; i++) {
-                        double a = Math.PI * 2 * i / 24;
-                        world.spawnParticle(Particle.DUST, center.clone().add(Math.cos(a) * STORM_RADIUS, 0.3, Math.sin(a) * STORM_RADIUS), 2, 0.1, 0.2, 0.1, SAND);
-                    }
-                    if (active) {
-                        world.spawnParticle(Particle.DUST, center.clone().add(0, 1.5, 0), 60, STORM_RADIUS * 0.6, 1.2, STORM_RADIUS * 0.6, SAND);
-                        world.spawnParticle(Particle.FALLING_DUST, center.clone().add(0, 3, 0), 8, STORM_RADIUS * 0.6, 0.5, STORM_RADIUS * 0.6, Material.SAND.createBlockData());
-                    }
-                }
+                look.tick(ticks - (active ? STORM_WARNING : 0), active, Bukkit.getOnlinePlayers());
                 if (active && ticks % 20 == 0) {
-                    world.playSound(center, Sound.ITEM_ELYTRA_FLYING, 0.5F, 0.6F);
                     for (Player player : living()) {
                         if (!player.getWorld().equals(world) || player.getLocation().distanceSquared(center) > STORM_RADIUS * STORM_RADIUS) continue;
                         player.damage(STORM_DAMAGE);

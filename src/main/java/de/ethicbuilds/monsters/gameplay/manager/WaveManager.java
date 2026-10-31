@@ -21,7 +21,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class WaveManager {
-    private static final int SPAWNS_PER_TICK = 3;
+    // Each monster brings about a dozen displays, few at a time keeps the wave start smooth
+    private static final int SPAWNS_PER_TICK = 2;
     // Measured 28.10.: up to about 170 monsters the server runs smoothly, 120 leaves room
     private static final int MAX_ALIVE = 120;
     private static final int HORDE_FROM = 8;

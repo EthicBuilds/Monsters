@@ -31,9 +31,9 @@ import java.util.Map;
  */
 public class AnimatedModel implements Corpses.Corpse {
     private static final int TICKS = 2;
-    // Near every time, up to 24 blocks every 2nd, beyond every 3rd as one display in rest pose (design session)
+    // Near every time, up to 24 blocks every 2nd, beyond every 4th as one display in rest pose (design session)
     private static final double NEAR_DISTANCE = 12, DETAIL_DISTANCE = 24, LOD_BACK = 20;
-    private static final int MID_EVERY = 2, FAR_EVERY = 3;
+    private static final int MID_EVERY = 2, FAR_EVERY = 4;
     private static final float SINK_PER_TICK = 0.08F, SINK_DEPTH = 1.6F;
     // Hit recoil on top of every animation: body and head pushed away from the hit, quickly back
     private static final float RECOIL_RISE = 0.05F, RECOIL_BACK = 0.3F;
