@@ -245,6 +245,11 @@ public class DecorationManager implements Listener {
     }
 
     /** Shows another Nexo model on the furniture, with the look Nexo gives it */
+    /** Nexo's scale and transform for an id, for displays we spawn ourselves */
+    public void look(ItemDisplay display, String id) {
+        look().apply(display, id);
+    }
+
     public void setModel(ItemDisplay display, String id) {
         Restore.display(display);
         ItemStack item = new ItemStack(Material.PAPER);
@@ -276,14 +281,15 @@ public class DecorationManager implements Listener {
 
     /** Where Nexo puts the barriers of this id at this yaw (its own turn), Nexo itself only sends them to the players */
     public List<Block> barriers(Block base, String id, float yaw) {
-        double angle = Math.toRadians(yaw < 0 ? yaw + 360 : yaw);
         List<Block> blocks = new ArrayList<>();
-        for (int[] offset : look().barriers(id)) {
-            int x = (int) Math.rint(offset[0] * Math.cos(angle) + offset[2] * Math.sin(angle));
-            int z = (int) Math.rint(offset[0] * Math.sin(angle) - offset[2] * Math.cos(angle));
-            blocks.add(base.getRelative(x, offset[1], z));
-        }
+        for (int[] offset : look().barriers(id)) blocks.add(relative(base, offset[0], offset[1], offset[2], yaw));
         return blocks;
+    }
+
+    /** A Nexo offset (x mirrored) of furniture with this yaw, turned like Nexo turns it */
+    public static Block relative(Block base, int x, int y, int z, float yaw) {
+        double angle = Math.toRadians(yaw < 0 ? yaw + 360 : yaw);
+        return base.getRelative((int) Math.rint(x * Math.cos(angle) + z * Math.sin(angle)), y, (int) Math.rint(x * Math.sin(angle) - z * Math.cos(angle)));
     }
 
     /** Real barrier blocks if the world has them, else where Nexo has them */
