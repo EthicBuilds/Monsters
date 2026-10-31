@@ -453,7 +453,7 @@ public class ReviveManager implements Listener {
             if (reviveProgress.putIfAbsent(downed, 0) == null) Sounds.deny(helper);
             return;
         }
-        int step = perkManager.has(helper, Perk.QUICK_REVIVE) ? STEP_MILLIS * 2 : STEP_MILLIS;
+        int step = (int) Math.round((perkManager.has(helper, Perk.QUICK_REVIVE) ? STEP_MILLIS * 2 : STEP_MILLIS) * ClassManager.reviveFactor(helper));
         int progress = reviveProgress.merge(downed, step, Integer::sum);
         if (progress < REVIVE_MILLIS) {
             String bar = progressBar(progress / (double) REVIVE_MILLIS);

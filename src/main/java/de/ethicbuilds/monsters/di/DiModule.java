@@ -16,6 +16,7 @@ import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.map.decoration.Wrecks;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.perk.PerkManager;
+import de.ethicbuilds.monsters.player.manager.ClassManager;
 import de.ethicbuilds.monsters.player.manager.ReviveManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.player.manager.WatcherManager;
@@ -42,6 +43,7 @@ public class DiModule extends AbstractModule {
         //Manager
         bind(UserManager.class).asEagerSingleton();
         bind(ReviveManager.class).asEagerSingleton();
+        bind(ClassManager.class).asEagerSingleton();
         bind(WatcherManager.class).asEagerSingleton();
         bind(GameManager.class).asEagerSingleton();
         bind(RoundLoader.class).asEagerSingleton();

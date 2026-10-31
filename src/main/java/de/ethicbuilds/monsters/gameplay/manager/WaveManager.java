@@ -37,6 +37,7 @@ public class WaveManager {
     private static final String[] TIERS_EN = {"", "Bronze", "Silver", "Gold", "Diamond", "Netherite"};
     private static final String[] TIER_COLORS = {"", "#E3A46A", "#C0C8D4", "#FFCC2E", "#5EE0E0", "#8B7A8E"};
     private static final String WAVE_COLOR = "#F9A11E", BOSS_COLOR = "#A970FF", HORDE_COLOR = "#FF4838";
+    private static final String EXPLOSIVE_COLOR = "#FF7A2E";
     private static final long ELITE_DELAY = 60;
 
     @Inject
@@ -147,6 +148,12 @@ public class WaveManager {
             return;
         }
         String count = Overlay.num(monsterManager.remaining());
+        if (MonsterManager.isExplosiveWave(wave)) {
+            Overlay.bigAll(EXPLOSIVE_COLOR, Overlay.line(Overlay.HORDE, EXPLOSIVE_COLOR, "EXPLOSIV", null), Overlay.line(Overlay.HORDE, EXPLOSIVE_COLOR, "EXPLOSIVE", null),
+                    Overlay.line((char) 0, EXPLOSIVE_COLOR, "Welle " + wave, count + " Explodierer · Abstand halten"),
+                    Overlay.line((char) 0, EXPLOSIVE_COLOR, "Wave " + wave, count + " bloaters · keep your distance"));
+            return;
+        }
         boolean spiders = wave % MonsterManager.SPIDER_WAVE == 0;
         Overlay.mediumAll(WAVE_COLOR, Overlay.line(Overlay.WAVE, WAVE_COLOR, "WELLE " + wave, spiders ? "Die Weberinnen kommen" : count + " Monster"),
                 Overlay.line(Overlay.WAVE, WAVE_COLOR, "WAVE " + wave, spiders ? "the weavers are coming" : count + " monsters"));

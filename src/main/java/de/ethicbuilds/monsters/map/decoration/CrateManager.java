@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.map.decoration;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
+import de.ethicbuilds.monsters.player.manager.ClassManager;
 import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.items.CrowbarLevel;
 import de.ethicbuilds.monsters.items.GameItems;
@@ -103,7 +104,7 @@ public class CrateManager implements Listener {
         }
 
         long now = System.currentTimeMillis();
-        if (now - lastHits.getOrDefault(player.getUniqueId(), 0L) < HIT_COOLDOWN / CrowbarLevel.speed(gamePlayer.getCrowbarLevel())) return;
+        if (now - lastHits.getOrDefault(player.getUniqueId(), 0L) < HIT_COOLDOWN / ClassManager.crowbarSpeed(gamePlayer)) return;
         lastHits.put(player.getUniqueId(), now);
 
         hit(gamePlayer, crate);
@@ -114,7 +115,7 @@ public class CrateManager implements Listener {
         Location center = crate.block.getLocation().add(0.5, 0.5, 0.5);
         crate.damage++;
         // A better crowbar needs fewer hits
-        int hits = Math.max(1, (int) Math.round(STAGES / CrowbarLevel.speed(gamePlayer.getCrowbarLevel())));
+        int hits = Math.max(1, (int) Math.round(STAGES / ClassManager.crowbarSpeed(gamePlayer)));
         if (crate.damage >= hits) crate.damage = STAGES;
 
         player.swingMainHand();

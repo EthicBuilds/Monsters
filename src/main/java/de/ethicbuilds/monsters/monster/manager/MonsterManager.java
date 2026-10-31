@@ -51,6 +51,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MonsterManager {
     public static final int SPIDER_WAVE = 5;
+    // Now and then a wave of bloaters only, fewer of them, with its own announcement (user 31.10.)
+    private static final int EXPLOSIVE_FROM = 8, EXPLOSIVE_EVERY = 4;
+    private static final double EXPLOSIVE_SHARE = 0.6;
     private static final int GROWTH_UNTIL = 10;
     // At most 10 crawlers, without armor, so the horde stays a quick surprise and not a wall
     private static final int HORDE_PER_PLAYER = 5, HORDE_MAX = 10, HORDE_BONUS = 100;
@@ -104,6 +107,15 @@ public class MonsterManager {
             if (wave % BOSS_WAVE == 0) initialMonsters.add(new MonsterSpiderBoss(players, wave));
             return;
         }
+        if (isExplosiveWave(wave)) {
+            for (int i = 0; i < Math.max(1, (int) Math.round(monsterCount * EXPLOSIVE_SHARE)); i++) {
+                MonsterBloater bloater = new MonsterBloater();
+                bloater.setTier(EliteTier.roll(wave));
+                bloater.setWave(wave);
+                initialMonsters.add(bloater);
+            }
+            return;
+        }
         // Same number, but more kinds the longer the round goes
         for (int i = 0; i < monsterCount; i++) {
             EnemyMonster monster = randomMonster(wave);
@@ -118,16 +130,21 @@ public class MonsterManager {
             elite.setWave(wave);
             initialMonsters.add(elite);
         }
-        // From the second wave one of them is a mini boss, it comes last so it is out when the wave is under way
-        if (wave >= MINI_BOSS_WAVE) initialMonsters.set(initialMonsters.size() - 1, new MonsterMiniBoss(wave));
+        // Every second wave one of them is a mini boss, it comes last so it is out when the wave is under way
+        if (wave >= MINI_BOSS_WAVE && wave % 2 == 0) initialMonsters.set(initialMonsters.size() - 1, new MonsterMiniBoss(wave));
+    }
+
+    public static boolean isExplosiveWave(int wave) {
+        return wave >= EXPLOSIVE_FROM && wave % EXPLOSIVE_EVERY == 0 && wave % SPIDER_WAVE != 0;
     }
 
     private EnemyMonster randomMonster(int wave) {
         double roll = Math.random();
-        if (wave >= 48 && (roll -= 0.10) < 0) return new MonsterZombie(EntityType.VINDICATOR, "§7Diener");
-        if (wave >= 24 && (roll -= 0.15) < 0) return new MonsterZombie(EntityType.ZOMBIE_VILLAGER, "§7Zombiedorfbewohner");
-        if (wave >= 15 && (roll -= 0.06) < 0) return new MonsterShieldbearer();
-        if (wave >= 12 && (roll -= 0.07) < 0) return new MonsterSpitter();
+        // The special kinds come earlier, so every stage brings something new (user 31.10.)
+        if (wave >= 30 && (roll -= 0.10) < 0) return new MonsterZombie(EntityType.VINDICATOR, "§7Diener");
+        if (wave >= 18 && (roll -= 0.15) < 0) return new MonsterZombie(EntityType.ZOMBIE_VILLAGER, "§7Zombiedorfbewohner");
+        if (wave >= 12 && (roll -= 0.06) < 0) return new MonsterShieldbearer();
+        if (wave >= 9 && (roll -= 0.07) < 0) return new MonsterSpitter();
         if (wave >= 12 && (roll -= 0.10) < 0) return new MonsterZombie(EntityType.PARCHED, "§7Vertrockneter");
         if (wave >= 9 && (roll -= 0.07) < 0) return new MonsterBloater();
         if (wave >= 6 && (roll -= 0.25) < 0) return new MonsterZombie(EntityType.HUSK, "§7Wüstenzombie");

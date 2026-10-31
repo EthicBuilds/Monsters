@@ -59,9 +59,9 @@ public final class Lang {
         player.sendActionBar(LegacyComponentSerializer.legacySection().deserialize(legacy));
     }
 
-    /** Note for everyone online, the console gets the German one */
+    /** Note for everyone online in the chat, the console gets the German one */
     public static void noteAll(String de, String en, Object... args) {
-        for (Player player : Bukkit.getOnlinePlayers()) note(player, f(player, de, en, args));
+        for (Player player : Bukkit.getOnlinePlayers()) player.sendMessage(f(player, de, en, args));
         Bukkit.getConsoleSender().sendMessage(String.format(Locale.GERMANY, de, args));
     }
 

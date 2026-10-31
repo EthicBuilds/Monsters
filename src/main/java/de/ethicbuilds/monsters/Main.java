@@ -23,6 +23,7 @@ import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.ChatStatus;
 import de.ethicbuilds.monsters.player.manager.PackStatus;
 import de.ethicbuilds.monsters.player.manager.PingManager;
+import de.ethicbuilds.monsters.player.manager.ClassManager;
 import de.ethicbuilds.monsters.player.manager.ReviveManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import de.ethicbuilds.monsters.player.manager.WatcherManager;
@@ -102,6 +103,7 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(injector.getInstance(CrateManager.class), this);
         pm.registerEvents(new MonsterGuard(), this);
         pm.registerEvents(injector.getInstance(ReviveManager.class), this);
+        pm.registerEvents(injector.getInstance(ClassManager.class), this);
         pm.registerEvents(injector.getInstance(WorkbenchManager.class), this);
         pm.registerEvents(injector.getInstance(PerkManager.class), this);
         pm.registerEvents(injector.getInstance(RoundEndCard.class), this);

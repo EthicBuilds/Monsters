@@ -2,6 +2,8 @@ package de.ethicbuilds.monsters.gameplay.listener;
 
 import de.ethicbuilds.monsters.event.WaveEvents;
 import de.ethicbuilds.monsters.monster.MonsterSpiderBoss;
+import de.ethicbuilds.monsters.monster.MonsterBounty;
+import de.ethicbuilds.monsters.monster.MonsterMiniBoss;
 import de.ethicbuilds.monsters.reward.RoundReward;
 import de.ethicbuilds.monsters.sound.Sounds;
 import de.ethicbuilds.monsters.weapons.AmmoHud;
@@ -88,12 +90,13 @@ public class WaveListener implements Listener {
     // Coins already put into a door by players who did not have enough
     private final Map<Door, Integer> doorPayments = new IdentityHashMap<>();
 
-    // Insta-kill powerup: shots, grenades and the knife kill at once, not the bare hand. Only the boss keeps its health
+    // Insta-kill powerup: shots, grenades and the knife kill at once, not the bare hand. Bosses keep their health
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onInstakill(EntityDamageByEntityEvent event) {
         if (!powerupManager.isInstakill() || !(event.getEntity() instanceof Monster monster) || !(event.getDamager() instanceof Player player)) return;
         if (!ShotDamage.isActive() && player.getInventory().getItemInMainHand().getType() != GameItems.KNIFE) return;
-        if (monsterManager.getEnemyMonster(monster) instanceof MonsterSpiderBoss) return;
+        EnemyMonster enemy = monsterManager.getEnemyMonster(monster);
+        if (enemy instanceof MonsterSpiderBoss || enemy instanceof MonsterMiniBoss || enemy instanceof MonsterBounty) return;
         event.setDamage(monster.getHealth() + 100);
     }
 

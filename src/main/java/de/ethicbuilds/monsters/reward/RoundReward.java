@@ -17,13 +17,13 @@ import java.util.function.BooleanSupplier;
 
 /***
  * EthicCoins for everyone at the end of a round: active minutes, waves, kills and revives, the best player a bit more.
- * Only minutes with hits on monsters count (no AFK), nothing for rounds under 5 minutes, at most 300 per round.
- * Normal play gives about 100-130 per hour before the rank bonus.
+ * Only minutes with hits on monsters count (no AFK), nothing for rounds under 5 minutes, at most 150 per round.
+ * Normal play gives about 80 per hour before the rank bonus (halved 31.10., the long rounds gave too much).
  */
 public final class RoundReward {
-    private static final double PER_ACTIVE_MINUTE = 1.5;
-    private static final int PER_WAVE = 1, KILLS_PER_COIN = 50, PER_REVIVE = 3;
-    private static final int BEST_BONUS = 20, MAX_PER_ROUND = 300;
+    private static final double PER_ACTIVE_MINUTE = 0.75;
+    private static final int PER_WAVE = 1, KILLS_PER_COIN = 100, PER_REVIVE = 2;
+    private static final int BEST_BONUS = 10, MAX_PER_ROUND = 150;
     private static final long MIN_ROUND_MILLIS = 5 * 60_000;
 
     private static final Set<UUID> activeThisMinute = ConcurrentHashMap.newKeySet();

@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.weapons;
 
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.player.manager.ClassManager;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.sound.Sounds;
@@ -16,7 +17,6 @@ import org.bukkit.entity.Player;
  * only those (and knife hits) give coins.
  */
 public final class ShotDamage {
-    private static final double HEADSHOT_MULTIPLIER = 1.2;
     // The head starts this far below the eyes
     private static final double HEAD_SIZE = 0.35;
 
@@ -51,7 +51,7 @@ public final class ShotDamage {
             } else if (armor) {
                 Sounds.armorHit(shooter);
             }
-            deal(target, headshot ? amount * HEADSHOT_MULTIPLIER : amount, shooter);
+            deal(target, headshot ? amount * ClassManager.headshotMultiplier(shooter) : amount, shooter);
             Overlay.hit(shooter, headshot, armor, target.isDead() || target.getHealth() <= 0);
         } finally {
             headshot = false;

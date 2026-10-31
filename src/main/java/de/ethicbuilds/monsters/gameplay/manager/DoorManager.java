@@ -1,6 +1,6 @@
 package de.ethicbuilds.monsters.gameplay.manager;
 
-import de.ethicbuilds.monsters.items.CrowbarLevel;
+import de.ethicbuilds.monsters.player.manager.ClassManager;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.items.GameItems;
@@ -35,7 +35,7 @@ public class DoorManager {
         if (!breaking.add(door)) return;
 
         Player player = gamePlayer.getPlayer();
-        int breakTicks = (int) Math.round(BREAK_TICKS / CrowbarLevel.speed(gamePlayer.getCrowbarLevel()));
+        int breakTicks = (int) Math.round(BREAK_TICKS / ClassManager.crowbarSpeed(gamePlayer));
         List<Location> blocks = List.copyOf(door.getClickableLocations());
         Location center = center(blocks);
 
