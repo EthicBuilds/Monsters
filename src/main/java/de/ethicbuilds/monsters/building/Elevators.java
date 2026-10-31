@@ -62,7 +62,9 @@ public class Elevators implements BuildPart, Listener {
     private static final double GAIN = 0.6;
     private static final int MAX_LAG = 20;
     // Not saved with the player, a disconnect during the ride takes it away
-    private static final NamespacedKey RIDE = new NamespacedKey("monsters", "aufzug_fahrt");
+    private static final NamespacedKey RIDE = new NamespacedKey("monsters", "aufzug_fahrt"), STEP = new NamespacedKey("monsters", "aufzug_stufe");
+    // User 01.11.: the platform stops this many blocks below the upper floor, the step up is walkable
+    private static final int TOP_BLOCKS = 1;
     // Soft start and stop over this part of the way (blocks), never slower than MIN_STEP per tick
     private static final double EASE = 0.6, EASE_START = 0.15, MIN_STEP = 0.02;
     private static final double TOP_DROP = 0;
@@ -82,6 +84,8 @@ public class Elevators implements BuildPart, Listener {
     private final List<Platform> platforms = new ArrayList<>();
     // Players on a moving platform: they may not start flying (shift would let them sink)
     private final Set<UUID> riding = new HashSet<>();
+    // Players on a platform waiting below the upper floor: they can walk up the step
+    private Set<UUID> stepping = new HashSet<>();
     private final List<Block> cranks = new ArrayList<>();
     private final List<Shaft> shafts = new ArrayList<>();
     private final List<ItemDisplay> tops = new ArrayList<>();
@@ -186,6 +190,11 @@ public class Elevators implements BuildPart, Listener {
         shafts.clear();
         tops.clear();
         riding.clear();
+        stepping.forEach(uuid -> {
+            Player player = plugin.getServer().getPlayer(uuid);
+            if (player != null) step(player, 0);
+        });
+        stepping.clear();
         spawned.forEach(ItemDisplay::remove);
         spawned.clear();
     }
@@ -332,7 +341,7 @@ public class Elevators implements BuildPart, Listener {
             if (shaft == null || platform.moving) return true;
             // Up from where it was placed, otherwise back down there
             int bottom = platform.origin.getY();
-            int target = platform.base.getY() == bottom ? shaft.upper().getY() : bottom;
+            int target = platform.base.getY() == bottom ? topStop(shaft) : bottom;
             move(platform, target);
             platform.base.getWorld().playSound(platform.crank.getLocation(), Sound.BLOCK_CHAIN_PLACE, 1.0F, 0.7F);
             return true;
@@ -392,7 +401,7 @@ public class Elevators implements BuildPart, Listener {
         Location crankStart = platform.crank == null ? null : platform.crank.getLocation();
         double distance = Math.abs(targetY - platform.base.getY());
         // At the top of a shaft the model may sit a little lower than the floor it stops at
-        boolean top = platform.shaft != null && targetY == platform.shaft.upper().getY();
+        boolean top = platform.shaft != null && targetY == topStop(platform.shaft);
         double displayTravel = targetY + platform.offset - (top ? plugin.getConfig().getDouble("aufzug-oben-tiefer", TOP_DROP) : 0) - start.getY();
         double crankOffset = crankStart == null ? 0 : crankStart.getY() - start.getY();
         int baseY = platform.base.getY();
@@ -501,6 +510,49 @@ public class Elevators implements BuildPart, Listener {
                 }
             }
         }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    // Upper stop of the platform: some blocks below the upper floor (config), never at or below where it was placed
+    private int topStop(Shaft shaft) {
+        int lower = Math.max(0, plugin.getConfig().getInt("aufzug-oben-bloecke-tiefer", TOP_BLOCKS));
+        return Math.max(shaft.car.origin.getY() + 1, shaft.upper().getY() - lower);
+    }
+
+    @Override
+    public void look() {
+        if (shafts.isEmpty() && stepping.isEmpty()) return;
+        Set<UUID> now = new HashSet<>();
+        Map<UUID, Integer> gaps = new HashMap<>();
+        for (Shaft shaft : shafts) {
+            Platform car = shaft.car;
+            if (car == null || car.moving || car.base.getY() != topStop(shaft)) continue;
+            int gap = shaft.upper().getY() - car.base.getY();
+            if (gap <= 0) continue;
+            double deck = car.base.getY() + DECK;
+            for (Player player : car.base.getWorld().getPlayers()) {
+                Location at = player.getLocation();
+                if (!over(car, at) || at.getY() < deck - 0.1 || at.getY() > deck + 0.6) continue;
+                now.add(player.getUniqueId());
+                gaps.put(player.getUniqueId(), gap);
+            }
+        }
+        for (UUID uuid : stepping) {
+            Player player = plugin.getServer().getPlayer(uuid);
+            if (player != null && !now.contains(uuid)) step(player, 0);
+        }
+        for (UUID uuid : now) {
+            Player player = plugin.getServer().getPlayer(uuid);
+            if (player != null && !stepping.contains(uuid)) step(player, gaps.get(uuid));
+        }
+        stepping = now;
+    }
+
+    // A higher step while standing on the waiting platform, like walking up a slab; 0 takes it away
+    private static void step(Player player, int blocks) {
+        AttributeInstance instance = player.getAttribute(Attribute.STEP_HEIGHT);
+        if (instance == null) return;
+        instance.removeModifier(STEP);
+        if (blocks > 0) instance.addTransientModifier(new AttributeModifier(STEP, blocks, AttributeModifier.Operation.ADD_NUMBER));
     }
 
     // No walking and no jumping while it moves

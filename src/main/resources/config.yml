@@ -24,3 +24,5 @@ nexo-items: "../monsters-bau/plugins/Nexo/items"
 
 # Aufzug mit Schacht: so viel tiefer steht das Modell oben als die Etage (Bloecke)
 aufzug-oben-tiefer: 0
+# Aufzug mit Schacht: so viele Bloecke unter der oberen Etage haelt die Plattform oben, die Stufe kann man hochlaufen
+aufzug-oben-bloecke-tiefer: 1
