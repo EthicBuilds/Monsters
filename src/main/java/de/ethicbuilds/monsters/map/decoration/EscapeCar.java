@@ -27,22 +27,25 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 /***
  * Escape car (user 31.10.): a wreck that the team repairs with a tyre, a car battery and a fuel can out of crates
- * and wrecks. Then it drives 20 seconds (W/S, steering with the look) and runs monsters over. Each drive takes a fuel can.
- * The driver stays in until the end (user 01.11.), hears the engine and sees the car without its roof.
+ * and wrecks. Then it drives (W/S, steering with the look) and runs monsters over. A fuel can lasts 20 seconds of driving.
+ * The driver stays in until he gets off standing still (user 01.11.), hears the engine and sees the car without its roof.
  */
 public class EscapeCar implements Listener {
     public static final String STATION = "fluchtauto#";
     static final String BROKEN_ID = "monsters_fluchtauto_kaputt";
     private static final String FIXED_ID = "monsters_fluchtauto_repariert", ROOFLESS_ID = "monsters_fluchtauto_ohne_dach";
     private static final double PART_CHANCE = 0.12;
-    private static final int DRIVE_TICKS = 20 * 20;
+    // Driving time of one fuel can, only counted while the car moves
+    private static final int TANK_TICKS = 20 * 20;
+    // Below this speed the car stands: getting off is possible
+    private static final double STANDING = 0.05;
     private static final double MAX_SPEED = 0.6, ACCELERATION = 0.04, BRAKE = 0.06, HIT_RADIUS = 2.2, HIT_DAMAGE = 60;
     private static final String COLOR = "#50839D";
     // Seat height (DESIGN): eyes about 1.7 above the ground, free above the cabin edge of the roofless car
@@ -52,8 +55,12 @@ public class EscapeCar implements Listener {
     @Inject private DecorationManager decorationManager;
 
     private final List<Car> cars = new ArrayList<>();
-    // Seats of running drives: getting off is only possible at the end
-    private final Set<Entity> seats = new HashSet<>();
+    // Seats of running drives with their speed: getting off only while standing still
+    private final Map<Entity, Ride> seats = new HashMap<>();
+
+    private static final class Ride {
+        private double speed;
+    }
     // Found by the whole team
     private boolean tyre, battery;
     private int fuel;
@@ -66,6 +73,8 @@ public class EscapeCar implements Listener {
         private final Vector offset;
         private final float yaw;
         private boolean fixed, driving;
+        // Driving ticks left in the tank
+        private int tank;
 
         private Car(ItemDisplay display, List<Block> barriers, Interaction hitbox, Vector offset) {
             this.display = display;
@@ -157,18 +166,25 @@ public class EscapeCar implements Listener {
             Lang.broadcast("%s§b%s §7hat das §bFluchtauto §7repariert!", "%s§b%s §7repaired the §bescape car§7!", plugin.getMonstersPrefix(), player.getName());
             return;
         }
-        if (fuel <= 0) {
-            Lang.note(player, Lang.t(player, "§7Der Tank ist leer · finde einen §bBenzinkanister", "§7The tank is empty · find a §bfuel can"));
-            Sounds.deny(player);
-            return;
+        if (car.tank <= 0) {
+            if (fuel <= 0) {
+                Lang.note(player, Lang.t(player, "§7Der Tank ist leer · finde einen §bBenzinkanister", "§7The tank is empty · find a §bfuel can"));
+                Sounds.deny(player);
+                return;
+            }
+            fuel--;
+            car.tank = TANK_TICKS;
         }
-        fuel--;
         drive(car, player);
     }
 
     @EventHandler
     public void onDismount(EntityDismountEvent event) {
-        if (event.getEntity() instanceof Player && seats.contains(event.getDismounted()) && event.isCancellable()) event.setCancelled(true);
+        Ride ride = seats.get(event.getDismounted());
+        if (ride == null || !(event.getEntity() instanceof Player player) || !event.isCancellable() || Math.abs(ride.speed) < STANDING) return;
+        event.setCancelled(true);
+        Overlay.small(player, Overlay.line((char) 0, COLOR, "FLUCHTAUTO", "erst anhalten · S bremst"),
+                Overlay.line((char) 0, COLOR, "ESCAPE CAR", "stop first · S brakes"));
     }
 
     private static String mark(boolean have) {
@@ -191,20 +207,19 @@ public class EscapeCar implements Listener {
             display.setTeleportDuration(1);
         });
         seat.addPassenger(driver);
-        seats.add(seat);
+        Ride ride = new Ride();
+        seats.put(seat, ride);
         car.display.setTeleportDuration(1);
         ItemDisplay view = roofless(car, driver);
         engine(start, driver, Sound.ENTITY_IRON_GOLEM_REPAIR, 0.6F, 0.5F);
-        Overlay.small(driver, Overlay.line((char) 0, COLOR, "FLUCHTAUTO", "W/S fahren · Blick lenkt · 20 s"),
-                Overlay.line((char) 0, COLOR, "ESCAPE CAR", "W/S drive · look to steer · 20 s"));
-
         new BukkitRunnable() {
             int ticks, nextBeat;
             double speed;
 
             @Override
             public void run() {
-                boolean end = ++ticks > DRIVE_TICKS || !driver.isOnline() || !seat.getPassengers().contains(driver);
+                // Only the driver ends it: getting off standing still, leaving or dying
+                boolean end = !driver.isOnline() || !seat.getPassengers().contains(driver);
                 if (end) {
                     seats.remove(seat);
                     seat.eject();
@@ -222,9 +237,13 @@ public class EscapeCar implements Listener {
                 // Starting: the engine turns over a few times
                 if (ticks <= 10 && ticks % 3 == 1) engine(car.display.getLocation(), driver, Sound.BLOCK_NOTE_BLOCK_BASEDRUM, 0.7F, 0.45F + ticks * 0.03F);
                 var input = driver.getCurrentInput();
-                if (input.isForward()) speed = Math.min(MAX_SPEED, speed + ACCELERATION);
-                else if (input.isBackward()) speed = Math.max(-MAX_SPEED / 2, speed - BRAKE);
+                boolean fuelled = car.tank > 0;
+                if (fuelled && input.isForward()) speed = Math.min(MAX_SPEED, speed + ACCELERATION);
+                else if (fuelled && input.isBackward()) speed = Math.max(-MAX_SPEED / 2, speed - BRAKE);
                 else speed *= 0.92;
+                if (Math.abs(speed) < 0.01) speed = 0;
+                ride.speed = speed;
+                tank(speed != 0);
                 float yaw = driver.getLocation().getYaw();
                 Vector forward = new Vector(-Math.sin(Math.toRadians(yaw)), 0, Math.cos(Math.toRadians(yaw)));
                 Location now = car.display.getLocation();
@@ -250,21 +269,37 @@ public class EscapeCar implements Listener {
                 // The model's front is -x, so it turns a quarter from the look
                 next.setYaw(yaw + 90);
                 next.setPitch(0);
-                car.display.teleport(next);
-                if (view != null) view.teleport(next);
-                // A turned seat would turn the driver too, so it keeps its yaw
-                Location seatAt = next.clone().add(0, SEAT, 0);
-                seatAt.setYaw(0);
-                seat.teleport(seatAt, TeleportFlag.EntityState.RETAIN_PASSENGERS);
+                // Standing still nothing is moved: every seat teleport also sends the driver his position
+                if (!next.equals(now)) {
+                    car.display.teleport(next);
+                    if (view != null) view.teleport(next);
+                    // A turned seat would turn the driver too, so it keeps its yaw
+                    Location seatAt = next.clone().add(0, SEAT, 0);
+                    seatAt.setYaw(0);
+                    if (!seatAt.toVector().equals(seat.getLocation().toVector())) seat.teleport(seatAt, TeleportFlag.EntityState.RETAIN_PASSENGERS);
+                }
                 if (Math.abs(speed) > 0.25) runOver(next.clone().add(forward.clone().multiply(Math.signum(speed) * 1.5)), driver);
                 if (ticks % 8 == 0) next.getWorld().spawnParticle(Particle.SMOKE, next.clone().add(forward.clone().multiply(-2)).add(0, 0.4, 0), 2, 0.1, 0.1, 0.1, 0.01);
                 sounds(next, input.isBackward());
             }
 
+            // Fuel only burns while driving; empty, the next can of the team goes in, else the car rolls out
+            private void tank(boolean moving) {
+                if (moving && car.tank > 0 && --car.tank == 0 && fuel > 0) {
+                    fuel--;
+                    car.tank = TANK_TICKS;
+                    Lang.note(driver, Lang.t(driver, "§7Nachgetankt · §bBenzinkanister §7verbraucht", "§7Refuelled · §bfuel can §7used"));
+                }
+                if (ticks % 20 != 1) return;
+                String de = car.tank > 0 ? "Tank " + (car.tank + 19) / 20 + " s · W/S fahren · im Stand Shift: aussteigen" : "Tank leer · Shift: aussteigen";
+                String en = car.tank > 0 ? "Tank " + (car.tank + 19) / 20 + " s · W/S drive · standing Shift: get off" : "Tank empty · Shift: get off";
+                Overlay.small(driver, Overlay.line((char) 0, COLOR, "FLUCHTAUTO", de), Overlay.line((char) 0, COLOR, "ESCAPE CAR", en));
+            }
+
             // The engine beats faster and higher with the speed, the tyres roll, braking squeaks
             private void sounds(Location at, boolean braking) {
                 float share = (float) (Math.abs(speed) / MAX_SPEED);
-                if (ticks > 10 && --nextBeat <= 0) {
+                if (ticks > 10 && car.tank > 0 && --nextBeat <= 0) {
                     engine(at, driver, Sound.BLOCK_NOTE_BLOCK_BASEDRUM, 0.5F + 0.2F * share, 0.55F + 0.9F * share);
                     nextBeat = Math.max(2, Math.round(6 - 4 * share));
                 }
