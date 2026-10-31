@@ -98,7 +98,8 @@ public class Ziplines implements BuildPart {
         ItemDisplay rope = from.getWorld().spawn(middle, ItemDisplay.class, display -> {
             display.setItemStack(item);
             display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
-            display.setPersistent(false);
+            // Its middle can lie in a chunk without game parts, in the round it comes back with it
+            display.setPersistent(!BauTest.on());
             display.setTransformation(new Transformation(new Vector3f(), new Quaternionf().rotateY(yaw).rotateX(pitch),
                     new Vector3f(1, 1, length), new Quaternionf()));
             display.setViewRange(4.0F);

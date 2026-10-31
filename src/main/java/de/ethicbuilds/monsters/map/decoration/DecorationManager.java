@@ -242,6 +242,7 @@ public class DecorationManager implements Listener {
 
         String id = entity.getPersistentDataContainer().get(FURNITURE, PersistentDataType.STRING);
         Block block = entity.getLocation().getBlock();
+        keepLoaded(block);
 
         // Nexo sends the item only via packets; on the build server Nexo is there itself
         if (!BauTest.on() && entity instanceof ItemDisplay display && (display.getItemStack() == null || display.getItemStack().getType().isAir())) {
@@ -414,6 +415,13 @@ public class DecorationManager implements Listener {
         registered.clear();
     }
 
+    // The parts of the round stay loaded while it runs: far away from the players they would lose their signs, hitboxes and state.
+    // Not on the build server, its world stays as it is.
+    private void keepLoaded(Block block) {
+        if (BauTest.on()) return;
+        block.getChunk().addPluginChunkTicket(plugin);
+    }
+
     public void removeHitbox(Interaction hitbox) {
         stations.remove(hitbox.getUniqueId());
         // The object may be from before its chunk was away
@@ -429,6 +437,7 @@ public class DecorationManager implements Listener {
             return;
         }
         Block block = door.getHoloLocation().getBlock();
+        keepLoaded(block);
         TextDisplay en = holo(block, doorText(door, remaining, true), DOOR_SIGN);
         en.setVisibleByDefault(false);
         Sign sign = new Sign(holo(block, doorText(door, remaining, false), DOOR_SIGN), en);
@@ -451,6 +460,7 @@ public class DecorationManager implements Listener {
 
     /** Weapon point of the older maps: the first spot gets the sign, every spot can be clicked */
     public void weaponPoint(Block block, String weaponName, boolean withSign) {
+        keepLoaded(block);
         if (withSign) createWeaponStation(block, weaponName);
         else hitbox(block, weaponName, 1.2F, 1.1F);
     }
