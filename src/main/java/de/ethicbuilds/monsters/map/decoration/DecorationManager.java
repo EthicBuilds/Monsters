@@ -16,16 +16,13 @@ import de.ethicbuilds.monsters.weapons.manager.WorkbenchManager;
 import de.ethicbuilds.monsters.weapons.manager.WeaponManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
@@ -38,10 +35,7 @@ import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.RayTraceResult;
-import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
-import org.joml.AxisAngle4f;
-import org.joml.Vector3f;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -229,8 +223,8 @@ public class DecorationManager implements Listener {
             workbenchLocked.add(createStation(block, WORKBENCH_STATION, "Werkbank", "Workbench",
                     workbenchPrices(WorkbenchManager.UNLOCK_PRICE, false), workbenchPrices(WorkbenchManager.UNLOCK_PRICE, true),
                     "Rechtsklick zum Kaufen", "Right-click to buy", 2.6F, 1.4F));
-            Sign open = signAbove(block, "Werkbank", "Workbench", "<#9AA6B8>Waffen verbessern", "<#9AA6B8>Upgrade weapons",
-                    "Rechtsklick zum Öffnen", "Right-click to open", SIGN);
+            Sign open = signAbove(block, HoloText.PARTS, false, "Werkbank", "Workbench", HoloText.info("Waffen verbessern"),
+                    HoloText.info("Upgrade weapons"), "Rechtsklick zum Öffnen", "Right-click to open", SIGN);
             open.de().setVisibleByDefault(false);
             workbenchOpen.add(open);
             Bukkit.getOnlinePlayers().forEach(player -> show(player, open));
@@ -238,11 +232,11 @@ public class DecorationManager implements Listener {
             Perk perk = Perk.byFurniture(id);
             // The machines are 2 blocks high, the sign floats above them
             createStation(block, perk.getFurniture(), perk.getNameDe(), perk.getNameEn(),
-                    price(perk.getPrice()) + "\n<#9AA6B8>" + perk.getEffectDe(), price(perk.getPrice()) + "\n<#9AA6B8>" + perk.getEffectEn(),
+                    price(perk.getPrice(), false) + "\n" + HoloText.info(perk.getEffectDe()), price(perk.getPrice(), true) + "\n" + HoloText.info(perk.getEffectEn()),
                     "Rechtsklick zum Kaufen", "Right-click to buy", 1.1F, 2.0F, PERK_SIGN);
         } else if (AMMO_CRATE.equals(id)) {
-            createStation(block, AMMO_STATION, "Munition", "Ammo", price(WaveListener.AMMO_PRICE) + "\n<#9AA6B8>für die Waffe in der Hand",
-                    price(WaveListener.AMMO_PRICE) + "\n<#9AA6B8>for the weapon in your hand");
+            createStation(block, AMMO_STATION, "Munition", "Ammo", price(WaveListener.AMMO_PRICE, false) + "\n" + HoloText.info("für die Waffe in der Hand"),
+                    price(WaveListener.AMMO_PRICE, true) + "\n" + HoloText.info("for the weapon in your hand"));
         }
     }
 
@@ -335,7 +329,12 @@ public class DecorationManager implements Listener {
 
     /** Sign without a hitbox, e.g. over a spot that is built later */
     public Sign sign(Block block, String name, String nameEn, String info, String infoEn, String hint, String hintEn, double lift) {
-        Sign sign = signAbove(block, name, nameEn, info, infoEn, hint, hintEn, lift);
+        return sign(block, null, name, nameEn, info, infoEn, hint, hintEn, lift);
+    }
+
+    /** Sign with a holo symbol in front of the title (HoloText) */
+    public Sign sign(Block block, Character icon, String name, String nameEn, String info, String infoEn, String hint, String hintEn, double lift) {
+        Sign sign = signAbove(block, icon, false, name, nameEn, info, infoEn, hint, hintEn, lift);
         Bukkit.getOnlinePlayers().forEach(player -> show(player, sign));
         return sign;
     }
@@ -378,17 +377,17 @@ public class DecorationManager implements Listener {
         }
         String nameEn = weapon.getNameEn() != null ? weapon.getNameEn() : weapon.getName();
         createStation(block, weaponName, ChatColor.stripColor(weapon.getName()), ChatColor.stripColor(nameEn),
-                price(weapon.getPrice()), price(weapon.getPrice()));
+                price(weapon.getPrice(), false), price(weapon.getPrice(), true));
     }
 
-    public static String price(int coins) {
-        return "<white><font:monsters:hud>\uE017</font></white> <#F9A11E>" + coins + " <#9AA6B8>Coins";
+    public static String price(int coins, boolean english) {
+        return HoloText.price(coins, english);
     }
 
     /** Coins put together so far: the sign shows what is still missing */
     public void setWorkbenchPrice(int remaining) {
-        Component text = MiniMessage.miniMessage().deserialize("<#F2F5F8>Werkbank\n" + workbenchPrices(remaining, false) + "\n<#9AA6B8>Rechtsklick zum Kaufen");
-        Component textEn = MiniMessage.miniMessage().deserialize("<#F2F5F8>Workbench\n" + workbenchPrices(remaining, true) + "\n<#9AA6B8>Right-click to buy");
+        Component text = MiniMessage.miniMessage().deserialize(compose(HoloText.PARTS, false, "Werkbank", workbenchPrices(remaining, false), "Rechtsklick zum Kaufen"));
+        Component textEn = MiniMessage.miniMessage().deserialize(compose(HoloText.PARTS, false, "Workbench", workbenchPrices(remaining, true), "Right-click to buy"));
         workbenchLocked.removeIf(sign -> !sign.isValid());
         workbenchLocked.forEach(sign -> {
             sign.de().text(text);
@@ -397,9 +396,8 @@ public class DecorationManager implements Listener {
     }
 
     private static String workbenchPrices(int coins, boolean english) {
-        return english
-                ? "<#9AA6B8>from wave " + WorkbenchManager.UNLOCK_WAVE + " · " + price(coins) + "\n<#9AA6B8>Upgrade weapons"
-                : "<#9AA6B8>ab Welle " + WorkbenchManager.UNLOCK_WAVE + " · " + price(coins) + "\n<#9AA6B8>Waffen verbessern";
+        return price(coins, english) + "\n" + HoloText.wave(WorkbenchManager.UNLOCK_WAVE, english)
+                + "\n" + HoloText.info(english ? "Upgrade weapons" : "Waffen verbessern");
     }
 
     /** The workbench is unlocked: from now on the sign without the price */
@@ -429,33 +427,44 @@ public class DecorationManager implements Listener {
         });
         BauTest.limit(hitbox);
         stations.put(hitbox.getUniqueId(), station);
-        Sign sign = signAbove(block, name, nameEn, prices, pricesEn, hint, hintEn, lift);
+        Perk perk = Perk.byFurniture(station);
+        Character icon = WORKBENCH_STATION.equals(station) ? Character.valueOf(HoloText.PARTS) : perk != null ? perkIcon(perk) : null;
+        Sign sign = signAbove(block, icon, perk != null, name, nameEn, prices, pricesEn, hint, hintEn, lift);
         Bukkit.getOnlinePlayers().forEach(player -> show(player, sign));
         return sign;
     }
 
+    // The perk symbols of the holo font: health, reload, speed, revive
+    private static Character perkIcon(Perk perk) {
+        String id = perk.getFurniture();
+        if (id.endsWith("leben")) return '\uE20B';
+        if (id.endsWith("nachladen")) return '\uE20C';
+        if (id.endsWith("tempo")) return '\uE20D';
+        if (id.endsWith("wiederbeleben")) return '\uE20E';
+        return null;
+    }
+
     // German sign visible by default, the English one only for English players
-    private Sign signAbove(Block block, String name, String nameEn, String prices, String pricesEn, String hint, String hintEn, double lift) {
-        TextDisplay en = holo(block, nameEn, pricesEn, hintEn, lift);
+    private Sign signAbove(Block block, Character icon, boolean colored, String name, String nameEn, String prices, String pricesEn,
+                           String hint, String hintEn, double lift) {
+        TextDisplay en = holo(block, compose(icon, colored, nameEn, pricesEn, hintEn), lift);
         en.setVisibleByDefault(false);
-        Sign sign = new Sign(holo(block, name, prices, hint, lift), en);
+        Sign sign = new Sign(holo(block, compose(icon, colored, name, prices, hint), lift), en);
         signs.add(sign);
         return sign;
     }
 
-    private TextDisplay holo(Block block, String name, String prices, String hint, double lift) {
-        Component text = MiniMessage.miniMessage().deserialize("<#F2F5F8><name>\n" + prices + "\n<#9AA6B8><hint>",
-                Placeholder.unparsed("name", name), Placeholder.unparsed("hint", hint));
+    // Title, divider, the lines of the sign and the small hint (DESIGN 31.10.)
+    private static String compose(Character icon, boolean colored, String name, String lines, String hint) {
+        return HoloText.title(icon, colored, name) + "\n" + HoloText.divider() + (lines.isEmpty() ? "" : "\n" + lines) + "\n" + HoloText.hint(hint);
+    }
+
+    private TextDisplay holo(Block block, String text, double lift) {
+        Component component = MiniMessage.miniMessage().deserialize(text);
         Location base = block.getLocation().add(0.5, 0, 0.5);
         return block.getWorld().spawn(base.clone().add(0, lift, 0), TextDisplay.class, holo -> {
-            holo.text(text);
-            holo.setBillboard(Display.Billboard.CENTER);
-            // No backdrop (user 31.10.): it made the models behind it look washed out, a shadow keeps the text readable
-            holo.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
-            holo.setDefaultBackground(false);
-            holo.setShadowed(true);
-            holo.setSeeThrough(false);
-            holo.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(0.9F), new AxisAngle4f()));
+            holo.text(component);
+            HoloText.style(holo);
             holo.setPersistent(false);
             if (BauTest.on()) holo.setVisibleByDefault(false);
         });

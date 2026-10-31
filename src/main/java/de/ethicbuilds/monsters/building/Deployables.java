@@ -6,6 +6,7 @@ import de.ethicbuilds.monsters.bautest.NexoBarriers;
 import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
+import de.ethicbuilds.monsters.map.decoration.HoloText;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
 import org.bukkit.Location;
@@ -90,7 +91,7 @@ public class Deployables implements BuildPart {
             return true;
         }
         spot.sign = decorationManager.sign(block, ladder ? "Strickleiter" : "Bretterbrücke", ladder ? "Rope ladder" : "Plank bridge",
-                Parts.price(price, false), Parts.price(price, true),
+                HoloText.parts(price, false), HoloText.parts(price, true),
                 ladder ? "Rechtsklick zum Anbringen" : "Rechtsklick zum Auslegen", ladder ? "Right-click to hang up" : "Right-click to lay out", 1.2);
         decorationManager.hitbox(block, STATION + spots.size(), ladder ? 1.0F : 1.6F, ladder ? 2.5F : 1.0F);
         spots.add(spot);

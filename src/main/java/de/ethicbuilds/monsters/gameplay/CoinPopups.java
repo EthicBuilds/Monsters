@@ -99,7 +99,7 @@ public final class CoinPopups {
     private static String text(Popup popup) {
         String symbol = popup.headshot
                 ? "<color:" + HEADSHOT_COLOR + "><font:monsters:tab></font></color>"
-                : Overlay.coin();
+                : "<#F9A11E><font:monsters:holo></font></#F9A11E>";
         return symbol + Overlay.space(3) + "<b>" + Overlay.num("+" + popup.coins) + "</b>";
     }
 }

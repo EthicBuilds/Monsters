@@ -8,6 +8,7 @@ import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
+import de.ethicbuilds.monsters.map.decoration.HoloText;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.sound.Sounds;
@@ -250,8 +251,8 @@ public class RollerDoors implements BuildPart {
     // Price sign over the switch with what is still missing, gone once the door is free
     private void sign(Lever lever, int remaining) {
         if (lever.sign != null) decorationManager.removeSign(lever.sign);
-        lever.sign = remaining <= 0 ? null : decorationManager.sign(lever.block, "Rolltor", "Roller door",
-                DecorationManager.price(remaining), DecorationManager.price(remaining), "Rechtsklick zum Freikaufen", "Right-click to buy free", 1.0);
+        lever.sign = remaining <= 0 ? null : decorationManager.sign(lever.block, HoloText.LOCK, "Rolltor", "Roller door",
+                HoloText.price(remaining, false), HoloText.price(remaining, true), "Rechtsklick zum Freikaufen", "Right-click to buy free", 1.0);
     }
 
     private Door nearest(Block lever) {

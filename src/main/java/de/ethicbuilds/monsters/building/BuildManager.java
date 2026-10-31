@@ -11,6 +11,7 @@ import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.items.ArmorSet;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
+import de.ethicbuilds.monsters.map.decoration.HoloText;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.sound.Sounds;
@@ -131,9 +132,9 @@ public class BuildManager {
             Breakouts.add(display);
         } else if (id.startsWith(VEST_STAND_ID)) {
             int set = Math.max(1, VEST_SETS.indexOf(id.substring(VEST_STAND_ID.length())) + 1);
-            String price = DecorationManager.price(ArmorSet.price(set - 1));
+            int price = ArmorSet.price(set - 1);
             decorationManager.createStation(block, VEST_STAND + set, ArmorSet.name(set, false) + "-Rüstung", ArmorSet.name(set, true) + " armor",
-                    price, price, "Rechtsklick zum Anziehen", "Right-click to put on", 1.0F, 2.0F);
+                    HoloText.price(price, false), HoloText.price(price, true), "Rechtsklick zum Anziehen", "Right-click to put on", 1.0F, 2.0F);
         } else if (parts().stream().noneMatch(part -> part.register(display, id, block))) {
             return false;
         }
