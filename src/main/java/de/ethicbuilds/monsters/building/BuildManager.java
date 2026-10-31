@@ -55,6 +55,7 @@ public class BuildManager {
     @Inject private Ziplines ziplines;
     @Inject private Deployables deployables;
     @Inject private Elevators elevators;
+    @Inject private RollerDoors rollerDoors;
 
     private final List<Rubble> rubble = new ArrayList<>();
     private final List<Barricade> barricades = new ArrayList<>();
@@ -90,7 +91,7 @@ public class BuildManager {
     }
 
     private List<BuildPart> parts() {
-        return List.of(powerGrid, nests, flares, ziplines, deployables, elevators);
+        return List.of(powerGrid, nests, flares, ziplines, deployables, elevators, rollerDoors);
     }
 
     public void start() {

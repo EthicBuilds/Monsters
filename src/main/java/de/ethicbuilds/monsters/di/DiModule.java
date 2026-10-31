@@ -6,6 +6,7 @@ import de.ethicbuilds.monsters.bautest.BauTest;
 import de.ethicbuilds.monsters.building.BuildManager;
 import de.ethicbuilds.monsters.building.Deployables;
 import de.ethicbuilds.monsters.building.Elevators;
+import de.ethicbuilds.monsters.building.RollerDoors;
 import de.ethicbuilds.monsters.building.Flares;
 import de.ethicbuilds.monsters.building.Nests;
 import de.ethicbuilds.monsters.building.PowerGrid;
@@ -86,6 +87,7 @@ public class DiModule extends AbstractModule {
         bind(Ziplines.class).asEagerSingleton();
         bind(Deployables.class).asEagerSingleton();
         bind(Elevators.class).asEagerSingleton();
+        bind(RollerDoors.class).asEagerSingleton();
 
         //Repositories
         bind(GameStates.class).asEagerSingleton();

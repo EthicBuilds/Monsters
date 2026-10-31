@@ -249,6 +249,18 @@ public class DecorationManager implements Listener {
         return List.of();
     }
 
+    /** Where Nexo would put the barriers of this id at this yaw, for furniture placed without them */
+    public List<Block> barriers(Block base, String id, float yaw) {
+        double angle = Math.toRadians(360 - yaw);
+        List<Block> blocks = new ArrayList<>();
+        for (int[] offset : look().barriers(id)) {
+            int x = (int) Math.round(Math.cos(angle) * offset[0] - Math.sin(angle) * offset[2]);
+            int z = (int) Math.round(Math.sin(angle) * offset[0] - Math.cos(angle) * offset[2]);
+            blocks.add(base.getRelative(x, offset[1], z));
+        }
+        return blocks;
+    }
+
     /** Clickable area without a sign, the station name goes to the click handling */
     public Interaction hitbox(Block block, String station, float width, float height) {
         Interaction hitbox = block.getWorld().spawn(block.getLocation().add(0.5, 0, 0.5), Interaction.class, interaction -> {
