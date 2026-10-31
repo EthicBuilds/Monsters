@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.weapons;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.gameplay.manager.WaveManager;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -25,21 +26,25 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /***
- * The rocket launcher only comes as boss loot (user 31.10.): who finishes a mini boss or the boss weaver gets it now
- * and then. Without a free weapon slot it stays on the ground, sneaking over it swaps it with the weapon in hand.
+ * The rocket launcher only comes as boss loot or out of the safe (user 31.10.): from wave 10 on, rarely and once per round.
+ * Without a free weapon slot it stays on the ground, sneaking over it swaps it with the weapon in hand.
  */
 public class RocketLoot implements Listener {
-    private static final double CHANCE = 0.25;
+    private static final double CHANCE = 0.05;
+    private static final int MIN_WAVE = 10;
     private static final long HINT_MILLIS = 3000;
     private final Map<UUID, Long> lastHint = new HashMap<>();
     private static final NamespacedKey KEY = new NamespacedKey("monsters", "raketenwerfer_beute");
 
     @Inject private Main plugin;
     @Inject private UserManager userManager;
+    @Inject private WaveManager waveManager;
+
+    private boolean given;
 
     /** A boss died, with luck the killer gets the launcher */
     public void roll(Player killer, Location at) {
-        if (killer == null || ThreadLocalRandom.current().nextDouble() >= CHANCE) return;
+        if (killer == null || waveManager.getCurrentWave() < MIN_WAVE || ThreadLocalRandom.current().nextDouble() >= CHANCE) return;
         GamePlayer gamePlayer = userManager.getGamePlayer(killer.getUniqueId());
         if (gamePlayer == null) return;
         Weapon owned = gamePlayer.getWeapons().get(Material.IRON_NUGGET);
@@ -49,18 +54,25 @@ public class RocketLoot implements Listener {
             Sounds.buy(killer);
             return;
         }
+        if (given) return;
+        given = true;
         Lang.broadcast("%s§6%s §7hat einen §6Raketenwerfer §7erbeutet!", "%s§6%s §7looted a §6Rocket Launcher§7!",
                 plugin.getMonstersPrefix(), killer.getName());
         if (!give(gamePlayer, false)) drop(at);
     }
 
-    /** Sure loot, e.g. out of the safe */
+    /** Sure loot, e.g. out of the safe, if the round allows one */
     public void grant(GamePlayer gamePlayer, Location at) {
+        if (waveManager.getCurrentWave() < MIN_WAVE) return;
         Weapon owned = gamePlayer.getWeapons().get(Material.IRON_NUGGET);
         if (owned != null) {
             owned.refill();
             return;
         }
+        if (given) return;
+        given = true;
+        Lang.broadcast("%s§6%s §7hat einen §6Raketenwerfer §7erbeutet!", "%s§6%s §7looted a §6Rocket Launcher§7!",
+                plugin.getMonstersPrefix(), gamePlayer.getPlayer().getName());
         if (!give(gamePlayer, false)) drop(at);
     }
 
