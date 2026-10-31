@@ -45,7 +45,10 @@ public class AnimatedModel implements Corpses.Corpse {
     // Walk animation, quicker monsters run instead
     private String walk = WALK;
     // The walk plays faster or slower with the real speed, so the steps fit (blocks per tick of a normal walk)
-    private static final double WALK_SPEED = 0.12, MIN_RATE = 0.6, MAX_RATE = 1.6;
+    private static final double WALK_SPEED = 0.12, MIN_RATE = 0.6, MAX_RATE = 2.2;
+    // Faster than this a walker runs, if the model has it (late waves make them quicker), steps fit RUN_PACE
+    private static final double RUN_SPEED = 0.17, RUN_PACE = 0.22;
+    private static final String RUN = "rennen";
     private double walkSpeed = WALK_SPEED;
     // Slower than this it strolls instead of walking, if the model has it
     private static final double STROLL_SPEED = 0.05;
@@ -457,9 +460,12 @@ public class AnimatedModel implements Corpses.Corpse {
             if (rigActive) rig.update(now, yaw, elapsed);
             else if (rig != null) rig.reset();
             double speed = moving ? now.distance(lastPosition) / elapsed : 0;
-            if (moving) walkTime += step * (float) Math.max(MIN_RATE, Math.min(MAX_RATE, speed / walkSpeed)) * every;
             lastPosition = now;
             String loop = !moving ? idle : (stroll || !noStroll && speed < STROLL_SPEED) && walk.equals(WALK) && model.animation(STROLL) != null ? STROLL : walk;
+            boolean run = moving && loop.equals(WALK) && speed > RUN_SPEED && model.animation(RUN) != null;
+            if (run) loop = RUN;
+            double pace = loop.equals(RUN) ? RUN_PACE : walkSpeed;
+            if (moving) walkTime += step * (float) Math.max(MIN_RATE, Math.min(MAX_RATE, speed / pace)) * every;
             if (far && model.lod() != null) renderLod();
             else render(model.animation(loop), one);
         } else {
@@ -547,7 +553,8 @@ public class AnimatedModel implements Corpses.Corpse {
         // Passengers sit higher than the feet of the monster, the model stands on the ground; the front is -Z
         float lift = (dying || Float.isNaN(offsetY) ? 0 : offsetY) + sunk + buried;
         root.identity().translate(0, -lift, 0).rotateY((float) Math.toRadians(180 - yaw)).scale(size / 16f);
-        float clock = loop != null && model.animation(walk) == loop ? walkTime : time;
+        // Every moving loop follows the steps, standing runs on the clock
+        float clock = loop != null && (loop != model.animation(idle) || idle.equals(walk)) ? walkTime : time;
         float loopTime = loop != null && loop.length() > 0 ? clock % loop.length() : 0;
 
         for (int i = 0; i < bones.size(); i++) {

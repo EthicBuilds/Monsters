@@ -30,6 +30,8 @@ public abstract class Weapon {
     protected String nameEn;
     protected double damage;
     protected int fireRate;
+    // Upgrades never make it fire faster than this (ticks)
+    protected int minFireRate = 1;
     protected int ammu;
     protected int magazine;
     protected int maxAmmu;
@@ -223,7 +225,7 @@ public abstract class Weapon {
     // 15 % less time between shots for the first two levels, the others each fire 1.5 times as fast
     private int fireRateAt(int level) {
         double rate = level <= 2 ? baseFireRate * (1 - 0.15 * level) : fireRateAt(level - 1) / 1.5;
-        return Math.max(1, (int) Math.round(rate));
+        return Math.max(minFireRate, (int) Math.round(rate));
     }
 
     public double nextDamage() {

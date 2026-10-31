@@ -44,6 +44,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class MonsterManager {
     public static final int SPIDER_WAVE = 5;
@@ -84,6 +86,7 @@ public class MonsterManager {
 
     private final Map<EnemyMonster, Location> lastLocation = new HashMap<>();
     private final Map<EnemyMonster, Long> lastMoveTime = new HashMap<>();
+    private static final double SPACING = 0.3, SPREAD = 0.08;
     private static final double STUCK_RADIUS = 2, STUCK_PLAYER_DISTANCE = 4;
     private static final long STUCK_MILLIS = 12_000;
 
@@ -357,6 +360,35 @@ public class MonsterManager {
         PlayerTrail.clear();
         Bukkit.getScheduler().runTaskTimer(plugin, this::recordTrails, 0L, 10L);
         Bukkit.getScheduler().runTaskTimer(plugin, this::checkMonsters, 0L, 40L);
+        Bukkit.getScheduler().runTaskTimer(plugin, this::separate, 4L, 4L);
+    }
+
+    // The models are wider than the mob hitboxes: monsters that stand in each other push apart a little (user 31.10.)
+    private void separate() {
+        List<Monster> standing = new ArrayList<>();
+        for (Monster monster : monsters.keySet()) if (monster.isValid() && !monster.isDead() && monster.isOnGround()) standing.add(monster);
+        for (int i = 0; i < standing.size(); i++) {
+            Monster a = standing.get(i);
+            Location at = a.getLocation();
+            for (int j = i + 1; j < standing.size(); j++) {
+                Monster b = standing.get(j);
+                Location other = b.getLocation();
+                if (!at.getWorld().equals(other.getWorld()) || Math.abs(at.getY() - other.getY()) > 1) continue;
+                double need = (a.getWidth() + b.getWidth()) / 2 + SPACING;
+                double dx = other.getX() - at.getX(), dz = other.getZ() - at.getZ(), distance = Math.sqrt(dx * dx + dz * dz);
+                if (distance >= need) continue;
+                // Exactly in each other: any direction
+                if (distance < 0.01) {
+                    dx = ThreadLocalRandom.current().nextDouble(-1, 1);
+                    dz = ThreadLocalRandom.current().nextDouble(-1, 1);
+                    distance = Math.max(0.01, Math.sqrt(dx * dx + dz * dz));
+                }
+                double strength = SPREAD * (need - distance) / need;
+                Vector push = new Vector(dx / distance * strength, 0, dz / distance * strength);
+                b.setVelocity(b.getVelocity().add(push));
+                a.setVelocity(a.getVelocity().subtract(push));
+            }
+        }
     }
 
     private void recordTrails() {
