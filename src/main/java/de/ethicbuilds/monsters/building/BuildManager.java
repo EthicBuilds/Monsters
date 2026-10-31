@@ -97,6 +97,7 @@ public class BuildManager {
     public void start() {
         plugin.getServer().getPluginManager().registerEvents(flares, plugin);
         plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 20L, 20L);
+        plugin.getServer().getScheduler().runTaskTimer(plugin, powerGrid::animate, 2L, 2L);
     }
 
     /** Function test on the build server: forgets everything, it registers again in the next test */

@@ -2,6 +2,7 @@ package de.ethicbuilds.monsters.building;
 
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.bautest.BauTest;
 import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.lang.Lang;
 import de.ethicbuilds.monsters.lang.Overlay;
@@ -20,9 +21,11 @@ import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 /***
  * Power: the switch turns everything on (perk machines, flood lights). The generator gives 2 points per level,
@@ -42,6 +45,7 @@ public class PowerGrid implements BuildPart {
     private static final int HIT = 10;
     // Nexo puts the light of the flood light at the top of the mast
     private static final int LAMP_HEIGHT = 3;
+    private static final double SPARK_VIEW = 24, ARC_CHANCE = 0.3;
 
     @Inject private DecorationManager decorationManager;
     @Inject private MonsterManager monsterManager;
@@ -52,17 +56,22 @@ public class PowerGrid implements BuildPart {
     private boolean on;
     private final List<ItemDisplay> lamps = new ArrayList<>();
     private final List<Fence> fences = new ArrayList<>();
+    // Fences with a gap of one block between them, arcs jump over it
+    private final List<Fence[]> gaps = new ArrayList<>();
+    private int step;
 
     // One segment; touching segments form one fence line that takes one point
     private static final class Fence {
         private final ItemDisplay display;
         // Id without an/aus, the shape stays (straight, ecke, t, ende)
         private final String base;
+        private final List<Vector> wires;
         private Fence line = this;
 
         private Fence(ItemDisplay display, String base) {
             this.display = display;
             this.base = base;
+            this.wires = FenceSparks.wires(display, base);
         }
 
         private Fence line() {
@@ -115,6 +124,11 @@ public class PowerGrid implements BuildPart {
                     && Math.abs(there.getBlockX() - at.getBlockX()) + Math.abs(there.getBlockZ() - at.getBlockZ()) == 1) {
                 other.line().line = fence.line();
             }
+            int dx = there.getBlockX() - at.getBlockX(), dz = there.getBlockZ() - at.getBlockZ();
+            if (there.getWorld().equals(at.getWorld()) && there.getBlockY() == at.getBlockY() && (dx == 0 || dz == 0) && Math.abs(dx + dz) == 2) {
+                Vector towards = new Vector(dx, 0, dz).normalize();
+                if (FenceSparks.faces(fence.wires, towards) || FenceSparks.faces(other.wires, towards.clone().multiply(-1))) gaps.add(new Fence[]{fence, other});
+            }
         }
         fences.add(fence);
     }
@@ -122,6 +136,8 @@ public class PowerGrid implements BuildPart {
     // The first fence lines get the points, the rest stays dark
     private boolean fencePowered(Fence fence) {
         if (!isPowered()) return false;
+        // The build server shows every fence working, the points only count in a round
+        if (BauTest.on()) return true;
         List<Fence> lines = new ArrayList<>();
         for (Fence other : fences) if (!lines.contains(other.line())) lines.add(other.line());
         return lines.indexOf(fence.line()) < points();
@@ -131,6 +147,7 @@ public class PowerGrid implements BuildPart {
     public void clear() {
         lamps.clear();
         fences.clear();
+        gaps.clear();
         powerSwitch = null;
         generator = null;
         level = 1;
@@ -202,6 +219,28 @@ public class PowerGrid implements BuildPart {
         for (Fence fence : fences) {
             if (fencePowered(fence)) zap(fence.display);
         }
+    }
+
+    /** Every 2 ticks: electricity on the powered fences that a player can see */
+    public void animate() {
+        if (fences.isEmpty() || !isPowered()) return;
+        step++;
+        List<Fence> powered = new ArrayList<>();
+        for (Fence fence : fences) if (fence.display.isValid() && fencePowered(fence) && seen(fence)) powered.add(fence);
+        for (Fence fence : powered) FenceSparks.pulse(FenceSparks.base(fence.display), fence.wires, step, fence.display.getEntityId());
+        if (step % 10 != 0) return;
+        for (Fence[] gap : gaps) {
+            if (!powered.contains(gap[0]) || !powered.contains(gap[1]) || ThreadLocalRandom.current().nextDouble() >= ARC_CHANCE) continue;
+            Location a = FenceSparks.base(gap[0].display), b = FenceSparks.base(gap[1].display);
+            Vector towards = b.toVector().subtract(a.toVector()).normalize();
+            FenceSparks.arc(FenceSparks.end(a, gap[0].wires, towards), FenceSparks.end(b, gap[1].wires, towards.clone().multiply(-1)));
+        }
+    }
+
+    private static boolean seen(Fence fence) {
+        Location at = fence.display.getLocation();
+        for (Player player : at.getWorld().getPlayers()) if (player.getLocation().distanceSquared(at) <= SPARK_VIEW * SPARK_VIEW) return true;
+        return false;
     }
 
     private void damageGenerator() {
