@@ -46,6 +46,7 @@ public class BuildManager {
     private static final int[] HEALTH = {0, 120, 240, 400};
     private static final int[] UPGRADE = {0, 0, 4, 8};
     private static final int REPAIR = 1;
+    private static final String[] NAMES = {"", "Holz", "Wellblech", "Stahl"}, NAMES_EN = {"", "Wood", "Corrugated", "Steel"};
     private static final double REACH = 1.6;
     private static final int HIT = 10;
 
@@ -188,7 +189,8 @@ public class BuildManager {
     public boolean use(GamePlayer gamePlayer, String station) {
         int index = index(station, BARRICADE);
         if (index >= 0 && index < barricades.size()) {
-            useBarricade(gamePlayer, barricades.get(index));
+            Barricade barricade = barricades.get(index);
+            upgradeMenu.open(gamePlayer, () -> view(barricade), player -> useBarricade(player, barricade));
             return true;
         }
         int set = index(station, VEST_STAND);
@@ -208,7 +210,22 @@ public class BuildManager {
         }
     }
 
-    // Broken: build again, damaged: repair, whole: next level
+    // What the upgrade menu shows for the barricade
+    private static UpgradeMenu.View view(Barricade barricade) {
+        UpgradeMenu.Kind kind = barricade.broken() ? UpgradeMenu.Kind.REBUILD : barricade.health < HEALTH[barricade.level] ? UpgradeMenu.Kind.REPAIR
+                : barricade.level < MAX_LEVEL ? UpgradeMenu.Kind.UPGRADE : UpgradeMenu.Kind.MAX;
+        int cost = switch (kind) {
+            case REBUILD -> REPAIR * barricade.level * 2;
+            case REPAIR -> REPAIR;
+            case UPGRADE -> UPGRADE[barricade.level + 1];
+            case MAX -> 0;
+        };
+        int health = (int) Math.round(100.0 * Math.max(0, barricade.health) / HEALTH[barricade.level]);
+        return new UpgradeMenu.View("Barrikade", "barricade", "ausbau_barrikade_" + barricade.level, MAX_LEVEL, barricade.level, kind, health, cost,
+                NAMES, NAMES_EN);
+    }
+
+    // The button of the upgrade menu. Broken: build again, damaged: repair, whole: next level
     private void useBarricade(GamePlayer gamePlayer, Barricade barricade) {
         Player player = gamePlayer.getPlayer();
         if (barricade.broken()) {

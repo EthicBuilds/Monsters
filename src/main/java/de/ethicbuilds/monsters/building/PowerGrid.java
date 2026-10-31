@@ -48,9 +48,12 @@ public class PowerGrid implements BuildPart {
     private static final int LAMP_HEIGHT = 3;
     private static final double SPARK_VIEW = 24, ARC_CHANCE = 0.3;
     private static final int MAX_PULSES = 16;
+    private static final String[] NAMES = {"", "2 Strompunkte", "4 Strompunkte", "6 Strompunkte"},
+            NAMES_EN = {"", "2 power points", "4 power points", "6 power points"};
 
     @Inject private DecorationManager decorationManager;
     @Inject private MonsterManager monsterManager;
+    @Inject private UpgradeMenu upgradeMenu;
 
     private ItemDisplay powerSwitch;
     private ItemDisplay generator;
@@ -163,7 +166,8 @@ public class PowerGrid implements BuildPart {
         if (SWITCH.equals(station)) {
             useSwitch(gamePlayer.getPlayer());
         } else if (GENERATOR.equals(station)) {
-            useGenerator(gamePlayer);
+            if (generator == null) return true;
+            upgradeMenu.open(gamePlayer, this::view, this::useGenerator);
         } else {
             return false;
         }
@@ -186,7 +190,19 @@ public class PowerGrid implements BuildPart {
         at.getWorld().playSound(at, Sound.BLOCK_BEACON_ACTIVATE, 1.5F, 1.2F);
     }
 
-    // Out: restart for one part, otherwise the next level
+    // What the upgrade menu shows: out of order means repair (restart), else the next level
+    private UpgradeMenu.View view() {
+        UpgradeMenu.Kind kind = outage > 0 ? UpgradeMenu.Kind.REPAIR : level < MAX_LEVEL ? UpgradeMenu.Kind.UPGRADE : UpgradeMenu.Kind.MAX;
+        int cost = switch (kind) {
+            case REPAIR -> RESTART_PRICE;
+            case UPGRADE -> UPGRADE[level + 1];
+            default -> 0;
+        };
+        int condition = outage > 0 ? 0 : (int) Math.round(100.0 * Math.max(0, health) / GENERATOR_HEALTH);
+        return new UpgradeMenu.View("Generator", "generator", "ausbau_generator_" + level, MAX_LEVEL, level, kind, condition, cost, NAMES, NAMES_EN);
+    }
+
+    // The button of the upgrade menu. Out: restart for one part, otherwise the next level
     private void useGenerator(GamePlayer gamePlayer) {
         Player player = gamePlayer.getPlayer();
         if (outage > 0) {

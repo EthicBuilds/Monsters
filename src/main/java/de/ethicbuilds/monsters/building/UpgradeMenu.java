@@ -127,7 +127,9 @@ public class UpgradeMenu implements Listener {
             }
             case MAX -> {
                 title.left("stufe", TEXT_LEFT, part(level, GREY), part(String.valueOf(view.max()), ORANGE));
-                title.left("name", TEXT_LEFT, part(names[view.max()], LIGHT), part(english ? " · max. level" : " · max. Stufe", GREY));
+                String suffix = english ? " · max. level" : " · max. Stufe";
+                if (title.width("name", names[view.max()] + suffix) <= TEXT_WIDTH) title.left("name", TEXT_LEFT, part(names[view.max()], LIGHT), part(suffix, GREY));
+                else title.left("name", TEXT_LEFT, part(names[view.max()], LIGHT));
             }
         }
 
