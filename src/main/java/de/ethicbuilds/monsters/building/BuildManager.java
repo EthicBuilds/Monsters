@@ -33,7 +33,7 @@ import java.util.List;
 public class BuildManager {
     public static final String RUBBLE = "schutt#", BARRICADE = "barrikade#";
     private static final String VEST_STAND = "weste";
-    // The vest stand comes with the armor of every set (westenstaender, westenstaender_silber ...)
+    // The vest stand comes with the armor of every set (westenstaender, westenstaender_silber ...), break-outs in many shapes (ausbruch_<name>)
     private static final String RUBBLE_ID = "monsters_schutt", BARRICADE_ID = "monsters_barrikade_", BREAKOUT_ID = "monsters_ausbruch",
             VEST_STAND_ID = "monsters_westenstaender";
     private static final int MAX_LEVEL = 3;
@@ -122,7 +122,7 @@ public class BuildManager {
             List<Block> barriers = decorationManager.barriers(block, id);
             decorationManager.hitbox(block, BARRICADE + barricades.size(), 1.4F, 2.0F);
             barricades.add(new Barricade(display, block, barriers, level(id)));
-        } else if (BREAKOUT_ID.equals(id)) {
+        } else if (id.startsWith(BREAKOUT_ID)) {
             Breakouts.add(display);
         } else if (id.startsWith(VEST_STAND_ID)) {
             decorationManager.createStation(block, VEST_STAND, "Westen", "Vests", "<#9AA6B8>Rüstung verbessern", "<#9AA6B8>Upgrade armor",

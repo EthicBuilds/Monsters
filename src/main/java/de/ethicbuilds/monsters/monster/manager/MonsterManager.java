@@ -285,9 +285,10 @@ public class MonsterManager {
                     open.getWorld().spawnParticle(Particle.BLOCK, open.clone().add(0, 0.3, 0), 12, 0.3, 0.1, 0.3, open.clone().subtract(0, 1, 0).getBlock().getBlockData());
                 }
             }
+            // Out of the spawner it climbs out of a break-out there
+            if (!(enemyMonster instanceof MonsterSpider) && !(enemyMonster instanceof MonsterScarab)) location = Breakouts.burst(location);
             enemyMonster.summon(players.get(spawnIndex % players.size()), location);
             monsters.put(enemyMonster.getMonster(), enemyMonster);
-            Breakouts.burst(location);
             spawnIndex++;
         }
     }

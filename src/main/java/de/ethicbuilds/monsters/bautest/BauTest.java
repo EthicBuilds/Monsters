@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.bautest;
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
+import de.ethicbuilds.monsters.building.Breakouts;
 import de.ethicbuilds.monsters.building.BuildManager;
 import de.ethicbuilds.monsters.gameplay.listener.GameListener;
 import de.ethicbuilds.monsters.gameplay.listener.WaveListener;
@@ -28,6 +29,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
@@ -64,6 +66,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class BauTest implements Listener {
     public static final String META = "monsters-funktion";
     private static final int COINS = 50_000, PARTS = 50, MONSTER_SLOT = 6, MAX_MONSTERS = 10;
+    private static final double BREAKOUT_REACH = 24;
     private static final double MONSTER_DISTANCE = 6;
     private static final NamespacedKey MONSTER_ITEM = new NamespacedKey("monsters", "test_gegner");
     private static boolean on;
@@ -214,7 +217,8 @@ public class BauTest implements Listener {
         ItemStack item = new ItemStack(Material.ZOMBIE_HEAD);
         item.editMeta(meta -> {
             meta.setDisplayName(Lang.t(player, "§cTest-Gegner", "§cTest monster"));
-            meta.setLore(List.of(Lang.t(player, "§7Rechtsklick: Zombie vor dir", "§7Right-click: zombie in front of you")));
+            meta.setLore(List.of(Lang.t(player, "§7Rechtsklick: Zombie vor dir", "§7Right-click: zombie in front of you"),
+                    Lang.t(player, "§7Auf Ausbruchstelle schauen: kommt dort raus", "§7Look at a break-out: comes out of it")));
             meta.getPersistentDataContainer().set(MONSTER_ITEM, PersistentDataType.BYTE, (byte) 1);
         });
         return item;
@@ -230,6 +234,8 @@ public class BauTest implements Listener {
         Block feet = ahead.getBlock();
         // Under a roof the spot in front stays, otherwise on top of the ground
         Location at = feet.getType().isAir() ? feet.getLocation().add(0.5, 0, 0.5) : ground.getLocation().add(0.5, 1, 0.5);
+        ItemDisplay breakout = Breakouts.lookedAt(player, BREAKOUT_REACH);
+        if (breakout != null) at = Breakouts.out(breakout);
         EnemyMonster enemy = new MonsterZombie();
         monsterManager.summonAt(enemy, player, at);
         enemy.getMonster().setPersistent(false);
