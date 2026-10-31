@@ -60,6 +60,7 @@ public class BuildManager {
     @Inject private Ziplines ziplines;
     @Inject private Deployables deployables;
     @Inject private Elevators elevators;
+    @Inject private UpgradeMenu upgradeMenu;
     @Inject private RollerDoors rollerDoors;
 
     private final List<Rubble> rubble = new ArrayList<>();
@@ -101,6 +102,8 @@ public class BuildManager {
 
     public void start() {
         plugin.getServer().getPluginManager().registerEvents(flares, plugin);
+        plugin.getServer().getPluginManager().registerEvents(elevators, plugin);
+        plugin.getServer().getPluginManager().registerEvents(upgradeMenu, plugin);
         plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 20L, 20L);
         plugin.getServer().getScheduler().runTaskTimer(plugin, powerGrid::animate, 2L, 2L);
         plugin.getServer().getScheduler().runTaskTimer(plugin, () -> parts().forEach(BuildPart::look), 2L, 2L);

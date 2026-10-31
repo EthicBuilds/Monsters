@@ -6,7 +6,6 @@ import de.ethicbuilds.monsters.bautest.BauTest;
 import de.ethicbuilds.monsters.bautest.NexoBarriers;
 import de.ethicbuilds.monsters.bautest.NexoStandIns;
 import de.ethicbuilds.monsters.bautest.Restore;
-import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
 import io.papermc.paper.entity.TeleportFlag;
@@ -22,6 +21,9 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Transformation;
@@ -31,20 +33,24 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 
 /***
  * Freight elevator: one platform, a crank on every floor it stops at (within a few blocks beside it).
  * A crank calls the platform to its floor, at that floor it sends it to the next one. Who stands on it rides along,
  * held in place until it stops (user 31.10.).
  * With a shaft (aufzug_unten below, aufzug_oben above) the crank sits on the platform and rides along,
- * the plugin hangs the rope from the top and fills the guide posts between both pieces.
+ * the plugin hangs two ropes from the top and fills the guide posts between both pieces.
  */
-public class Elevators implements BuildPart {
+public class Elevators implements BuildPart, Listener {
     private static final String PLATFORM_ID = "monsters_aufzug", CAR_ID = "monsters_aufzug_plattform", CRANK_ID = "monsters_aufzug_kurbel",
+            ARM_ID = "monsters_aufzug_kurbel_arm", CAR_PLAIN_ID = "monsters_aufzug_plattform_ohne_arm",
             BOTTOM_ID = "monsters_aufzug_unten", TOP_ID = "monsters_aufzug_oben", ROPE_ID = "monsters_aufzug_seil", POST_ID = "monsters_aufzug_pfosten",
             STATION = "kurbel#", CAR_STATION = "fahrkorb#";
     private static final double CRANK_REACH = 8, SPEED = 0.12;
@@ -61,12 +67,19 @@ public class Elevators implements BuildPart {
     private static final long FLY_BACK_TICKS = 10;
     // From DESIGN: deck 1 block above the platform block, posts beside it at model x ±1.583, bottom posts 2 high
     private static final double DECK = 1.0, POST_SIDE = 1.583, BOTTOM_POSTS = 2.0;
+    // From DESIGN: two ropes at model x ±1.25, from the bottom of the top piece to the eyes of the platform
+    private static final double ROPE_SIDE = 1.25, ROPE_EYE = 0.765625, ROPE_TOP = 0.5;
     private static final int SHAFT_HEIGHT = 96;
+    // Crank arm of the platform model (DESIGN): turns about the model x axis through the drum, one turn per block
+    private static final Vector3f ARM_PIVOT = new Vector3f((24.75F - 8) / 16, (20F - 8) / 16, (25F - 8) / 16);
+    private static final double ARM_TURN = Math.PI * 2;
 
     @Inject private Main plugin;
     @Inject private DecorationManager decorationManager;
 
     private final List<Platform> platforms = new ArrayList<>();
+    // Players on a moving platform: they may not start flying (shift would let them sink)
+    private final Set<UUID> riding = new HashSet<>();
     private final List<Block> cranks = new ArrayList<>();
     private final List<Shaft> shafts = new ArrayList<>();
     private final List<ItemDisplay> tops = new ArrayList<>();
@@ -84,6 +97,9 @@ public class Elevators implements BuildPart {
         // Crank on the platform (shaft platforms only)
         private Interaction crank;
         private Shaft shaft;
+        // Separate crank arm, if Nexo knows its model
+        private ItemDisplay arm;
+        private double armAngle;
 
         private Platform(ItemDisplay display, Block base, List<Block> barriers) {
             this.display = display;
@@ -118,7 +134,8 @@ public class Elevators implements BuildPart {
 
     private static final class Shaft {
         private final ItemDisplay bottom;
-        private ItemDisplay top, rope;
+        private ItemDisplay top;
+        private final List<ItemDisplay> ropes = new ArrayList<>();
         private Platform car;
 
         private Shaft(ItemDisplay bottom) {
@@ -166,11 +183,12 @@ public class Elevators implements BuildPart {
         cranks.clear();
         shafts.clear();
         tops.clear();
+        riding.clear();
         spawned.forEach(ItemDisplay::remove);
         spawned.clear();
     }
 
-    // Every shaft gets its top piece, posts, a platform (placed or our own), its crank and the rope
+    // Every shaft gets its top piece, posts, a platform (placed or our own), its crank and the ropes
     private void link() {
         for (Shaft shaft : shafts) {
             if (shaft.top != null || !shaft.bottom.isValid()) continue;
@@ -186,6 +204,7 @@ public class Elevators implements BuildPart {
             shaft.car = car(shaft);
             shaft.car.shaft = shaft;
             crank(shaft.car);
+            arm(shaft.car);
             rope(shaft);
         }
     }
@@ -213,6 +232,35 @@ public class Elevators implements BuildPart {
         platform.crank = decorationManager.hitbox(cell, CAR_STATION + platforms.indexOf(platform), 0.7F, 0.7F);
     }
 
+    // The arm sits where the platform model has it and turns while the platform moves
+    private void arm(Platform platform) {
+        if (platform.arm != null || !decorationManager.knownItem(ARM_ID) || !decorationManager.knownItem(CAR_PLAIN_ID)) return;
+        // The platform without its fixed arm, else there would be two
+        decorationManager.setModel(platform.display, CAR_PLAIN_ID);
+        Location at = platform.display.getLocation();
+        platform.arm = spawn(at, ARM_ID, at.getYaw());
+        platform.arm.setTeleportDuration(1);
+        turn(platform, 0, 0);
+    }
+
+    // Rotation about the drum on top of the platform's own transformation
+    private static void turn(Platform platform, double angle, int ticks) {
+        if (platform.arm == null || !platform.arm.isValid()) return;
+        Transformation base = platform.display.getTransformation();
+        Quaternionf spin = new Quaternionf().rotateX((float) angle);
+        Vector3f shift = new Vector3f(ARM_PIVOT).sub(spin.transform(new Vector3f(ARM_PIVOT)));
+        Vector3f translation = new Vector3f(base.getTranslation()).add(new Quaternionf(base.getLeftRotation()).transform(shift.mul(base.getScale())));
+        platform.arm.setInterpolationDelay(0);
+        platform.arm.setInterpolationDuration(ticks);
+        platform.arm.setTransformation(new Transformation(translation, new Quaternionf(base.getLeftRotation()).mul(spin), base.getScale(),
+                base.getRightRotation()));
+    }
+
+    @EventHandler
+    public void onFlight(PlayerToggleFlightEvent event) {
+        if (event.isFlying() && riding.contains(event.getPlayer().getUniqueId())) event.setCancelled(true);
+    }
+
     private void posts(Shaft shaft) {
         Location bottom = shaft.bottom.getLocation();
         double gap = shaft.top.getLocation().getBlockY() - bottom.getBlockY() - BOTTOM_POSTS;
@@ -228,17 +276,25 @@ public class Elevators implements BuildPart {
 
     private void rope(Shaft shaft) {
         Location top = shaft.top.getLocation();
-        shaft.rope = spawn(new Location(top.getWorld(), top.getBlockX() + 0.5, top.getBlockY(), top.getBlockZ() + 0.5), ROPE_ID, top.getYaw());
-        shaft.rope.setInterpolationDuration(1);
+        double yaw = Math.toRadians(top.getYaw());
+        Vector side = new Vector(-Math.cos(yaw), 0, -Math.sin(yaw)).multiply(ROPE_SIDE);
+        for (int sign : new int[]{1, -1}) {
+            Location at = top.clone().add(side.clone().multiply(sign)).subtract(0, ROPE_TOP, 0);
+            ItemDisplay rope = spawn(at, ROPE_ID, top.getYaw());
+            rope.setInterpolationDuration(1);
+            shaft.ropes.add(rope);
+        }
         hang(shaft);
     }
 
-    // From the top piece down to the deck
+    // From the top piece down to the eyes of the platform
     private static void hang(Shaft shaft) {
-        if (shaft.rope == null || !shaft.rope.isValid()) return;
-        double deck = shaft.car.display.getLocation().getY() + DECK;
-        shaft.rope.setInterpolationDelay(0);
-        shaft.rope.setTransformation(stretch(Math.max(0.01, shaft.rope.getLocation().getY() - deck), true));
+        double eye = shaft.car.display.getLocation().getY() + ROPE_EYE;
+        for (ItemDisplay rope : shaft.ropes) {
+            if (!rope.isValid()) continue;
+            rope.setInterpolationDelay(0);
+            rope.setTransformation(stretch(Math.max(0.01, rope.getLocation().getY() - eye), true));
+        }
     }
 
     // A 1 block piece (y 0..1 of the model, centred on the display) stretched up or down from the display
@@ -251,8 +307,7 @@ public class Elevators implements BuildPart {
         Location place = at.clone();
         place.setYaw(yaw);
         place.setPitch(0);
-        ItemStack item = new ItemStack(Material.PAPER);
-        GameItems.setModel(item, id);
+        ItemStack item = decorationManager.modelItem(id);
         ItemDisplay display = at.getWorld().spawn(place, ItemDisplay.class, spawn -> {
             spawn.setItemStack(item);
             spawn.setPersistent(false);
@@ -347,6 +402,7 @@ public class Elevators implements BuildPart {
             couldFly.put(player, player.getAllowFlight());
             player.setAllowFlight(true);
             hold(player, true);
+            riding.add(player.getUniqueId());
         }
         start.getWorld().playSound(start, Sound.BLOCK_PISTON_EXTEND, 1.0F, 0.6F);
 
@@ -364,6 +420,11 @@ public class Elevators implements BuildPart {
                 double share = distance == 0 ? 1 : moved / distance;
                 Location at = start.clone().add(0, displayTravel * share, 0);
                 platform.display.teleport(at);
+                if (platform.arm != null && platform.arm.isValid()) {
+                    platform.arm.teleport(at);
+                    platform.armAngle += direction * (moved - before) * ARM_TURN;
+                    turn(platform, platform.armAngle, 1);
+                }
                 if (crankStart != null && platform.crank.isValid()) {
                     Location crank = crankStart.clone();
                     crank.setY(at.getY() + crankOffset);
@@ -376,7 +437,10 @@ public class Elevators implements BuildPart {
 
                 platform.base = platform.base.getRelative(0, (int) (direction * distance), 0);
                 platform.barriers(Material.BARRIER);
-                riders.keySet().forEach(rider -> hold(rider, false));
+                riders.keySet().forEach(rider -> {
+                    hold(rider, false);
+                    riding.remove(rider.getUniqueId());
+                });
                 if (platform.base.equals(platform.origin)) NexoBarriers.close(platform.display);
                 // Only who really sank in goes up, no snap for the others
                 double floor = platform.base.getY() + 1;
@@ -415,6 +479,7 @@ public class Elevators implements BuildPart {
                     if (rider.isDead() || !feet.getWorld().equals(stood.getWorld())
                             || Math.hypot(feet.getX() - stood.getX(), feet.getZ() - stood.getZ()) > GONE) {
                         hold(rider, false);
+                        riding.remove(rider.getUniqueId());
                         it.remove();
                         continue;
                     }

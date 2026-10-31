@@ -9,8 +9,10 @@ import org.joml.Vector3f;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 
 /***
@@ -21,6 +23,8 @@ public final class FurnitureLook {
     private record Look(ItemDisplay.ItemDisplayTransform transform, Vector3f translation, Vector3f scale) {}
 
     private final Map<String, Look> looks = new HashMap<>();
+
+    private final Set<String> items = new HashSet<>();
     private final Map<String, List<int[]>> barriers = new HashMap<>();
 
     public FurnitureLook(File itemsFolder, Logger logger) {
@@ -32,6 +36,7 @@ public final class FurnitureLook {
         for (File file : files) {
             YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
             for (String id : yaml.getKeys(false)) {
+                if (yaml.isConfigurationSection(id + ".Pack")) items.add(id);
                 ConfigurationSection properties = yaml.getConfigurationSection(id + ".Mechanics.furniture.properties");
                 if (properties == null) continue;
                 ItemDisplay.ItemDisplayTransform transform = null;
@@ -70,6 +75,11 @@ public final class FurnitureLook {
 
     public boolean has(String id) {
         return looks.containsKey(id);
+    }
+
+    /** Any Nexo item with a model, furniture or not */
+    public boolean hasItem(String id) {
+        return items.contains(id);
     }
 
     /** Barrier blocks of the Nexo hitbox, relative to the furniture block and not yet turned */

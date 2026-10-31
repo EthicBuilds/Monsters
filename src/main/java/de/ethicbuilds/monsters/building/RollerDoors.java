@@ -47,10 +47,12 @@ public class RollerDoors implements BuildPart {
     private static final int MAX_LEVEL = 3, REPAIR = 1, HIT = 10, UNLOCK = 2500;
     private static final int[] UPGRADE = {0, 0, 10, 16};
     private static final int[] HEALTH = {0, 250, 500, 900};
+    private static final String[] NAMES = {"", "Wellblech", "verstärkt", "Stahl"}, NAMES_EN = {"", "Corrugated", "reinforced", "Steel"};
     private static final double SWITCH_REACH = 12, ATTACK_REACH = 1.8, ALARM_REACH = 6, LOOK_REACH = 6, INFO_LIFT = 3.15;
 
     @Inject private DecorationManager decorationManager;
     @Inject private MonsterManager monsterManager;
+    @Inject private UpgradeMenu upgradeMenu;
 
     private final List<Door> doors = new ArrayList<>();
     private final List<Lever> switches = new ArrayList<>();
@@ -162,7 +164,10 @@ public class RollerDoors implements BuildPart {
         }
         index = index(station, DOOR);
         if (index < 0) return false;
-        if (index < doors.size()) work(gamePlayer, doors.get(index));
+        if (index < doors.size()) {
+            Door door = doors.get(index);
+            upgradeMenu.open(gamePlayer, () -> view(door), player -> work(player, door));
+        }
         return true;
     }
 
@@ -175,7 +180,22 @@ public class RollerDoors implements BuildPart {
         }
     }
 
-    // At the door only parts work, bought free or not: broken rebuild, damaged repair, whole next level
+    // What the upgrade menu shows for the door
+    private static UpgradeMenu.View view(Door door) {
+        UpgradeMenu.Kind kind = !door.whole() ? UpgradeMenu.Kind.REBUILD : door.health < HEALTH[door.level] ? UpgradeMenu.Kind.REPAIR
+                : door.level < MAX_LEVEL ? UpgradeMenu.Kind.UPGRADE : UpgradeMenu.Kind.MAX;
+        int cost = switch (kind) {
+            case REBUILD -> REPAIR * door.level * 2;
+            case REPAIR -> REPAIR;
+            case UPGRADE -> UPGRADE[door.level + 1];
+            case MAX -> 0;
+        };
+        int health = (int) Math.round(100.0 * Math.max(0, door.health) / HEALTH[door.level]);
+        return new UpgradeMenu.View("Rolltor", "roller door", "ausbau_rolltor_" + door.level + "_zu", MAX_LEVEL, door.level, kind, health, cost,
+                NAMES, NAMES_EN);
+    }
+
+    // The button of the upgrade menu, bought free or not: broken rebuild, damaged repair, whole next level
     private void work(GamePlayer gamePlayer, Door door) {
         Player player = gamePlayer.getPlayer();
         if (!door.whole()) {
@@ -400,15 +420,15 @@ public class RollerDoors implements BuildPart {
             if (!door.whole()) {
                 name = english ? "Rebuild" : "Wiederaufbau";
                 lines = HoloText.parts(REPAIR * door.level * 2, english);
-                hint = english ? "Right-click to rebuild" : "Rechtsklick zum Aufbauen";
+                hint = english ? "Right-click to rebuild" : "Rechtsklick zum Ausbau-Menü";
             } else if (door.health < HEALTH[door.level]) {
                 name = english ? "Repair" : "Reparatur";
                 lines = HoloText.parts(REPAIR, english);
-                hint = english ? "Right-click to repair" : "Rechtsklick zum Reparieren";
+                hint = english ? "Right-click to repair" : "Rechtsklick zum Ausbau-Menü";
             } else if (door.level < MAX_LEVEL) {
                 name = (english ? "Upgrade level " : "Ausbau Stufe ") + (door.level + 1);
                 lines = HoloText.parts(UPGRADE[door.level + 1], english);
-                hint = english ? "Right-click to upgrade" : "Rechtsklick zum Ausbauen";
+                hint = english ? "Right-click to upgrade" : "Rechtsklick zum Ausbau-Menü";
             } else {
                 name = (english ? "Level " : "Stufe ") + MAX_LEVEL;
                 lines = HoloText.info("max.");

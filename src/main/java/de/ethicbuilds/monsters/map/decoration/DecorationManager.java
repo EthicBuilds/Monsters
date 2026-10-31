@@ -371,6 +371,11 @@ public class DecorationManager implements Listener {
         return look().has(id);
     }
 
+    /** Nexo has an item with this id, also one without furniture */
+    public boolean knownItem(String id) {
+        return look().hasItem(id);
+    }
+
     /** Clickable area without a sign, the station name goes to the click handling */
     public Interaction hitbox(Block block, String station, float width, float height) {
         Interaction hitbox = block.getWorld().spawn(block.getLocation().add(0.5, 0, 0.5), Interaction.class, interaction -> {

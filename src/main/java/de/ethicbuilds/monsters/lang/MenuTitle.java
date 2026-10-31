@@ -5,20 +5,23 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 
 import java.util.Set;
 
 /***
  * Menu title from the design session: one background glyph, texts at fixed spots in their own line fonts
- * (ASCII only plus the arrow and the coin). Used by the workbench and the round end card.
+ * (ASCII only plus the arrow, the coin and the part). Used by the workbench, the round end card and the upgrade menu.
  */
 public final class MenuTitle {
     public record Part(String text, TextColor color) {}
 
-    private static final char COIN = '';
+    private static final char COIN = '', PART = '';
     private final Key font;
     private final String lines;
     private final Set<String> big;
+    // Lines drawn bold: one pixel wider per character
+    private Set<String> bold = Set.of();
     private final TextComponent.Builder title = Component.text();
     private int x = 8;
 
@@ -31,6 +34,12 @@ public final class MenuTitle {
 
     public static MenuTitle workbench() {
         return new MenuTitle("menu", '', "werkbank/", Set.of("preis"));
+    }
+
+    public static MenuTitle upgrade() {
+        MenuTitle title = new MenuTitle("ausbau", '', "ausbau/", Set.of());
+        title.bold = Set.of("knopf");
+        return title;
     }
 
     public static MenuTitle roundEnd(boolean english) {
@@ -56,7 +65,8 @@ public final class MenuTitle {
         moveTo(px);
         Key lineFont = Key.key("monsters", lines + line);
         for (Part part : parts) {
-            title.append(Component.text(part.text()).font(lineFont).color(part.color()));
+            Component text = Component.text(part.text()).font(lineFont).color(part.color());
+            title.append(bold.contains(line) ? text.decorate(TextDecoration.BOLD) : text);
             x += width(line, part.text());
         }
         return this;
@@ -89,7 +99,7 @@ public final class MenuTitle {
     public int width(String line, String text) {
         int total = 0;
         for (char c : text.toCharArray()) {
-            total += big.contains(line) ? (c == '.' || c == ',' || c == ' ' ? 3 : c == COIN ? 11 : 7) : advance(c);
+            total += big.contains(line) ? (c == '.' || c == ',' || c == ' ' ? 3 : c == COIN ? 11 : 7) : advance(c) + (bold.contains(line) ? 1 : 0);
         }
         return total;
     }
@@ -97,6 +107,7 @@ public final class MenuTitle {
     private static int advance(char c) {
         if (c == '→') return 7;
         if (c == COIN) return 8;
+        if (c == PART) return 9;
         return Pixels.advance(c);
     }
 }
