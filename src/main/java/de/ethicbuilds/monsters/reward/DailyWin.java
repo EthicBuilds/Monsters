@@ -46,7 +46,8 @@ public final class DailyWin {
             Bukkit.getScheduler().runTask(Main.getINSTANCE(), () -> {
                 long coins = EthicCoins.withRankBonus(player, COINS);
                 if (player.isOnline() && EthicCoins.deposit(player.getUniqueId(), coins, "Monsters Tagessieg")) {
-                    player.sendMessage(Lang.f(player, "%s§6Erster Sieg heute! §e+%d EthicCoins", "%s§6First win today! §e+%d EthicCoins", prefix, coins));
+                    player.sendMessage(Lang.f(player, "%s§6Erster Sieg heute! §e+%d EthicCoins%s", "%s§6First win today! §e+%d EthicCoins%s", prefix, coins,
+                            EthicCoins.bonusNote(player, COINS, coins)));
                     result.complete(new Payout(COINS, coins));
                 } else {
                     result.complete(Payout.NONE);
