@@ -27,9 +27,11 @@ import org.joml.Vector3f;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class MonsterZombie extends EnemyMonster {
@@ -49,7 +51,8 @@ public class MonsterZombie extends EnemyMonster {
     // Limb loss (design session): under half health a small chance per hit, once per zombie; from gold on never
     // The crawl loop of the design session fits 0.06 blocks per tick
     private static final double CRAWL_STEP_SPEED = 0.06;
-    private static final double LIMB_CHANCE = 0.04, LIMB_HEALTH = 0.5, ARM_DAMAGE = 0.8, CRAWL_SPEED = 0.45, CRAWL_SCALE = 0.35;
+    // A limb comes off after this share of the health hit it; without an arm less damage, without a leg half the speed
+    private static final double LIMB_HEALTH = 0.35, ARM_DAMAGE = 0.7, CRAWL_SPEED = 0.5, CRAWL_SCALE = 0.35, ARM_LENGTH = 0.75, SHOULDER_TOP = 0.25;
     private static final int LIMB_SAFE_TIER = 3, LIMB_LIFETIME = 40;
     // Recoil in degrees: body and head, a headshot throws the head back harder
     private static final float RECOIL_BODY = 12, RECOIL_HEAD = 8, HEADSHOT_BODY = 6, HEADSHOT_HEAD = 28;
@@ -65,7 +68,9 @@ public class MonsterZombie extends EnemyMonster {
     private AnimatedModel model;
     private BoneModel bones;
     private Voice voice;
-    private boolean limbLost, crawling;
+    private boolean crawling;
+    private final Map<String, Double> limbDamage = new HashMap<>();
+    private final Set<String> lost = new HashSet<>();
     private final Map<String, Integer> plateTier = new HashMap<>();
     private final LinkedList<String[]> plates = new LinkedList<>();
     private int plateGroups;
@@ -216,14 +221,42 @@ public class MonsterZombie extends EnemyMonster {
         return true;
     }
 
-    private void maybeLoseLimb() {
+    // User 31.10.: where the shots hit counts, an arm or a leg that took enough comes off (never the head)
+    @Override
+    public void onShot(Location point, double damage) {
         var maxHealth = monster.getAttribute(Attribute.MAX_HEALTH);
-        if (limbLost || !losesLimbs() || getTier() >= LIMB_SAFE_TIER || maxHealth == null || monster.getHealth() > maxHealth.getValue() * LIMB_HEALTH) return;
-        var random = ThreadLocalRandom.current();
-        if (random.nextDouble() >= LIMB_CHANCE) return;
-        limbLost = true;
-        String[] limbs = {"arm_r", "arm_l", "bein_r", "bein_l"};
-        String limb = limbs[random.nextInt(limbs.length)];
+        if (model == null || !losesLimbs() || getTier() >= LIMB_SAFE_TIER || maxHealth == null || monster.getHealth() - damage <= 0) return;
+        String limb = limbAt(point);
+        if (limb == null || lost.contains(limb)) return;
+        if (limbDamage.merge(limb, damage, Double::sum) >= maxHealth.getValue() * LIMB_HEALTH) loseLimb(limb);
+    }
+
+    // Below the hip a leg, beside the body at arm height an arm, the nearer one of the pair
+    private String limbAt(Location point) {
+        Location hip = model.boneLocation("bein_r"), shoulder = model.boneLocation("arm_r"), body = model.boneLocation("koerper");
+        if (hip == null || shoulder == null || body == null) return null;
+        if (point.getY() < hip.getY()) return nearer(point, "bein_r", "bein_l");
+        double armLength = ARM_LENGTH * modelSize();
+        // The joint sits inside the top of the arm
+        if (point.getY() > shoulder.getY() + SHOULDER_TOP * modelSize() || point.getY() < shoulder.getY() - armLength) return null;
+        String arm = nearer(point, "arm_r", "arm_l");
+        Location at = model.boneLocation(arm);
+        return at != null && flat(point, at) < flat(point, body) ? arm : null;
+    }
+
+    private String nearer(Location point, String right, String left) {
+        Location r = model.boneLocation(right), l = model.boneLocation(left);
+        if (r == null || l == null) return right;
+        return flat(point, r) <= flat(point, l) ? right : left;
+    }
+
+    private static double flat(Location a, Location b) {
+        double dx = a.getX() - b.getX(), dz = a.getZ() - b.getZ();
+        return dx * dx + dz * dz;
+    }
+
+    private void loseLimb(String limb) {
+        lost.add(limb);
         Location at = model.boneLocation(limb);
         model.hideBone(limb);
         if (at != null) dropLimb(limb, at);
@@ -232,7 +265,8 @@ public class MonsterZombie extends EnemyMonster {
             if (attack != null) attack.setBaseValue(attack.getBaseValue() * ARM_DAMAGE);
             return;
         }
-        // Without a leg it crawls on: slow and low
+        // Without a leg it crawls on: slow and low, the second leg changes nothing more
+        if (crawling) return;
         crawling = true;
         model.setGait("kriechen", "kriechen_stehen", CRAWL_STEP_SPEED);
         var movement = monster.getAttribute(Attribute.MOVEMENT_SPEED);
@@ -332,7 +366,6 @@ public class MonsterZombie extends EnemyMonster {
         if (model == null) return;
         boolean head = ShotDamage.isHeadshot();
         if (!crawling) model.recoil(by.getLocation(), head ? HEADSHOT_BODY : RECOIL_BODY, head ? HEADSHOT_HEAD : RECOIL_HEAD);
-        maybeLoseLimb();
         // The damage is dealt after this event
         Main.getINSTANCE().getServer().getScheduler().runTask(Main.getINSTANCE(), this::splinter);
         voice.hurt(monster.getLocation());
