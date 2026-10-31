@@ -34,14 +34,14 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /***
  * Safe of the map (user 31.10.): three code notes lie on crates, each shows one digit. Who has found all three
- * opens the safe once per round: coins and with luck (from wave 10) the rocket launcher.
+ * opens the safe once per round: coins and with luck (after wave 10) the rocket launcher.
  */
 public class Safes {
     public static final String SAFE = "tresor#", NOTE = "zettel#";
     static final String SAFE_ID = "monsters_tresor_zu";
     private static final String OPEN_ID = "monsters_tresor_offen", NOTE_ID = "monsters_codezettel";
     private static final int NOTES = 3, COINS = 3000;
-    private static final double ROCKET_CHANCE = 0.1;
+    private static final double ROCKET_CHANCE = 0.05;
     // Crates register a moment later than the safe, the notes wait for them
     private static final long PLACE_DELAY = 60;
     private static final String COLOR = "#F9A11E";

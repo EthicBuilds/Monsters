@@ -26,12 +26,12 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /***
- * The rocket launcher only comes as boss loot or out of the safe (user 31.10.): from wave 10 on, rarely and once per round.
+ * The rocket launcher only comes as boss loot or out of the safe (user 31.10.): after wave 10, very rarely and once per round.
  * Without a free weapon slot it stays on the ground, sneaking over it swaps it with the weapon in hand.
  */
 public class RocketLoot implements Listener {
-    private static final double CHANCE = 0.05;
-    private static final int MIN_WAVE = 10;
+    private static final double CHANCE = 0.03;
+    private static final int MIN_WAVE = 11;
     private static final long HINT_MILLIS = 3000;
     private final Map<UUID, Long> lastHint = new HashMap<>();
     private static final NamespacedKey KEY = new NamespacedKey("monsters", "raketenwerfer_beute");

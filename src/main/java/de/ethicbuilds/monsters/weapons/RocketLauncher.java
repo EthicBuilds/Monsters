@@ -36,7 +36,9 @@ public class RocketLauncher extends Weapon {
         this.name = "§6Raketenwerfer";
         this.nameEn = "§6Rocket Launcher";
         this.damage = 60.0;
-        this.fireRate = 30;
+        // User 31.10.: not so fast one after the other, also not after upgrades
+        this.fireRate = 60;
+        this.minFireRate = 50;
         this.maxAmmu = 6;
         this.maxMagazine = 1;
         this.particle = Particle.SMOKE;
