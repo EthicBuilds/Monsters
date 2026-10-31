@@ -12,7 +12,11 @@ import io.papermc.paper.entity.TeleportFlag;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.ItemDisplay;
@@ -26,13 +30,15 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 
 /***
  * Freight elevator: one platform, a crank on every floor it stops at (within a few blocks beside it).
- * A crank calls the platform to its floor, at that floor it sends it to the next one. Who stands on it rides along.
+ * A crank calls the platform to its floor, at that floor it sends it to the next one. Who stands on it rides along,
+ * held in place until it stops (user 31.10.).
  * With a shaft (aufzug_unten below, aufzug_oben above) the crank sits on the platform and rides along,
  * the plugin hangs the rope from the top and fills the guide posts between both pieces.
  */
@@ -41,8 +47,10 @@ public class Elevators implements BuildPart {
             BOTTOM_ID = "monsters_aufzug_unten", TOP_ID = "monsters_aufzug_oben", ROPE_ID = "monsters_aufzug_seil", POST_ID = "monsters_aufzug_pfosten",
             STATION = "kurbel#", CAR_STATION = "fahrkorb#";
     private static final double CRANK_REACH = 8, SPEED = 0.12;
-    // Riders: a little lift against sinking, above this they jump, below this they lost the deck
-    private static final double HOLD = 0.0, JUMP = 0.6, LOST = 0.5, SUNK = 0.25, MAX_WALK = 0.6;
+    // Riders: a little lift against sinking, this far off the deck they are put back, farther away they left the ride
+    private static final double HOLD = 0.0, LOST = 0.5, SUNK = 0.25, GONE = 3;
+    // Not saved with the player, a disconnect during the ride takes it away
+    private static final NamespacedKey RIDE = new NamespacedKey("monsters", "aufzug_fahrt");
     // Soft start and stop over this part of the way (blocks), never slower than MIN_STEP per tick
     private static final double EASE = 0.6, EASE_START = 0.15, MIN_STEP = 0.02;
     private static final double TOP_DROP = 0.15;
@@ -302,7 +310,7 @@ public class Elevators implements BuildPart {
     }
 
     // Floor away while moving, the riders are carried by velocity, at the end the floor comes back at the new height.
-    // It starts and stops softly; riders keep walking freely, only their height follows the deck (user 31.10.)
+    // It starts and stops softly; riders can not walk or jump during the ride, they stay where they stood (user 31.10.)
     private void move(Platform platform, int targetY) {
         platform.moving = true;
         platform.barriers(Material.AIR);
@@ -326,6 +334,7 @@ public class Elevators implements BuildPart {
             // Standing on air while it moves: no kick for flying, also on servers without allow-flight
             couldFly.put(player, player.getAllowFlight());
             player.setAllowFlight(true);
+            hold(player, true);
         }
         start.getWorld().playSound(start, Sound.BLOCK_PISTON_EXTEND, 1.0F, 0.6F);
 
@@ -351,6 +360,7 @@ public class Elevators implements BuildPart {
 
                 platform.base = platform.base.getRelative(0, (int) (direction * distance), 0);
                 platform.barriers(Material.BARRIER);
+                riders.keySet().forEach(rider -> hold(rider, false));
                 if (platform.base.equals(platform.origin)) NexoBarriers.close(platform.display);
                 // Only who really sank in goes up, no snap for the others
                 double floor = platform.base.getY() + 1;
@@ -373,29 +383,43 @@ public class Elevators implements BuildPart {
                 cancel();
             }
 
-            // Height follows the deck exactly, the walking of the rider (measured from his real steps) stays
+            // Height follows the deck exactly, x and z stay where the rider stood when it started
             private void carry(double next) {
                 double deckNext = baseY + DECK + direction * next;
-                for (Map.Entry<Player, Location> entry : riders.entrySet()) {
+                for (Iterator<Map.Entry<Player, Location>> it = riders.entrySet().iterator(); it.hasNext(); ) {
+                    Map.Entry<Player, Location> entry = it.next();
                     Player rider = entry.getKey();
+                    Location stood = entry.getValue();
                     if (!rider.isOnline()) continue;
                     Location feet = rider.getLocation();
-                    Location last = entry.getValue();
-                    entry.setValue(feet);
+                    // Teleported away or dead: no longer on the ride
+                    if (rider.isDead() || !feet.getWorld().equals(stood.getWorld())
+                            || Math.hypot(feet.getX() - stood.getX(), feet.getZ() - stood.getZ()) > GONE) {
+                        hold(rider, false);
+                        it.remove();
+                        continue;
+                    }
                     rider.setFallDistance(0);
-                    // Walked off, jumping, or lost: the deck does not hold him
-                    if (!over(platform, feet) || feet.getY() > deckNext + JUMP) continue;
-                    if (feet.getY() < deckNext - LOST) {
-                        feet.setY(deckNext);
+                    if (rider.isFlying()) rider.setFlying(false);
+                    if (Math.abs(feet.getY() - deckNext) > LOST) {
+                        feet.set(stood.getX(), deckNext, stood.getZ());
                         rider.teleport(feet, TeleportFlag.Relative.VELOCITY_X, TeleportFlag.Relative.VELOCITY_Z);
                         continue;
                     }
-                    double dx = feet.getX() - last.getX(), dz = feet.getZ() - last.getZ();
-                    if (dx * dx + dz * dz > MAX_WALK * MAX_WALK) dx = dz = 0;
-                    rider.setVelocity(new Vector(dx, deckNext - feet.getY() + HOLD, dz));
+                    rider.setVelocity(new Vector(stood.getX() - feet.getX(), deckNext - feet.getY() + HOLD, stood.getZ() - feet.getZ()));
                 }
             }
         }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    // No walking and no jumping while it moves
+    private static void hold(Player player, boolean held) {
+        for (Attribute attribute : new Attribute[]{Attribute.MOVEMENT_SPEED, Attribute.JUMP_STRENGTH}) {
+            AttributeInstance instance = player.getAttribute(attribute);
+            if (instance == null) continue;
+            instance.removeModifier(RIDE);
+            if (held) instance.addTransientModifier(new AttributeModifier(RIDE, -1, AttributeModifier.Operation.MULTIPLY_SCALAR_1));
+        }
     }
 
     // Soft start and stop: slower in the first and the last part of the way
