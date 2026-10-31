@@ -24,7 +24,6 @@ import de.ethicbuilds.monsters.map.decoration.Safes;
 import de.ethicbuilds.monsters.map.decoration.Wrecks;
 import de.ethicbuilds.monsters.map.elements.Door;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
-import de.ethicbuilds.monsters.map.elements.WeaponPoint;
 import de.ethicbuilds.monsters.monster.EnemyMonster;
 import de.ethicbuilds.monsters.monster.HealthBars;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
@@ -51,7 +50,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -92,7 +90,7 @@ public class WaveListener implements Listener {
     private static final long KNIFE_COOLDOWN = 2000;
     private final Map<UUID, Long> knifeCoins = new HashMap<>();
 
-    private static final int DOOR_PRICE = 2500;
+    public static final int DOOR_PRICE = 2500;
     private static final double DOOR_REACH = 5;
     private static final int HEADSHOT_COINS = 25;
     // Coins already put into a door by players who did not have enough
@@ -265,25 +263,6 @@ public class WaveListener implements Listener {
     }
 
     @EventHandler
-    public void onPlayerInteractWithWeaponPoint(PlayerInteractAtEntityEvent event) {
-        if (!(event.getRightClicked() instanceof ArmorStand armorStand)) return;
-
-        GamePlayer gamePlayer = userManager.getGamePlayer(event.getPlayer().getUniqueId());
-
-        if (gamePlayer == null || userManager.isPlayerDead(gamePlayer.getPlayer().getUniqueId())) return;
-
-        WeaponPoint weaponPoint = mapManager.getMapConfiguration().getWeaponPoints().stream()
-                .filter(wp -> wp.getLocation().stream()
-                        .anyMatch(loc -> isSameBlockLocation(loc, armorStand.getLocation())))
-                .findFirst()
-                .orElse(null);
-
-        if (weaponPoint == null) return;
-
-        buyOrReloadWeapon(gamePlayer, weaponPoint.getWeaponName());
-    }
-
-    @EventHandler
     public void onPlayerInteractWithStation(PlayerInteractEntityEvent event) {
         if (event.getHand() != EquipmentSlot.HAND || !(event.getRightClicked() instanceof Interaction interaction)) return;
 
@@ -352,14 +331,6 @@ public class WaveListener implements Listener {
         }
     }
 
-
-    private boolean isSameBlockLocation(Location loc1, Location loc2) {
-        if (loc1 == null || loc2 == null) return false;
-        if (!loc1.getWorld().equals(loc2.getWorld())) return false;
-        return loc1.getBlockX() == loc2.getBlockX()
-                && loc1.getBlockY() == loc2.getBlockY()
-                && loc1.getBlockZ() == loc2.getBlockZ();
-    }
 
 
     // Ammo crate: fills the weapon in hand once, short cooldown so nobody pays twice
@@ -442,10 +413,7 @@ public class WaveListener implements Listener {
 
     // Price line under the door shows what is still missing
     private void updateDoorPrice(Door door, int remaining) {
-        Location line = door.getHoloLocation().clone().add(0.5, -0.3, 0.5);
-        for (Entity entity : line.getWorld().getNearbyEntities(line, 0.3, 0.3, 0.3)) {
-            if (entity instanceof ArmorStand stand) stand.setCustomName(String.format("§6%d Coins", remaining));
-        }
+        decorationManager.doorSign(door, remaining);
     }
 
     private void openDoor(GamePlayer gamePlayer, Door door) {
@@ -473,8 +441,7 @@ public class WaveListener implements Listener {
             location.getBlock().setType(Material.AIR);
         }
         door.getClickableLocations().clear();
-        removeHolo(door.getHoloLocation());
-        removeHolo(door.getHoloLocation().clone().subtract(0, 1, 0));
+        decorationManager.removeDoorSign(door);
 
         Lang.broadcast("%s§a%s hat den Bereich §7%s §afreigeschaltet!", "%s§a%s unlocked the area §7%s§a!", plugin.getMonstersPrefix(), player.getDisplayName(), door.getName());
         userManager.broadcastSound(Sound.BLOCK_BEACON_POWER_SELECT, 0.8F, 1.1F);
@@ -482,20 +449,6 @@ public class WaveListener implements Listener {
         for (MonsterSpawner monsterSpawner : mapManager.getMapConfiguration().getSpawners()) {
             if (monsterSpawner.getAreaName().equalsIgnoreCase(door.getName())) {
                 monsterSpawner.setActive(true);
-            }
-        }
-    }
-
-    private void removeHolo(Location loc) {
-        int x = loc.getBlockX();
-        int y = loc.getBlockY();
-        int z = loc.getBlockZ();
-        World world = loc.getWorld();
-
-        for (Entity e : world.getNearbyEntities(loc, 2.0, 2.0, 2.0)) {
-            Location eloc = e.getLocation();
-            if (eloc.getBlockX() == x && eloc.getBlockY() == y && eloc.getBlockZ() == z && eloc.getWorld().equals(world)) {
-                if (e instanceof ArmorStand) ((ArmorStand) e).setHealth(0.0);
             }
         }
     }

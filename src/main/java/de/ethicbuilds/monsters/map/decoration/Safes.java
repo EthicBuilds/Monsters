@@ -9,6 +9,7 @@ import de.ethicbuilds.monsters.sound.Sounds;
 import de.ethicbuilds.monsters.weapons.RocketLoot;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -16,6 +17,7 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Display;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
@@ -28,7 +30,9 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 /***
@@ -52,6 +56,8 @@ public class Safes {
 
     private final List<ItemDisplay> safes = new ArrayList<>();
     private final List<Note> notes = new ArrayList<>();
+    // Positions of the notes found; the entities may be away with their chunk
+    private final Set<Integer> taken = new HashSet<>();
     private final int[] code = new int[NOTES];
     private boolean placed, opened;
     private int found;
@@ -80,7 +86,7 @@ public class Safes {
             GameItems.setModel(item, NOTE_ID);
             ItemDisplay display = at.getWorld().spawn(at, ItemDisplay.class, note -> {
                 note.setItemStack(item);
-                note.setPersistent(false);
+                note.setPersistent(true);
                 note.setTransformation(new Transformation(new Vector3f(), new Quaternionf().rotateY(ThreadLocalRandom.current().nextFloat() * 6.28F),
                         new Vector3f(1), new Quaternionf()));
             });
@@ -94,7 +100,7 @@ public class Safes {
                 text.setBrightness(new Display.Brightness(15, 15));
                 text.setViewRange(0.3F);
                 text.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(0.8F), new AxisAngle4f()));
-                text.setPersistent(false);
+                text.setPersistent(true);
             });
             Interaction hitbox = decorationManager.hitbox(at.getBlock(), NOTE + notes.size(), 0.7F, 0.4F);
             hitbox.teleport(at.clone().subtract(0, 0.05, 0));
@@ -108,9 +114,9 @@ public class Safes {
             int index = Integer.parseInt(station.substring(NOTE.length()));
             if (index < 0 || index >= notes.size()) return;
             Note note = notes.get(index);
-            if (!note.display().isValid()) return;
-            note.display().remove();
-            note.digit().remove();
+            if (!taken.add(note.position())) return;
+            gone(note.display());
+            gone(note.digit());
             decorationManager.removeHitbox(note.hitbox());
             found++;
             player.playSound(player.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 1.0F, 1.0F);
@@ -132,11 +138,15 @@ public class Safes {
         open(gamePlayer, safes.get(index));
     }
 
+    // The entity itself, also after its chunk was away
+    private static void gone(Entity entity) {
+        Entity current = entity.isValid() ? entity : Bukkit.getEntity(entity.getUniqueId());
+        if (current != null) current.remove();
+    }
+
     private String codeSoFar() {
         StringBuilder text = new StringBuilder();
-        List<Integer> known = new ArrayList<>();
-        for (Note note : notes) if (!note.display().isValid()) known.add(note.position());
-        for (int i = 0; i < NOTES; i++) text.append(known.contains(i) ? String.valueOf(code[i]) : "_");
+        for (int i = 0; i < NOTES; i++) text.append(taken.contains(i) ? String.valueOf(code[i]) : "_");
         return text.toString();
     }
 
