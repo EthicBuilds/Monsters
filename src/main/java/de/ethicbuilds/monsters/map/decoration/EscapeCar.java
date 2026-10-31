@@ -18,31 +18,42 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Monster;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDismountEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 /***
  * Escape car (user 31.10.): a wreck that the team repairs with a tyre, a car battery and a fuel can out of crates
  * and wrecks. Then it drives 20 seconds (W/S, steering with the look) and runs monsters over. Each drive takes a fuel can.
+ * The driver stays in until the end (user 01.11.), hears the engine and sees the car without its roof.
  */
-public class EscapeCar {
+public class EscapeCar implements Listener {
     public static final String STATION = "fluchtauto#";
     static final String BROKEN_ID = "monsters_fluchtauto_kaputt";
-    private static final String FIXED_ID = "monsters_fluchtauto_repariert";
+    private static final String FIXED_ID = "monsters_fluchtauto_repariert", ROOFLESS_ID = "monsters_fluchtauto_ohne_dach";
     private static final double PART_CHANCE = 0.12;
     private static final int DRIVE_TICKS = 20 * 20;
     private static final double MAX_SPEED = 0.6, ACCELERATION = 0.04, BRAKE = 0.06, HIT_RADIUS = 2.2, HIT_DAMAGE = 60;
     private static final String COLOR = "#50839D";
+    // Seat height (DESIGN): eyes about 1.7 above the ground, free above the cabin edge of the roofless car
+    private static final double SEAT = 0.1;
 
     @Inject private Main plugin;
     @Inject private DecorationManager decorationManager;
 
     private final List<Car> cars = new ArrayList<>();
+    // Seats of running drives: getting off is only possible at the end
+    private final Set<Entity> seats = new HashSet<>();
     // Found by the whole team
     private boolean tyre, battery;
     private int fuel;
@@ -155,6 +166,11 @@ public class EscapeCar {
         drive(car, player);
     }
 
+    @EventHandler
+    public void onDismount(EntityDismountEvent event) {
+        if (event.getEntity() instanceof Player && seats.contains(event.getDismounted()) && event.isCancellable()) event.setCancelled(true);
+    }
+
     private static String mark(boolean have) {
         return have ? "§a✔" : "§c✘";
     }
@@ -168,33 +184,43 @@ public class EscapeCar {
         });
         Restore.display(car.display);
         Location start = car.display.getLocation();
-        Location seatAt = start.clone().add(0, 0.4, 0);
+        Location seatAt = start.clone().add(0, SEAT, 0);
         seatAt.setYaw(0);
         ItemDisplay seat = start.getWorld().spawn(seatAt, ItemDisplay.class, display -> {
             display.setPersistent(false);
             display.setTeleportDuration(1);
         });
         seat.addPassenger(driver);
+        seats.add(seat);
         car.display.setTeleportDuration(1);
-        start.getWorld().playSound(start, Sound.ENTITY_MINECART_RIDING, 1.0F, 0.6F);
+        ItemDisplay view = roofless(car, driver);
+        engine(start, driver, Sound.ENTITY_IRON_GOLEM_REPAIR, 0.6F, 0.5F);
         Overlay.small(driver, Overlay.line((char) 0, COLOR, "FLUCHTAUTO", "W/S fahren · Blick lenkt · 20 s"),
                 Overlay.line((char) 0, COLOR, "ESCAPE CAR", "W/S drive · look to steer · 20 s"));
 
         new BukkitRunnable() {
-            int ticks;
+            int ticks, nextBeat;
             double speed;
 
             @Override
             public void run() {
                 boolean end = ++ticks > DRIVE_TICKS || !driver.isOnline() || !seat.getPassengers().contains(driver);
                 if (end) {
+                    seats.remove(seat);
                     seat.eject();
                     seat.remove();
+                    if (view != null) view.remove();
+                    if (driver.isOnline()) driver.showEntity(plugin, car.display);
                     car.hitbox.teleport(car.middle());
                     car.driving = false;
+                    Location at = car.display.getLocation();
+                    engine(at, driver, Sound.BLOCK_PISTON_CONTRACT, 0.8F, 0.6F);
+                    engine(at, driver, Sound.BLOCK_NOTE_BLOCK_BASEDRUM, 0.5F, 0.5F);
                     cancel();
                     return;
                 }
+                // Starting: the engine turns over a few times
+                if (ticks <= 10 && ticks % 3 == 1) engine(car.display.getLocation(), driver, Sound.BLOCK_NOTE_BLOCK_BASEDRUM, 0.7F, 0.45F + ticks * 0.03F);
                 var input = driver.getCurrentInput();
                 if (input.isForward()) speed = Math.min(MAX_SPEED, speed + ACCELERATION);
                 else if (input.isBackward()) speed = Math.max(-MAX_SPEED / 2, speed - BRAKE);
@@ -214,6 +240,10 @@ public class EscapeCar {
                     else next = null;
                 }
                 if (next == null) {
+                    if (Math.abs(speed) > 0.2) {
+                        engine(now, driver, Sound.BLOCK_ANVIL_LAND, 0.5F, 1.4F);
+                        engine(now, driver, Sound.ENTITY_IRON_GOLEM_DAMAGE, 0.6F, 1.2F);
+                    }
                     next = now.clone();
                     speed = 0;
                 }
@@ -221,15 +251,51 @@ public class EscapeCar {
                 next.setYaw(yaw + 90);
                 next.setPitch(0);
                 car.display.teleport(next);
+                if (view != null) view.teleport(next);
                 // A turned seat would turn the driver too, so it keeps its yaw
-                Location seatAt = next.clone().add(0, 0.4, 0);
+                Location seatAt = next.clone().add(0, SEAT, 0);
                 seatAt.setYaw(0);
                 seat.teleport(seatAt, TeleportFlag.EntityState.RETAIN_PASSENGERS);
                 if (Math.abs(speed) > 0.25) runOver(next.clone().add(forward.clone().multiply(Math.signum(speed) * 1.5)), driver);
                 if (ticks % 8 == 0) next.getWorld().spawnParticle(Particle.SMOKE, next.clone().add(forward.clone().multiply(-2)).add(0, 0.4, 0), 2, 0.1, 0.1, 0.1, 0.01);
-                if (ticks % 20 == 0) next.getWorld().playSound(next, Sound.ENTITY_MINECART_RIDING, 0.6F, 0.5F + (float) Math.abs(speed));
+                sounds(next, input.isBackward());
+            }
+
+            // The engine beats faster and higher with the speed, the tyres roll, braking squeaks
+            private void sounds(Location at, boolean braking) {
+                float share = (float) (Math.abs(speed) / MAX_SPEED);
+                if (ticks > 10 && --nextBeat <= 0) {
+                    engine(at, driver, Sound.BLOCK_NOTE_BLOCK_BASEDRUM, 0.5F + 0.2F * share, 0.55F + 0.9F * share);
+                    nextBeat = Math.max(2, Math.round(6 - 4 * share));
+                }
+                if (ticks % 10 == 0 && share > 0.15F) engine(at, driver, Sound.ENTITY_MINECART_RIDING, 0.2F + 0.3F * share, 0.6F + 0.6F * share);
+                if (braking && speed > 0.15 && ticks % 4 == 0) engine(at, driver, Sound.BLOCK_GRINDSTONE_USE, 0.35F, 1.8F);
             }
         }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    // Heard around the car, the driver a little louder
+    private static void engine(Location at, Player driver, Sound sound, float volume, float pitch) {
+        at.getWorld().playSound(at, sound, volume, pitch);
+        if (driver.isOnline()) driver.playSound(driver.getLocation(), sound, volume * 0.5F, pitch);
+    }
+
+    // Inside the roof covers half the view: the driver sees the car without it, everybody else the normal one
+    private ItemDisplay roofless(Car car, Player driver) {
+        if (!decorationManager.knownItem(ROOFLESS_ID)) return null;
+        ItemDisplay view = car.display.getWorld().spawn(car.display.getLocation(), ItemDisplay.class, display -> {
+            display.setPersistent(false);
+            display.setVisibleByDefault(false);
+            display.setItemStack(decorationManager.modelItem(ROOFLESS_ID));
+            display.setItemDisplayTransform(car.display.getItemDisplayTransform());
+            display.setTransformation(car.display.getTransformation());
+            display.setTeleportDuration(1);
+        });
+        // Nexo's scale of the car, the roofless model is the same car
+        decorationManager.look(view, FIXED_ID);
+        driver.showEntity(plugin, view);
+        driver.hideEntity(plugin, car.display);
+        return view;
     }
 
     private static void runOver(Location front, Player driver) {
@@ -239,6 +305,7 @@ public class EscapeCar {
             Vector away = monster.getLocation().toVector().subtract(front.toVector()).setY(0.4);
             if (away.lengthSquared() > 0.01) monster.setVelocity(away.normalize().multiply(0.8));
             front.getWorld().playSound(front, Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK, 1.0F, 0.7F);
+            engine(front, driver, Sound.ENTITY_IRON_GOLEM_DAMAGE, 1.0F, 0.8F);
         }
     }
 }
