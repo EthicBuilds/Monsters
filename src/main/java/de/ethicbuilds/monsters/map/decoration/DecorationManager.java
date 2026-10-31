@@ -450,7 +450,11 @@ public class DecorationManager implements Listener {
         return block.getWorld().spawn(base.clone().add(0, lift, 0), TextDisplay.class, holo -> {
             holo.text(text);
             holo.setBillboard(Display.Billboard.CENTER);
-            holo.setBackgroundColor(Color.fromARGB(0xB3, 0x14, 0x10, 0x0C));
+            // No backdrop (user 31.10.): it made the models behind it look washed out, a shadow keeps the text readable
+            holo.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
+            holo.setDefaultBackground(false);
+            holo.setShadowed(true);
+            holo.setSeeThrough(false);
             holo.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(0.9F), new AxisAngle4f()));
             holo.setPersistent(false);
             if (BauTest.on()) holo.setVisibleByDefault(false);
