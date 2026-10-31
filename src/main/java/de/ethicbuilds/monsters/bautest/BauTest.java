@@ -45,6 +45,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
+import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.event.world.EntitiesUnloadEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -131,6 +132,8 @@ public class BauTest implements Listener {
         // Stations and crates only answer during a wave
         gameStates.setCurrentPhase(GamePhase.WAVE);
         Bukkit.getScheduler().runTaskTimer(plugin, this::check, 20L, 10L);
+        // After a crash the world still has test changes: back first, once all worlds are there
+        Bukkit.getScheduler().runTask(plugin, Restore::recover);
         plugin.getLogger().info("Bau-Test: Funktionen nur im Funktionsmodus (/monster)");
     }
 
@@ -295,6 +298,11 @@ public class BauTest implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onChunkUnload(ChunkUnloadEvent event) {
         Restore.chunk(event.getChunk());
+    }
+
+    @EventHandler
+    public void onEntitiesLoad(EntitiesLoadEvent event) {
+        Restore.loaded(event.getEntities());
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
