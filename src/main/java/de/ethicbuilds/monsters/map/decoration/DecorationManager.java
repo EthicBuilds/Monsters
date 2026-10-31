@@ -249,16 +249,28 @@ public class DecorationManager implements Listener {
         return List.of();
     }
 
-    /** Where Nexo would put the barriers of this id at this yaw, for furniture placed without them */
+    /** Where Nexo puts the barriers of this id at this yaw (its own turn), Nexo itself only sends them to the players */
     public List<Block> barriers(Block base, String id, float yaw) {
-        double angle = Math.toRadians(360 - yaw);
+        double angle = Math.toRadians(yaw < 0 ? yaw + 360 : yaw);
         List<Block> blocks = new ArrayList<>();
         for (int[] offset : look().barriers(id)) {
-            int x = (int) Math.round(Math.cos(angle) * offset[0] - Math.sin(angle) * offset[2]);
-            int z = (int) Math.round(Math.sin(angle) * offset[0] - Math.cos(angle) * offset[2]);
+            int x = (int) Math.rint(offset[0] * Math.cos(angle) + offset[2] * Math.sin(angle));
+            int z = (int) Math.rint(offset[0] * Math.sin(angle) - offset[2] * Math.cos(angle));
             blocks.add(base.getRelative(x, offset[1], z));
         }
         return blocks;
+    }
+
+    /** Real barrier blocks if the world has them, else where Nexo has them */
+    public List<Block> barriers(ItemDisplay display, String id) {
+        Block base = display.getLocation().getBlock();
+        List<Block> blocks = barriers(base, id);
+        return blocks.isEmpty() ? barriers(base, id, display.getLocation().getYaw()) : blocks;
+    }
+
+    /** True when Nexo knows this furniture id */
+    public boolean known(String id) {
+        return look().has(id);
     }
 
     /** Clickable area without a sign, the station name goes to the click handling */

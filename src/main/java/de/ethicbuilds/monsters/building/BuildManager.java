@@ -3,6 +3,7 @@ package de.ethicbuilds.monsters.building;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.bautest.BauTest;
+import de.ethicbuilds.monsters.bautest.NexoBarriers;
 import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
 import de.ethicbuilds.monsters.gameplay.manager.PauseManager;
@@ -116,11 +117,11 @@ public class BuildManager {
 
     public boolean register(ItemDisplay display, String id, Block block) {
         if (RUBBLE_ID.equals(id)) {
-            List<Block> barriers = decorationManager.barriers(block, id);
+            List<Block> barriers = decorationManager.barriers(display, id);
             Interaction hitbox = decorationManager.hitbox(block, RUBBLE + rubble.size(), 1.6F, 2.0F);
             rubble.add(new Rubble(display, block, barriers, hitbox));
         } else if (id.startsWith(BARRICADE_ID) && level(id) > 0) {
-            List<Block> barriers = decorationManager.barriers(block, id);
+            List<Block> barriers = decorationManager.barriers(display, id);
             decorationManager.hitbox(block, BARRICADE + barricades.size(), 1.4F, 2.0F);
             barricades.add(new Barricade(display, block, barriers, level(id)));
         } else if (id.startsWith(BREAKOUT_ID)) {
@@ -166,6 +167,7 @@ public class BuildManager {
             Restore.block(block);
             block.setType(Material.AIR, false);
         });
+        NexoBarriers.open(piece.barriers());
         // On the build server the furniture only disappears for the test
         if (BauTest.on()) Restore.hide(piece.display());
         else piece.display().remove();
@@ -207,6 +209,7 @@ public class BuildManager {
                 Restore.block(block);
                 block.setType(Material.BARRIER, false);
             });
+            NexoBarriers.close(barricade.barriers);
             note(player, "Barrikade aufgebaut", "Barricade rebuilt", price);
             sound(barricade, Sound.BLOCK_WOOD_PLACE);
         } else if (barricade.health < HEALTH[barricade.level]) {
@@ -279,6 +282,7 @@ public class BuildManager {
             Restore.block(block);
             block.setType(Material.AIR, false);
         });
+        NexoBarriers.open(barricade.barriers);
         Restore.display(barricade.display);
         barricade.display.setItemStack(null);
         Overlay.smallAll(Overlay.icon(Overlay.PARTS, Parts.COLOR, "<b>Barrikade zerstört</b> " + grey("· mit Bauteilen neu aufbauen")),

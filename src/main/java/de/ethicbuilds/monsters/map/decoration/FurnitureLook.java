@@ -68,6 +68,10 @@ public final class FurnitureLook {
                 now.getLeftRotation(), look.scale() != null ? look.scale() : now.getScale(), now.getRightRotation()));
     }
 
+    public boolean has(String id) {
+        return looks.containsKey(id);
+    }
+
     /** Barrier blocks of the Nexo hitbox, relative to the furniture block and not yet turned */
     public List<int[]> barriers(String id) {
         return barriers.getOrDefault(id, List.of());

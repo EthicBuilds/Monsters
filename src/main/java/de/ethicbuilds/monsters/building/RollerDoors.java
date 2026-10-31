@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.building;
 
 import com.google.inject.Inject;
+import de.ethicbuilds.monsters.bautest.NexoBarriers;
 import de.ethicbuilds.monsters.bautest.Restore;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
@@ -23,7 +24,8 @@ import java.util.List;
 
 /***
  * Roller doors (user 31.10.): 2 wide and 3 high, built with parts in 3 levels (corrugated iron, reinforced, steel).
- * A switch nearby opens and closes it, monsters break closed doors, from level 2 they close by themselves when monsters come.
+ * Only a switch nearby opens and closes it and shows how it stands, monsters break closed doors,
+ * from level 2 they close by themselves when monsters come.
  */
 public class RollerDoors implements BuildPart {
     private static final String DOOR_ID = "monsters_rolltor_", SWITCH_ID = "monsters_rolltor_schalter",
@@ -38,22 +40,27 @@ public class RollerDoors implements BuildPart {
     @Inject private MonsterManager monsterManager;
 
     private final List<Door> doors = new ArrayList<>();
-    private final List<Block> switches = new ArrayList<>();
+    private final List<Lever> switches = new ArrayList<>();
+
+    private record Lever(ItemDisplay display, Block block) {}
 
     private static final class Door {
         private final ItemDisplay display;
         private final Block block;
         private final List<Block> barriers;
         private final Location center;
+        // Placed closed: Nexo sends its barriers to the players
+        private final boolean nexo;
         private Interaction hitbox;
         private DecorationManager.Sign sign;
         private int level, health;
         private boolean open;
 
-        private Door(ItemDisplay display, Block block, List<Block> barriers) {
+        private Door(ItemDisplay display, Block block, List<Block> barriers, boolean nexo) {
             this.display = display;
             this.block = block;
             this.barriers = barriers;
+            this.nexo = nexo;
             double x = 0, z = 0;
             for (Block barrier : barriers) {
                 x += barrier.getX() - block.getX();
@@ -74,16 +81,17 @@ public class RollerDoors implements BuildPart {
 
     @Override
     public boolean register(ItemDisplay display, String id, Block block) {
-        if (SWITCH_ID.equals(id)) {
+        if (id.startsWith(SWITCH_ID)) {
             decorationManager.hitbox(block, SWITCH + switches.size(), 0.8F, 1.4F);
-            switches.add(block);
+            Lever lever = new Lever(display, block);
+            switches.add(lever);
+            Door door = nearest(block);
+            if (door != null) lever(lever, door);
             return true;
         }
         if (!id.startsWith(DOOR_ID) || !id.endsWith("_zu") && !id.endsWith("_auf")) return false;
         String closed = id.endsWith("_zu") ? id : id.substring(0, id.length() - "_auf".length()) + "_zu";
-        List<Block> barriers = decorationManager.barriers(block, closed);
-        if (barriers.isEmpty()) barriers = decorationManager.barriers(block, closed, display.getLocation().getYaw());
-        Door door = new Door(display, block, barriers);
+        Door door = new Door(display, block, decorationManager.barriers(display, closed), id.endsWith("_zu"));
         // In the round the door is missing until a player builds it
         Restore.display(display);
         display.setItemStack(null);
@@ -93,6 +101,7 @@ public class RollerDoors implements BuildPart {
         door.sign = decorationManager.sign(block, "Rolltor", "Roller door", Parts.price(PRICE[1], false), Parts.price(PRICE[1], true),
                 "Rechtsklick zum Bauen", "Right-click to build", 3.2);
         doors.add(door);
+        levers(door);
         return true;
     }
 
@@ -106,7 +115,7 @@ public class RollerDoors implements BuildPart {
     public boolean use(GamePlayer gamePlayer, String station) {
         int index = index(station, SWITCH);
         if (index >= 0) {
-            if (index < switches.size()) toggle(gamePlayer.getPlayer(), switches.get(index));
+            if (index < switches.size()) toggle(gamePlayer.getPlayer(), switches.get(index).block());
             return true;
         }
         index = index(station, DOOR);
@@ -219,6 +228,17 @@ public class RollerDoors implements BuildPart {
         door.hitbox.teleport(door.center.clone().add(0, door.built() && door.open ? 2 : 0, 0));
         door.hitbox.setInteractionHeight(door.built() && door.open ? 1.0F : 3.0F);
         door.center.getWorld().playSound(door.center, door.open ? Sound.BLOCK_IRON_DOOR_OPEN : Sound.BLOCK_IRON_DOOR_CLOSE, 1.0F, 0.6F);
+        levers(door);
+    }
+
+    // Every switch of this door shows its state, if DESIGN made both lever models
+    private void levers(Door door) {
+        for (Lever lever : switches) if (nearest(lever.block()) == door) lever(lever, door);
+    }
+
+    private void lever(Lever lever, Door door) {
+        String id = SWITCH_ID + (door.built() && door.open ? "_auf" : "_zu");
+        if (lever.display().isValid() && decorationManager.known(id)) decorationManager.setModel(lever.display(), id);
     }
 
     private static void setBarriers(Door door, boolean closed) {
@@ -227,6 +247,9 @@ public class RollerDoors implements BuildPart {
             Restore.block(block);
             block.setType(closed ? Material.BARRIER : Material.AIR, false);
         }
+        if (!door.nexo) return;
+        if (closed) NexoBarriers.close(door.barriers);
+        else NexoBarriers.open(door.barriers);
     }
 
     private static boolean blocked(Door door) {

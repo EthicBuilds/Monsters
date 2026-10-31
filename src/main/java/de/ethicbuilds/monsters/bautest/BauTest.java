@@ -136,6 +136,7 @@ public class BauTest implements Listener {
     public void stop() {
         testMonsters.forEach(Entity::remove);
         Restore.all();
+        NexoBarriers.all();
         for (UUID uuid : List.copyOf(active)) {
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) giveBack(player);
@@ -151,6 +152,7 @@ public class BauTest implements Listener {
             if (wanted && !active(player)) enter(player);
             else if (!wanted && active(player)) leave(player);
         }
+        NexoBarriers.resend();
     }
 
     private void enter(Player player) {
@@ -173,6 +175,7 @@ public class BauTest implements Listener {
 
     private void leave(Player player) {
         active.remove(player.getUniqueId());
+        NexoBarriers.forget(player);
         limited.forEach(entity -> player.hideEntity(plugin, entity));
         decorationManager.hideSigns(player);
         giveBack(player);
@@ -184,6 +187,7 @@ public class BauTest implements Listener {
         testMonsters.forEach(monster -> monster.setHealth(0));
         testMonsters.clear();
         Restore.all();
+        NexoBarriers.all();
         decorationManager.clearAll();
         crateManager.clear();
         safes.clear();
