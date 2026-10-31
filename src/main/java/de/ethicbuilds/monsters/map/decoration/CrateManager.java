@@ -46,6 +46,7 @@ public class CrateManager implements Listener {
     // Damage stages of the part crate from the design session, the last one stays as wreck
     private static final String PARTS_STAGE = "monsters_bauteilkiste_";
     private static final double REACH = 5;
+    private static final double WRECK_POWERUP = 0.05;
     private static final String COLOR = "#F9A11E";
 
     @Inject private UserManager userManager;
@@ -165,6 +166,12 @@ public class CrateManager implements Listener {
     /** Chance in percent that a crate is not empty with this crowbar level, shown at the workbench */
     public static int lootPercent(int level) {
         return (int) Math.min(100, Math.round((GRENADE_CHANCE + COINS_CHANCE + AMMO_CHANCE + 3 * CrowbarLevel.extraLoot(level)) * 100));
+    }
+
+    /** Searched car wreck: what a crate has, now and then also a powerup */
+    public void search(GamePlayer gamePlayer, Location at) {
+        loot(gamePlayer);
+        if (ThreadLocalRandom.current().nextDouble() < WRECK_POWERUP) powerupManager.dropAt(at);
     }
 
     private void loot(GamePlayer gamePlayer) {

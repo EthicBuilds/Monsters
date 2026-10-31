@@ -8,6 +8,7 @@ import de.ethicbuilds.monsters.gameplay.model.GamePhase;
 import de.ethicbuilds.monsters.gameplay.repository.GameStates;
 import de.ethicbuilds.monsters.lang.Overlay;
 import de.ethicbuilds.monsters.map.decoration.CrateManager;
+import de.ethicbuilds.monsters.map.decoration.Sirens;
 import de.ethicbuilds.monsters.monster.EliteTier;
 import de.ethicbuilds.monsters.monster.manager.MonsterManager;
 import de.ethicbuilds.monsters.player.manager.UserManager;
@@ -21,7 +22,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class WaveManager {
-    private static final int SPAWNS_PER_TICK = 3;
+    // Each monster brings about a dozen displays, few at a time keeps the wave start smooth
+    private static final int SPAWNS_PER_TICK = 2;
     // Measured 28.10.: up to about 170 monsters the server runs smoothly, 120 leaves room
     private static final int MAX_ALIVE = 120;
     private static final int HORDE_FROM = 8;
@@ -160,6 +162,7 @@ public class WaveManager {
         Overlay.bigAll(HORDE_COLOR, Overlay.line(Overlay.HORDE, HORDE_COLOR, "HORDE!", null), Overlay.line(Overlay.HORDE, HORDE_COLOR, "HORDE!", null),
                 "<color:" + Overlay.GREY + ">Haltet zusammen</color>", "<color:" + Overlay.GREY + ">Stick together</color>");
         for (Player player : Bukkit.getOnlinePlayers()) player.playSound(player.getLocation(), Sound.EVENT_RAID_HORN, 0.5F, 1.2F);
+        Sirens.howl();
     }
 
     private boolean roundOver() {

@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.monster.model;
 
+import com.destroystokyo.paper.entity.Pathfinder;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.LagGuard;
 import io.papermc.paper.datacomponent.DataComponentTypes;
@@ -30,9 +31,9 @@ import java.util.Map;
  */
 public class AnimatedModel implements Corpses.Corpse {
     private static final int TICKS = 2;
-    // Near every time, up to 24 blocks every 2nd, beyond every 3rd as one display in rest pose (design session)
+    // Near every time, up to 24 blocks every 2nd, beyond every 4th as one display in rest pose (design session)
     private static final double NEAR_DISTANCE = 12, DETAIL_DISTANCE = 24, LOD_BACK = 20;
-    private static final int MID_EVERY = 2, FAR_EVERY = 3;
+    private static final int MID_EVERY = 2, FAR_EVERY = 4;
     private static final float SINK_PER_TICK = 0.08F, SINK_DEPTH = 1.6F;
     // Hit recoil on top of every animation: body and head pushed away from the hit, quickly back
     private static final float RECOIL_RISE = 0.05F, RECOIL_BACK = 0.3F;
@@ -82,6 +83,13 @@ public class AnimatedModel implements Corpses.Corpse {
     private Entity faceTarget;
     // Turning speed of a steered model, degrees per tick
     private static final float TURN_PER_TICK = 12;
+    // Closer than this to its target it looks at it; path points closer than this are reached already
+    private static final double FACE_TARGET_DISTANCE = 3, PATH_POINT_MIN = 1.0;
+    // It looks this far along its path
+    private static final double LOOK_AHEAD_DISTANCE = 5;
+    private static final int LOOK_AHEAD_POINTS = 4;
+    // Without a path only real walking turns it (blocks per tick), being pushed a little does not
+    private static final double TURN_SPEED = 0.03;
     private final int[] parents;
     private final BukkitTask task;
 
@@ -155,6 +163,29 @@ public class AnimatedModel implements Corpses.Corpse {
         double dx = at.getX() - base.getLocation().getX(), dz = at.getZ() - base.getLocation().getZ();
         if (dx * dx + dz * dz < 0.01) return true;
         return Math.abs(angleTo(yaw, yawOf(dx, dz))) <= maxDegrees;
+    }
+
+    private static double horizontal(Location from, Location to) {
+        double dx = to.getX() - from.getX(), dz = to.getZ() - from.getZ();
+        return dx * dx + dz * dz;
+    }
+
+    // Where the path leads: the farthest of the next points within a few blocks. The very next point can lie behind
+    // the mob (its own block right after a new path) or zigzag along the block grid, looking further ahead is steady.
+    private static Location pathAim(Mob mob, Location now) {
+        Pathfinder.PathResult path = mob.getPathfinder().getCurrentPath();
+        if (path == null) return null;
+        List<Location> points = path.getPoints();
+        int first = Math.max(0, path.getNextPointIndex());
+        Location aim = null;
+        for (int i = first; i < points.size() && i <= first + LOOK_AHEAD_POINTS; i++) {
+            // Path points are block corners, the mob walks to the middle
+            Location point = points.get(i).clone().add(0.5, 0, 0.5);
+            double distance = horizontal(now, point);
+            if (distance > LOOK_AHEAD_DISTANCE * LOOK_AHEAD_DISTANCE) return aim != null ? aim : point;
+            if (distance > PATH_POINT_MIN * PATH_POINT_MIN) aim = point;
+        }
+        return aim;
     }
 
     private static float yawOf(double dx, double dz) {
@@ -401,14 +432,21 @@ public class AnimatedModel implements Corpses.Corpse {
             if (!steering) {
                 yaw = base.getBodyYaw();
             } else {
-                // Head first in walking direction, standing it turns to its target, at most 12 degrees per tick
+                // Close to its target it looks at it, otherwise along its path (pushes by other monsters or walls
+                // do not turn it), without a path where it really moves; at most 12 degrees per tick
                 Float want = null;
-                if (moving) want = yawOf(now.getX() - lastPosition.getX(), now.getZ() - lastPosition.getZ());
-                else {
-                    Entity look = faceTarget != null ? faceTarget : base instanceof Mob mob ? mob.getTarget() : null;
-                    if (look != null && look.isValid() && look.getWorld().equals(now.getWorld())) {
-                        want = yawOf(look.getLocation().getX() - now.getX(), look.getLocation().getZ() - now.getZ());
-                    }
+                Entity look = faceTarget != null ? faceTarget : base instanceof Mob mob ? mob.getTarget() : null;
+                if (look != null && (!look.isValid() || !look.getWorld().equals(now.getWorld()))) look = null;
+                double toLook = look == null ? Double.MAX_VALUE : horizontal(now, look.getLocation());
+                Location next = base instanceof Mob mob ? pathAim(mob, now) : null;
+                if (look != null && toLook < FACE_TARGET_DISTANCE * FACE_TARGET_DISTANCE) {
+                    want = yawOf(look.getLocation().getX() - now.getX(), look.getLocation().getZ() - now.getZ());
+                } else if (next != null) {
+                    want = yawOf(next.getX() - now.getX(), next.getZ() - now.getZ());
+                } else if (moving && now.distanceSquared(lastPosition) > Math.pow(TURN_SPEED * elapsed, 2)) {
+                    want = yawOf(now.getX() - lastPosition.getX(), now.getZ() - lastPosition.getZ());
+                } else if (look != null) {
+                    want = yawOf(look.getLocation().getX() - now.getX(), look.getLocation().getZ() - now.getZ());
                 }
                 if (want != null) {
                     float turn = angleTo(yaw, want), max = TURN_PER_TICK * elapsed;

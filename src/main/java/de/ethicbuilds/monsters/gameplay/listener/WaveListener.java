@@ -17,6 +17,7 @@ import de.ethicbuilds.monsters.map.MapConfiguration;
 import de.ethicbuilds.monsters.items.GameItems;
 import de.ethicbuilds.monsters.map.MapManager;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
+import de.ethicbuilds.monsters.map.decoration.Wrecks;
 import de.ethicbuilds.monsters.map.elements.Door;
 import de.ethicbuilds.monsters.map.elements.MonsterSpawner;
 import de.ethicbuilds.monsters.map.elements.WeaponPoint;
@@ -77,6 +78,7 @@ public class WaveListener implements Listener {
     @Inject private PowerupManager powerupManager;
     @Inject private PerkManager perkManager;
     @Inject private BuildManager buildManager;
+    @Inject private Wrecks wrecks;
     @Inject private Main plugin;
 
     public static final int AMMO_PRICE = 500;
@@ -302,7 +304,10 @@ public class WaveListener implements Listener {
             return;
         }
         if (buildManager.use(gamePlayer, station)) return;
-
+        if (station.startsWith(Wrecks.STATION)) {
+            wrecks.search(gamePlayer, station);
+            return;
+        }
         Perk perk = Perk.byFurniture(station);
         if (station.equals(DecorationManager.AMMO_STATION)) {
             refillHeldWeapon(gamePlayer);

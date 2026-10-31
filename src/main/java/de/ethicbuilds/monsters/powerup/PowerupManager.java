@@ -60,7 +60,9 @@ public class PowerupManager {
     private static final double PICKUP_DISTANCE = 1.3;
     private static final int MAX_DROPPED = 3;
     private static final int EFFECT_TICKS = 10 * 20;
-    private static final int MAX_AMMO_PER_WAVE = 1;
+    private static final int MAX_AMMO_PER_WAVE = 1, MAX_INSTAKILL_PER_WAVE = 1;
+    // Share of insta-kill among the powerups out of crates
+    private static final double CRATE_INSTAKILL = 0.1;
     // Emergency crate once per round when all living players together are below a quarter of their health (design session)
     private static final double EMERGENCY_HEALTH = 0.25, FREE_DISTANCE = 3;
     private static final String EMERGENCY_COLOR = "#FF4848", AMMO_COLOR = "#F2C14E";
@@ -69,7 +71,8 @@ public class PowerupManager {
     public enum Type {
         MEDKIT(0.04, 0x3CC860, () -> GameItems.medkit(null)),
         SPEED(0.02, 0x4FB3FF, () -> model("powerup/tempo")),
-        INSTAKILL(0.015, 0xFF3B3B, () -> model("powerup/instakill")),
+        // As rare as ammo and at most once per wave (user 31.10.)
+        INSTAKILL(0.01, 0xFF3B3B, () -> model("powerup/instakill")),
         AMMO(0.01, 0xF2C14E, () -> model("powerup/munition")),
         // Never dropped by chance, see checkEmergency
         EMERGENCY(0, 0xFF4848, () -> model("powerup/munition"));
@@ -103,6 +106,7 @@ public class PowerupManager {
     private int nextSpawn = MIN_DELAY;
     private long instakillUntil;
     private int ammoWave = -1, ammoDrops;
+    private int instakillWave = -1, instakillDrops;
     private boolean emergencyUsed;
 
     public void start() {
@@ -146,6 +150,7 @@ public class PowerupManager {
         for (Type type : Type.values()) {
             if ((roll -= type.dropChance) < 0) {
                 if (type == Type.AMMO && !ammoAllowed()) return;
+                if (type == Type.INSTAKILL && !instakillAllowed()) return;
                 spawn(type, location.toBlockLocation().add(0.5, 0.8, 0.5));
                 return;
             }
@@ -155,8 +160,21 @@ public class PowerupManager {
     /** A crate opened with a good crowbar: medkit, speed or insta-kill right there */
     public void dropAt(Location location) {
         if (gameManager.getCurrentPhase() != GamePhase.WAVE) return;
-        Type[] types = {Type.MEDKIT, Type.SPEED, Type.INSTAKILL};
-        spawn(types[ThreadLocalRandom.current().nextInt(types.length)], location.toBlockLocation().add(0.5, 0.8, 0.5));
+        // Insta-kill only now and then, mostly medkit or speed
+        double roll = ThreadLocalRandom.current().nextDouble();
+        Type type = roll < CRATE_INSTAKILL && instakillAllowed() ? Type.INSTAKILL : roll < 0.5 ? Type.MEDKIT : Type.SPEED;
+        spawn(type, location.toBlockLocation().add(0.5, 0.8, 0.5));
+    }
+
+    private boolean instakillAllowed() {
+        int wave = waveManager.getCurrentWave();
+        if (wave != instakillWave) {
+            instakillWave = wave;
+            instakillDrops = 0;
+        }
+        if (instakillDrops >= MAX_INSTAKILL_PER_WAVE) return false;
+        instakillDrops++;
+        return true;
     }
 
     // Ammo for everyone only once per wave

@@ -17,17 +17,20 @@ import org.bukkit.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Sniper extends Weapon {
-    private static final double BASE_DAMAGE = 1000, BOSS_DAMAGE = 50;
-    private static final int KILLS = 2;
+    // Kills normal monsters at once until about wave 15, later it needs upgrades (balance 31.10.)
+    private static final double BASE_DAMAGE = 60, BOSS_SHARE = 0.5, BEHIND_SHARE = 0.5;
+    private static final int FULL_HITS = 2;
+    // Time between shots per level, each level fires a bit quicker besides the damage
+    private static final int[] FIRE_RATES = {35, 32, 29, 26, 23, 20};
     private static final double HIP_SPREAD = 0.06;
 
     public Sniper() {
         this.item = new ItemStack(Material.ARROW);
         this.name = "§6Sniper";
-        // Goes through 5 monsters: kills the first two, the ones behind lose half their health
-        this.damage = 1000.0;
+        // Goes through 5 monsters: the first two take the full damage, the ones behind half
+        this.damage = BASE_DAMAGE;
         this.pierce = 5;
-        this.fireRate = 35;
+        this.fireRate = FIRE_RATES[0];
         this.maxAmmu = 100;
         this.maxMagazine = 10;
         this.particle = Particle.WAX_ON;
@@ -51,18 +54,16 @@ public class Sniper extends Weapon {
                 random.nextDouble(-HIP_SPREAD, HIP_SPREAD), random.nextDouble(-HIP_SPREAD, HIP_SPREAD))).normalize();
     }
 
-    // At the workbench only the time between shots gets shorter
     @Override
-    public boolean upgradesDamage() {
-        return false;
+    protected void onUpgrade() {
+        fireRate = FIRE_RATES[Math.min(level, FIRE_RATES.length - 1)];
     }
 
     @Override
     protected double damageFor(Monster monster, int index) {
         EnemyMonster enemy = Main.getINSTANCE().getInjector().getInstance(MonsterManager.class).getEnemyMonster(monster);
-        // Bosses take a fixed hit (more with upgrades) instead of dying at once
-        if (enemy instanceof MonsterSpiderBoss || enemy instanceof MonsterMiniBoss) return BOSS_DAMAGE * damage / BASE_DAMAGE;
-        if (index < KILLS) return damage;
-        return monster.getHealth() / 2;
+        // Bosses take half, so upgrades help against them too without blowing them away
+        if (enemy instanceof MonsterSpiderBoss || enemy instanceof MonsterMiniBoss) return damage * BOSS_SHARE;
+        return index < FULL_HITS ? damage : damage * BEHIND_SHARE;
     }
 }
