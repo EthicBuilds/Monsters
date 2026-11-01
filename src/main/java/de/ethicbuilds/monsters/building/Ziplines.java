@@ -32,14 +32,14 @@ import java.util.UUID;
 
 /***
  * Zipline: the top and the bottom holder are paired (nearest bottom below a top), the rope is one rope model
- * stretched and turned between them. Right-click at the top slides the player down.
+ * stretched and turned between them. Right-click at the top slides the player down, at the bottom it pulls him up (user 01.11.).
  */
 public class Ziplines implements BuildPart {
     private static final String TOP_ID = "monsters_seilrutsche_oben", BOTTOM_ID = "monsters_seilrutsche_unten",
-            ROPE_ID = "monsters_seil", STATION = "seilrutsche#";
+            ROPE_ID = "monsters_seil", STATION = "seilrutsche#", STATION_UP = "seilrutsche_hoch#";
     // Where the rope sits on the holders, above the furniture block
     private static final double ROPE_HEIGHT = 1.78;
-    private static final double MAX_LENGTH = 80, SPEED = 0.7;
+    private static final double MAX_LENGTH = 80, SPEED = 0.7, SPEED_UP = 0.35;
     // The player hangs this far below the rope
     private static final double HANG = 1.7;
 
@@ -80,6 +80,7 @@ public class Ziplines implements BuildPart {
             Location to = best.getLocation().add(0.5, ROPE_HEIGHT, 0.5);
             rope(from, to);
             decorationManager.hitbox(top, STATION + lines.size(), 1.4F, 2.4F);
+            decorationManager.hitbox(best, STATION_UP + lines.size(), 1.4F, 2.4F);
             lines.add(new Line(from, to));
         }
     }
@@ -120,24 +121,29 @@ public class Ziplines implements BuildPart {
 
     @Override
     public boolean use(GamePlayer gamePlayer, String station) {
-        if (!station.startsWith(STATION)) return false;
+        boolean up = station.startsWith(STATION_UP);
+        if (!up && !station.startsWith(STATION)) return false;
         int index;
         try {
-            index = Integer.parseInt(station.substring(STATION.length()));
+            index = Integer.parseInt(station.substring((up ? STATION_UP : STATION).length()));
         } catch (NumberFormatException e) {
             return true;
         }
-        if (index >= 0 && index < lines.size()) ride(gamePlayer.getPlayer(), lines.get(index));
+        if (index >= 0 && index < lines.size()) {
+            Line line = lines.get(index);
+            if (up) ride(gamePlayer.getPlayer(), line.to(), line.from(), SPEED_UP);
+            else ride(gamePlayer.getPlayer(), line.from(), line.to(), SPEED);
+        }
         return true;
     }
 
-    // The player sits on an invisible display that moves along the rope, smooth by teleport interpolation
-    private void ride(Player player, Line line) {
+    // The player sits on an invisible display that moves along the rope, smooth by teleport interpolation; up it goes slower
+    private void ride(Player player, Location from, Location to, double speed) {
         if (!riding.add(player.getUniqueId())) return;
-        Vector along = line.to().toVector().subtract(line.from().toVector());
+        Vector along = to.toVector().subtract(from.toVector());
         double length = along.length();
-        Vector step = along.clone().normalize().multiply(SPEED);
-        Location start = line.from().clone().subtract(0, HANG, 0);
+        Vector step = along.clone().normalize().multiply(speed);
+        Location start = from.clone().subtract(0, HANG, 0);
         start.setYaw(player.getLocation().getYaw());
         ItemDisplay seat = player.getWorld().spawn(start, ItemDisplay.class, display -> {
             display.setPersistent(false);
@@ -152,7 +158,7 @@ public class Ziplines implements BuildPart {
 
             @Override
             public void run() {
-                travelled += SPEED;
+                travelled += speed;
                 boolean end = travelled >= length || !player.isOnline() || !seat.getPassengers().contains(player)
                         || userManager.isPlayerDead(player.getUniqueId());
                 if (end) {
@@ -165,7 +171,7 @@ public class Ziplines implements BuildPart {
                 }
                 Location next = seat.getLocation().add(step);
                 seat.teleport(next, TeleportFlag.EntityState.RETAIN_PASSENGERS);
-                if (((int) (travelled / SPEED)) % 4 == 0) {
+                if (((int) (travelled / speed)) % 4 == 0) {
                     player.getWorld().spawnParticle(Particle.CRIT, next.clone().add(0, HANG, 0), 1, 0, 0, 0, 0);
                     player.getWorld().playSound(next, Sound.BLOCK_CHAIN_STEP, 0.4F, 1.6F);
                 }
