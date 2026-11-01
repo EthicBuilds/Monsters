@@ -57,6 +57,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class MonsterManager {
+    // A monster needs this much room besides its own width in an opening
+    private static final double FIT_MARGIN = 0.05;
     public static final int SPIDER_WAVE = 5;
     // Now and then a wave of bloaters only, fewer of them, with its own announcement (user 31.10.)
     private static final int EXPLOSIVE_FROM = 8, EXPLOSIVE_EVERY = 4;
@@ -288,14 +290,26 @@ public class MonsterManager {
                     open.getWorld().spawnParticle(Particle.BLOCK, open.clone().add(0, 0.3, 0), 12, 0.3, 0.1, 0.3, open.clone().subtract(0, 1, 0).getBlock().getBlockData());
                 }
             }
-            // Out of the spawner it climbs out of a break-out there
-            if (!(enemyMonster instanceof MonsterSpider) && !(enemyMonster instanceof MonsterScarab)) location = Breakouts.burst(location);
+            // Out of the spawner it climbs out of a break-out there; a big one it crawls out of, if it fits
+            Breakouts.Opening opening = null;
+            if (!(enemyMonster instanceof MonsterSpider) && !(enemyMonster instanceof MonsterScarab)) {
+                opening = Breakouts.opening(location);
+                location = opening != null ? opening.exit() : Breakouts.burst(location);
+            }
             enemyMonster.summon(players.get(spawnIndex % players.size()), location);
+            emerge(enemyMonster, opening);
             monsters.put(enemyMonster.getMonster(), enemyMonster);
             spawnIndex++;
         }
     }
 
+
+    /** Zombies that fit through the opening crawl or climb out of it, the others just stand in front of it */
+    public static void emerge(EnemyMonster enemy, Breakouts.Opening opening) {
+        if (opening == null || !(enemy instanceof MonsterZombie zombie) || enemy instanceof MonsterMiniBoss || enemy.getMonster() == null) return;
+        if (enemy.getMonster().getWidth() > opening.width() - FIT_MARGIN) return;
+        zombie.emerge(opening);
+    }
 
     private static Location nearestSpawner(List<Location> spawners, Player player) {
         Location best = spawners.getFirst();

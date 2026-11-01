@@ -242,6 +242,25 @@ public class AnimatedModel implements Corpses.Corpse {
         noStroll = true;
     }
 
+    /** This gait for a while, e.g. crawling out of a hole; the returned action brings the gait before back */
+    public Runnable gaitFor(String moving, String standing, double speed) {
+        String oldWalk = walk, oldIdle = idle;
+        double oldSpeed = walkSpeed;
+        boolean oldNoStroll = noStroll;
+        setGait(moving, standing, speed);
+        return () -> {
+            walk = oldWalk;
+            idle = oldIdle;
+            walkSpeed = oldSpeed;
+            noStroll = oldNoStroll;
+        };
+    }
+
+    /** Sunk this deep at once, e.g. at the bottom of a pit; bury(0) brings it up smoothly */
+    public void sink(float depth) {
+        buried = buryTarget = depth;
+    }
+
     /** A bone (and its plate) disappears, e.g. a lost arm */
     public void hideBone(String id) {
         List<BoneModel.Bone> bones = model.bones();

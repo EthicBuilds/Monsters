@@ -134,7 +134,7 @@ public class BuildManager {
             decorationManager.hitbox(block, BARRICADE + barricades.size(), 1.4F, 2.0F);
             barricades.add(new Barricade(display, block, barriers, level(id)));
         } else if (id.startsWith(BREAKOUT_ID)) {
-            Breakouts.add(display);
+            Breakouts.add(display, id);
         } else if (id.startsWith(VEST_STAND_ID)) {
             int set = Math.max(1, VEST_SETS.indexOf(id.substring(VEST_STAND_ID.length())) + 1);
             int price = ArmorSet.price(set - 1);

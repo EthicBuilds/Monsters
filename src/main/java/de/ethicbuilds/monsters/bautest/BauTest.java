@@ -244,9 +244,11 @@ public class BauTest implements Listener {
         // Under a roof the spot in front stays, otherwise on top of the ground
         Location at = feet.getType().isAir() ? feet.getLocation().add(0.5, 0, 0.5) : ground.getLocation().add(0.5, 1, 0.5);
         ItemDisplay breakout = Breakouts.lookedAt(player, BREAKOUT_REACH);
-        if (breakout != null) at = Breakouts.out(breakout);
+        Breakouts.Opening opening = breakout != null ? Breakouts.opening(breakout) : null;
+        if (breakout != null) at = opening != null ? opening.exit() : Breakouts.out(breakout);
         EnemyMonster enemy = new MonsterZombie();
         monsterManager.summonAt(enemy, player, at);
+        MonsterManager.emerge(enemy, opening);
         enemy.getMonster().setPersistent(false);
         testMonsters.add(enemy.getMonster());
     }

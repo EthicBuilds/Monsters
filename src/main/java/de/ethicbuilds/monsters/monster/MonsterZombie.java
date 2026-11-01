@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.monster;
 
+import de.ethicbuilds.monsters.building.Breakouts;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.PauseManager;
 import de.ethicbuilds.monsters.monster.model.AnimatedModel;
@@ -51,6 +52,8 @@ public class MonsterZombie extends EnemyMonster {
     // Limb loss (design session): under half health a small chance per hit, once per zombie; from gold on never
     // The crawl loop of the design session fits 0.06 blocks per tick
     private static final double CRAWL_STEP_SPEED = 0.06;
+    // Out of a pit the last step to the edge, blocks per tick
+    private static final double WALK_OUT_SPEED = 0.1;
     // A limb comes off after this share of the health hit it; without an arm less damage, without a leg half the speed
     private static final double LIMB_HEALTH = 0.35, ARM_DAMAGE = 0.7, CRAWL_SPEED = 0.5, CRAWL_SCALE = 0.35, ARM_LENGTH = 0.75, SHOULDER_TOP = 0.25;
     private static final int LIMB_SAFE_TIER = 3, LIMB_LIFETIME = 40;
@@ -126,6 +129,49 @@ public class MonsterZombie extends EnemyMonster {
             bones = load(TORCH_MODEL).orElse(bones);
         }
         return bones != null;
+    }
+
+    /** Out of a big break-out (DESIGN 01.11.): crawls out of the wall hole or climbs up out of the pit, then hunts */
+    public void emerge(Breakouts.Opening opening) {
+        if (!(monster instanceof Mob mob)) return;
+        mob.setAware(false);
+        Location start = opening.start(), exit = opening.exit();
+        monster.teleport(start);
+        float depth = (float) (exit.getY() - start.getY());
+        // The pit is only drawn: the zombie stands on the ground, its model starts that deep below
+        if (opening.pit()) {
+            start = start.clone();
+            start.setY(exit.getY());
+            monster.teleport(start);
+            if (model != null) model.sink(depth);
+        }
+        Runnable gaitBack = model != null && !opening.pit() ? model.gaitFor("kriechen", "kriechen_stehen", CRAWL_STEP_SPEED) : null;
+        Location from = start;
+        int climb = opening.pit() ? (int) Math.ceil(depth / Breakouts.CLIMB_PER_TICK) : 0;
+        int walk = Math.max(1, (int) Math.ceil(from.distance(exit) / (opening.pit() ? WALK_OUT_SPEED : CRAWL_STEP_SPEED)));
+        new BukkitRunnable() {
+            int tick;
+
+            @Override
+            public void run() {
+                if (!monster.isValid()) {
+                    cancel();
+                    return;
+                }
+                tick++;
+                if (tick == 1 && opening.pit() && model != null) model.bury(0);
+                if (tick > climb) {
+                    double k = Math.min(1, (tick - climb) / (double) walk);
+                    Location at = from.clone().add(exit.clone().subtract(from).toVector().multiply(k));
+                    at.setYaw(exit.getYaw());
+                    monster.teleport(at);
+                }
+                if (tick < climb + walk) return;
+                cancel();
+                if (gaitBack != null && !crawling) gaitBack.run();
+                if (!PauseManager.isPaused()) mob.setAware(true);
+            }
+        }.runTaskTimer(Main.getINSTANCE(), 1L, 1L);
     }
 
     /** The model, null while the kind spawns as a vanilla zombie */
