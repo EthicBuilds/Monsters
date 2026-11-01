@@ -40,6 +40,7 @@ import de.ethicbuilds.monsters.weapons.Weapon;
 import de.ethicbuilds.monsters.weapons.manager.WorkbenchManager;
 import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import de.ethicbuilds.monsters.commands.BossWaveCommand;
+import de.ethicbuilds.monsters.commands.TestWeaponCommand;
 import de.ethicbuilds.monsters.commands.LocateMonstersCommand;
 import de.ethicbuilds.monsters.commands.CreateMapConfigCommand;
 import lombok.Getter;
@@ -105,6 +106,9 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(injector.getInstance(BauTest.class), this);
         pm.registerEvents(injector.getInstance(EscapeCar.class), this);
         injector.getInstance(BuildManager.class).start();
+        TestWeaponCommand testWeapon = injector.getInstance(TestWeaponCommand.class);
+        Objects.requireNonNull(getCommand("testwaffe")).setExecutor(testWeapon);
+        Objects.requireNonNull(getCommand("testwaffe")).setTabCompleter(testWeapon);
         startAmmoHud();
         injector.getInstance(BauTest.class).start();
     }

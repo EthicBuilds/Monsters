@@ -16,3 +16,10 @@ commands:
     description: "Beendet die laufende Runde regulaer"
   aufgeben:
     description: "Abstimmung im Team, die Runde zu beenden"
+  testwaffe:
+    description: "Funktionsmodus auf dem Bauserver: echte Waffe mit voller Munition"
+    permission: monsters.bautest.waffe
+
+permissions:
+  monsters.bautest.waffe:
+    default: op
