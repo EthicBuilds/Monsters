@@ -41,11 +41,13 @@ public final class Breakouts {
 
     private static final Map<String, Shape> SHAPES = Map.of(
             "monsters_ausbruch_mauer", wall(0.625, 0.25, 1.0, Sound.BLOCK_GRAVEL_BREAK, Material.BRICKS),
+            "monsters_ausbruch_mauer_stein", wall(0.625, 0.25, 1.0, Sound.BLOCK_STONE_BREAK, Material.STONE_BRICKS),
             "monsters_ausbruch_betonwand", wall(0.375, 0.25, 1.0, Sound.BLOCK_STONE_BREAK, Material.GRAY_CONCRETE),
             "monsters_ausbruch_garage", wall(0.4375, 0.0625, 0.875, Sound.ENTITY_ZOMBIE_ATTACK_IRON_DOOR, Material.IRON_BLOCK),
             "monsters_ausbruch_krater", pit(0.5, 0.5, 1.1, Sound.BLOCK_ROOTED_DIRT_BREAK, Material.DIRT),
             "monsters_ausbruch_schacht", pit(0.5, 0.5, 1.25, Sound.ENTITY_GENERIC_SPLASH, Material.GRAY_CONCRETE),
             "monsters_ausbruch_lichtschacht", pit(0.83, -0.06, 0.69, Sound.BLOCK_GLASS_BREAK, Material.GLASS),
+            "monsters_ausbruch_lichtschacht_stein", pit(0.83, -0.06, 0.69, Sound.BLOCK_GLASS_BREAK, Material.STONE_BRICKS),
             "monsters_ausbruch_gruft", pit(0.125, 0.44, 0.75, Sound.BLOCK_GRINDSTONE_USE, Material.STONE));
     private static final double WALL_EXIT_Z = -0.9, PIT_EXIT_Z = -0.75, PIT_DEPTH = 1.95;
 
