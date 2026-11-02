@@ -38,12 +38,15 @@ public class ScoreboardManager {
     private static final String TITLE = "<bold><gradient:#F9A11E:#8B4BD8>MONSTERS</gradient></bold>";
     // 8 px margin behind every value
     private static final String MARGIN = "<font:monsters:hud></font>";
-    private static final String COIN = " <white><font:monsters:hud></font></white>";
     // Colours and symbols of the tab list (TabPlaceholders, monsters:tab)
     private static final String TEXT = "<#F2F5F8>", LABEL = "<#8A93A3>", POINTS = "<#F9A11E>", DOWNED = "<#FFB020>", GONE = "<#E05555>";
     private static final char MAP = '\uE00B', WAVE = '\uE00C', LEFT = '\uE00D', TIME = '\uE00E', COINS = '\uE00A', KILLS = '\uE000',
-            DOWNED_ICON = '\uE006', GONE_ICON = '\uE007';
+            DOWNED_ICON = '\uE006', GONE_ICON = '\uE007', ALIVE_ICON = '\uE008';
+    // The 8 px coin of the tab font, the hud one sits 1 px too high (DESIGN 02.11.)
+    private static final String COIN = " <white><font:monsters:tab>" + COINS + "</font></white>";
     private static final int MAX_LINES = 15;
+    // Longer map names make the sidebar wide
+    private static final int MAP_LENGTH = 12;
     private static final String WEBSITE = gradientLetters("EthicBuilds.de",
             "22D3E6", "0DD6D3", "28D7BD", "4AD7A5", "6AD48B", "89CF6F", "A5C953", "BEC136", "D5B718", "E9AC04", "F9A11E");
 
@@ -105,6 +108,7 @@ public class ScoreboardManager {
     private List<Line> lines(Player player) {
         boolean english = Lang.english(player);
         String map = gameManager.getGameConfig() != null ? gameManager.getGameConfig().getMapName() : "";
+        if (map.length() > MAP_LENGTH) map = map.substring(0, MAP_LENGTH - 1) + "…";
         int time = getTime();
         List<Line> top = new ArrayList<>();
         top.add(line(MAP, english ? "Map" : "Karte", TEXT + "<map>", map));
@@ -153,7 +157,8 @@ public class ScoreboardManager {
         Player teammate = gamePlayer.getPlayer();
         boolean gone = !teammate.isOnline();
         boolean downed = !gone && userManager.isPlayerDead(teammate.getUniqueId());
-        String icon = gone ? GONE + tab(GONE_ICON) + " " : downed ? DOWNED + tab(DOWNED_ICON) + " " : "";
+        // Every name has a symbol, so the names do not jump (DESIGN 02.11.)
+        String icon = (gone ? GONE + tab(GONE_ICON) : downed ? DOWNED + tab(DOWNED_ICON) : LABEL + tab(ALIVE_ICON)) + " ";
         String name = gone ? GONE + "<st><name></st>" : downed ? "<#9AA6B8><name>" : TEXT + "<name>";
         Component left = MM.deserialize(icon + name, Placeholder.unparsed("name", teammate.getName()));
         Component right = MM.deserialize((gone ? GONE : POINTS) + coins(gamePlayer, english) + COIN + MARGIN);
