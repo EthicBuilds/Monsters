@@ -17,6 +17,7 @@ import de.ethicbuilds.monsters.gameplay.manager.PauseManager;
 import de.ethicbuilds.monsters.gameplay.manager.RoundLoader;
 import de.ethicbuilds.monsters.map.decoration.CrateManager;
 import de.ethicbuilds.monsters.map.decoration.DecorationManager;
+import de.ethicbuilds.monsters.map.decoration.EscapeCar;
 import de.ethicbuilds.monsters.monster.MonsterGuard;
 import de.ethicbuilds.monsters.perk.PerkManager;
 import de.ethicbuilds.monsters.player.GamePlayer;
@@ -109,6 +110,7 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(injector.getInstance(WorkbenchManager.class), this);
         pm.registerEvents(injector.getInstance(PerkManager.class), this);
         pm.registerEvents(injector.getInstance(RoundEndCard.class), this);
+        pm.registerEvents(injector.getInstance(EscapeCar.class), this);
         DailyChallenge.load();
         pm.registerEvents(injector.getInstance(PingManager.class), this);
         pm.registerEvents(injector.getInstance(JoinMeListener.class), this);
