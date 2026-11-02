@@ -4,6 +4,7 @@ import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.monster.model.AnimatedModel;
 import de.ethicbuilds.monsters.monster.model.BoneModel;
 import org.bukkit.Sound;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Zombie;
 
@@ -11,7 +12,7 @@ import java.io.IOException;
 
 /***
  * Sewer rat (user 31.10.): a few come out of a crate that is broken open now and then and attack whoever disturbed
- * them. An invisible baby zombie carries the model, small and quick, little health.
+ * them. An invisible baby zombie carries the model, small and quick, little health, a weak bite that stays weak in late waves.
  */
 public class MonsterRat extends EnemyMonster {
     private static BoneModel rat;
@@ -41,6 +42,9 @@ public class MonsterRat extends EnemyMonster {
     @Override
     protected void onSpawn() {
         if (monster instanceof Zombie zombie) zombie.setBaby();
+        // A bite, not a zombie hit: its own small damage instead of the zombie's
+        var attack = monster.getAttribute(Attribute.ATTACK_DAMAGE);
+        if (attack != null) attack.setBaseValue(damage);
         monster.setInvisible(true);
         monster.setCanPickupItems(false);
         monster.setSilent(true);

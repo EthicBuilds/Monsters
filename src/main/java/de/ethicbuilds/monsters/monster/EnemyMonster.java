@@ -76,8 +76,8 @@ public abstract class EnemyMonster {
         // Elite tiers only for the zombie kinds, bosses keep their own values
         boolean elite = tier > 0 && this instanceof MonsterZombie && !(this instanceof MonsterMiniBoss);
         if (elite) health = (int) Math.round(health * EliteTier.healthFactor(tier));
-        // Bosses have their own values, all others get stronger from wave 15
-        boolean scaled = !(this instanceof MonsterMiniBoss) && !(this instanceof MonsterSpiderBoss);
+        // Bosses have their own values, all others get stronger from wave 15; rats stay weak (user 02.11.)
+        boolean scaled = !(this instanceof MonsterMiniBoss) && !(this instanceof MonsterSpiderBoss) && !(this instanceof MonsterRat);
         if (scaled) {
             health = Math.max(1, (int) Math.round(health * WaveScaling.health(wave) * WaveScaling.groupHealth(userManager.getGamePlayers().size())));
             speed = Math.min(sprinter ? SPRINTER_MAX_SPEED : WaveScaling.MAX_SPEED, speed * WaveScaling.speed(wave) * (sprinter ? SPRINTER_SPEED : 1)
