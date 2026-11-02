@@ -1,5 +1,6 @@
 package de.ethicbuilds.monsters.bautest;
 
+import de.ethicbuilds.monsters.scoreboard.ScoreboardManager;
 import com.destroystokyo.paper.event.player.PlayerUseUnknownEntityEvent;
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import com.google.inject.Inject;
@@ -89,6 +90,7 @@ public class BauTest implements Listener {
     @Inject private WaveListener waveListener;
     @Inject private GameListener gameListener;
     @Inject private GameStates gameStates;
+    @Inject private ScoreboardManager scoreboardManager;
 
     private final Map<UUID, Saved> saved = new HashMap<>();
     private final Set<Monster> testMonsters = ConcurrentHashMap.newKeySet();
@@ -174,6 +176,8 @@ public class BauTest implements Listener {
         limited.forEach(entity -> player.showEntity(plugin, entity));
         Restore.hideFor(player, true);
         decorationManager.showSigns(player);
+        // The round sidebar, so it can be tried here too
+        player.setScoreboard(scoreboardManager.getScoreboard(player));
         Lang.note(player, Lang.f(player, "§aFunktionsmodus §8· §6%,d Test-Coins §8· §e%d Bauteile", "§aFunction mode §8· §6%,d test coins §8· §e%d parts",
                 COINS, PARTS));
     }
@@ -184,6 +188,7 @@ public class BauTest implements Listener {
         Restore.hideFor(player, false);
         limited.forEach(entity -> player.hideEntity(plugin, entity));
         decorationManager.hideSigns(player);
+        if (player.getScoreboard() == scoreboardManager.getScoreboard(player)) player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
         giveBack(player);
         if (!session()) end();
     }

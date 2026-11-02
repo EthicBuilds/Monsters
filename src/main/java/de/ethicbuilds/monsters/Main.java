@@ -106,6 +106,7 @@ public final class Main extends JavaPlugin {
         pm.registerEvents(injector.getInstance(BauTest.class), this);
         pm.registerEvents(injector.getInstance(EscapeCar.class), this);
         injector.getInstance(BuildManager.class).start();
+        injector.getInstance(ScoreboardManager.class).init();
         TestWeaponCommand testWeapon = injector.getInstance(TestWeaponCommand.class);
         Objects.requireNonNull(getCommand("testwaffe")).setExecutor(testWeapon);
         Objects.requireNonNull(getCommand("testwaffe")).setTabCompleter(testWeapon);
