@@ -53,8 +53,9 @@ public class CrateManager implements Listener {
     private static final String PARTS_STAGE = "monsters_bauteilkiste_";
     private static final double REACH = 5;
     private static final double WRECK_POWERUP = 0.05;
-    private static final double RAT_CHANCE = 0.12;
-    private static final int RATS_MIN = 3;
+    // Rats only now and then and only a few (user 02.11.: they were too strong and too often)
+    private static final double RAT_CHANCE = 0.05;
+    private static final int RATS_MIN = 1, RATS_MAX = 2;
     private static final String COLOR = "#F9A11E";
 
     @Inject private UserManager userManager;
@@ -178,7 +179,7 @@ public class CrateManager implements Listener {
         crate.display.setItemStack(null);
         // Now and then rats live in it, they go for whoever disturbed them (user 31.10.)
         if (ThreadLocalRandom.current().nextDouble() < RAT_CHANCE) {
-            int rats = RATS_MIN + ThreadLocalRandom.current().nextInt(RATS_MIN);
+            int rats = RATS_MIN + ThreadLocalRandom.current().nextInt(RATS_MAX - RATS_MIN + 1);
             for (int i = 0; i < rats; i++) monsterManager.summonAt(new MonsterRat(), player, center.clone().add(0, -0.4, 0));
             center.getWorld().playSound(center, Sound.ENTITY_SILVERFISH_AMBIENT, 1.2F, 0.6F);
             crate(player, bold("Ratten") + grey("!"), bold("Rats") + grey("!"));
