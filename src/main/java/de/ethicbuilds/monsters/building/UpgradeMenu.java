@@ -184,7 +184,8 @@ public class UpgradeMenu implements Listener {
     private static ItemStack icon(String model, Component name, Component... lore) {
         ItemStack item = new ItemStack(Material.PAPER);
         item.editMeta(meta -> {
-            meta.setItemModel(new NamespacedKey("monsters", "gui/" + model));
+            // A full key (namespace:path) as it is, else a menu picture of monsters:gui
+            meta.setItemModel(model.contains(":") ? NamespacedKey.fromString(model) : new NamespacedKey("monsters", "gui/" + model));
             meta.displayName(name);
             if (lore.length > 0) meta.lore(List.of(lore));
         });

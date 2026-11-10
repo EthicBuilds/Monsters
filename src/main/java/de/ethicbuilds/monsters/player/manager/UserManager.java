@@ -1,6 +1,7 @@
 package de.ethicbuilds.monsters.player.manager;
 
 
+import de.ethicbuilds.monsters.building.FieldBeds;
 import com.google.inject.Inject;
 import de.ethicbuilds.monsters.Main;
 import de.ethicbuilds.monsters.gameplay.manager.GameManager;
@@ -106,8 +107,10 @@ public class UserManager {
         if (gameManager.getCurrentPhase() == GamePhase.WAVE && allPlayersDead()) gameManager.gameEnd();
     }
 
+    // With an unlocked field bed the dead come back there
     public void revivePlayer(UUID uuid) {
-        revivePlayer(uuid, mapManager.getMapConfiguration().getSpawn());
+        Location bed = FieldBeds.respawn();
+        revivePlayer(uuid, bed != null ? bed : mapManager.getMapConfiguration().getSpawn());
     }
 
     public void revivePlayer(UUID uuid, Location location) {

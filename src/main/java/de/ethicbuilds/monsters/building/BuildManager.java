@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /***
- * Parts of the map that players build with: rubble, barricades, break-outs, power (apomapregi).
+ * Parts of the map that players build with: rubble, barricades, base walls, break-outs, power (apomapregi).
  * Recognised by their Nexo id like the perk machines, maps without them stay as they are.
  */
 public class BuildManager {
@@ -40,13 +40,21 @@ public class BuildManager {
     private static final List<String> VEST_SETS = List.of("", "_silber", "_gold", "_diamant", "_netherit");
     // The vest stand comes with the armor of every set (westenstaender, westenstaender_silber ...), break-outs in many shapes (ausbruch_<name>)
     private static final String RUBBLE_ID = "monsters_schutt", BARRICADE_ID = "monsters_barrikade_", BREAKOUT_ID = "monsters_ausbruch",
-            VEST_STAND_ID = "monsters_westenstaender";
+            VEST_STAND_ID = "monsters_westenstaender", WALL_ID = "monsters_mauer_";
     private static final int MAX_LEVEL = 3;
-    // Health per level (wood, corrugated iron, steel), upgrade price in parts for level 2 and 3
-    private static final int[] HEALTH = {0, 120, 240, 400};
-    private static final int[] UPGRADE = {0, 0, 4, 8};
     private static final int REPAIR = 1;
-    private static final String[] NAMES = {"", "Holz", "Wellblech", "Stahl"}, NAMES_EN = {"", "Wood", "Corrugated", "Steel"};
+
+    // Barricade and base wall work the same with their own values: health, upgrade and rebuild price in parts per level
+    private record Kind(String id, String de, String en, int[] health, int[] upgrade, int[] rebuild, String[] names, String[] namesEn,
+                        String menu, Material[] dust) {}
+
+    private static final Kind BARRICADE_KIND = new Kind(BARRICADE_ID, "Barrikade", "barricade", new int[]{0, 120, 240, 400},
+            new int[]{0, 0, 4, 8}, new int[]{0, 2, 4, 6}, new String[]{"", "Holz", "Wellblech", "Stahl"},
+            new String[]{"", "Wood", "Corrugated", "Steel"}, "ausbau_barrikade_", new Material[]{null, Material.OAK_PLANKS, Material.IRON_BLOCK, Material.IRON_BLOCK});
+    // User 31.10.: 3/6/10 parts, repair 1; 10.11.: stronger than the barricade
+    private static final Kind WALL_KIND = new Kind(WALL_ID, "Mauer", "wall", new int[]{0, 200, 400, 700},
+            new int[]{0, 0, 6, 10}, new int[]{0, 3, 6, 10}, new String[]{"", "Holz", "Stein", "Stahl"},
+            new String[]{"", "Wood", "Stone", "Steel"}, "nexo:monsters_mauer_", new Material[]{null, Material.OAK_PLANKS, Material.STONE_BRICKS, Material.IRON_BLOCK});
     private static final double REACH = 1.6;
     private static final int HIT = 10;
 
@@ -63,6 +71,7 @@ public class BuildManager {
     @Inject private Elevators elevators;
     @Inject private UpgradeMenu upgradeMenu;
     @Inject private RollerDoors rollerDoors;
+    @Inject private FieldBeds fieldBeds;
 
     private final List<Rubble> rubble = new ArrayList<>();
     private final List<Barricade> barricades = new ArrayList<>();
@@ -78,14 +87,20 @@ public class BuildManager {
         private final ItemDisplay display;
         private final Block block;
         private final List<Block> barriers;
+        private final Kind kind;
         private int level, health;
 
-        private Barricade(ItemDisplay display, Block block, List<Block> barriers, int level) {
+        private Barricade(ItemDisplay display, Block block, List<Block> barriers, Kind kind, int level) {
             this.display = display;
             this.block = block;
             this.barriers = barriers;
+            this.kind = kind;
             this.level = level;
-            this.health = HEALTH[level];
+            this.health = kind.health()[level];
+        }
+
+        private int full() {
+            return kind.health()[level];
         }
 
         private Location center() {
@@ -98,7 +113,7 @@ public class BuildManager {
     }
 
     private List<BuildPart> parts() {
-        return List.of(powerGrid, nests, flares, ziplines, deployables, elevators, rollerDoors);
+        return List.of(powerGrid, nests, flares, ziplines, deployables, elevators, rollerDoors, fieldBeds);
     }
 
     public void start() {
@@ -129,10 +144,12 @@ public class BuildManager {
             List<Block> barriers = decorationManager.barriers(display, id);
             Interaction hitbox = decorationManager.hitbox(block, RUBBLE + rubble.size(), 1.6F, 2.0F);
             rubble.add(new Rubble(display, block, barriers, hitbox));
-        } else if (id.startsWith(BARRICADE_ID) && level(id) > 0) {
+        } else if ((id.startsWith(BARRICADE_ID) || id.startsWith(WALL_ID)) && level(id) > 0) {
+            // Wall decoration (mauer_grau_gerade ...) has no level, only mauer_1 to _3 are base walls
+            Kind kind = id.startsWith(WALL_ID) ? WALL_KIND : BARRICADE_KIND;
             List<Block> barriers = decorationManager.barriers(display, id);
-            decorationManager.hitbox(block, BARRICADE + barricades.size(), 1.4F, 2.0F);
-            barricades.add(new Barricade(display, block, barriers, level(id)));
+            decorationManager.hitbox(block, BARRICADE + barricades.size(), kind == WALL_KIND ? 1.2F : 1.4F, 2.0F);
+            barricades.add(new Barricade(display, block, barriers, kind, level(id)));
         } else if (id.startsWith(BREAKOUT_ID)) {
             Breakouts.add(display, id);
         } else if (id.startsWith(VEST_STAND_ID)) {
@@ -210,53 +227,54 @@ public class BuildManager {
         }
     }
 
-    // What the upgrade menu shows for the barricade
+    // What the upgrade menu shows for the barricade or wall
     private static UpgradeMenu.View view(Barricade barricade) {
-        UpgradeMenu.Kind kind = barricade.broken() ? UpgradeMenu.Kind.REBUILD : barricade.health < HEALTH[barricade.level] ? UpgradeMenu.Kind.REPAIR
+        Kind type = barricade.kind;
+        UpgradeMenu.Kind kind = barricade.broken() ? UpgradeMenu.Kind.REBUILD : barricade.health < barricade.full() ? UpgradeMenu.Kind.REPAIR
                 : barricade.level < MAX_LEVEL ? UpgradeMenu.Kind.UPGRADE : UpgradeMenu.Kind.MAX;
         int cost = switch (kind) {
-            case REBUILD -> REPAIR * barricade.level * 2;
+            case REBUILD -> type.rebuild()[barricade.level];
             case REPAIR -> REPAIR;
-            case UPGRADE -> UPGRADE[barricade.level + 1];
+            case UPGRADE -> type.upgrade()[barricade.level + 1];
             case MAX -> 0;
         };
-        int health = (int) Math.round(100.0 * Math.max(0, barricade.health) / HEALTH[barricade.level]);
-        return new UpgradeMenu.View("Barrikade", "barricade", "ausbau_barrikade_" + barricade.level, MAX_LEVEL, barricade.level, kind, health, cost,
-                NAMES, NAMES_EN);
+        int health = (int) Math.round(100.0 * Math.max(0, barricade.health) / barricade.full());
+        return new UpgradeMenu.View(type.de(), type.en(), type.menu() + barricade.level, MAX_LEVEL, barricade.level, kind, health, cost,
+                type.names(), type.namesEn());
     }
 
     // The button of the upgrade menu. Broken: build again, damaged: repair, whole: next level
     private void useBarricade(GamePlayer gamePlayer, Barricade barricade) {
         Player player = gamePlayer.getPlayer();
+        Kind type = barricade.kind;
         if (barricade.broken()) {
-            int price = REPAIR * barricade.level * 2;
+            int price = type.rebuild()[barricade.level];
             if (!Parts.take(gamePlayer, price)) return;
-            barricade.health = HEALTH[barricade.level];
-            decorationManager.setModel(barricade.display, BARRICADE_ID + barricade.level);
+            barricade.health = barricade.full();
+            decorationManager.setModel(barricade.display, type.id() + barricade.level);
             barricade.barriers.forEach(block -> {
                 Restore.block(block);
                 block.setType(Material.BARRIER, false);
             });
             NexoBarriers.close(barricade.display);
-            note(player, "Barrikade aufgebaut", "Barricade rebuilt", price);
+            note(player, type.de() + " aufgebaut", capital(type.en()) + " rebuilt", price);
             sound(barricade, Sound.BLOCK_WOOD_PLACE);
-        } else if (barricade.health < HEALTH[barricade.level]) {
+        } else if (barricade.health < barricade.full()) {
             if (!Parts.take(gamePlayer, REPAIR)) return;
-            barricade.health = HEALTH[barricade.level];
-            note(player, "Barrikade repariert", "Barricade repaired", REPAIR);
+            barricade.health = barricade.full();
+            note(player, type.de() + " repariert", capital(type.en()) + " repaired", REPAIR);
             sound(barricade, Sound.BLOCK_ANVIL_USE);
         } else if (barricade.level < MAX_LEVEL) {
-            int price = UPGRADE[barricade.level + 1];
+            int price = type.upgrade()[barricade.level + 1];
             if (!Parts.take(gamePlayer, price)) return;
             barricade.level++;
-            barricade.health = HEALTH[barricade.level];
-            decorationManager.setModel(barricade.display, BARRICADE_ID + barricade.level);
-            note(player, barricade.level == 2 ? "Barrikade aus Wellblech" : "Barrikade aus Stahl",
-                    barricade.level == 2 ? "Corrugated iron barricade" : "Steel barricade", price);
+            barricade.health = barricade.full();
+            decorationManager.setModel(barricade.display, type.id() + barricade.level);
+            note(player, type.de() + " aus " + type.names()[barricade.level], type.namesEn()[barricade.level] + " " + type.en(), price);
             sound(barricade, Sound.BLOCK_ANVIL_PLACE);
         } else {
-            Overlay.small(player, Overlay.icon(Overlay.PARTS, Parts.COLOR, grey("Die Barrikade ist voll ausgebaut")),
-                    Overlay.icon(Overlay.PARTS, Parts.COLOR, grey("The barricade is fully upgraded")));
+            Overlay.small(player, Overlay.icon(Overlay.PARTS, Parts.COLOR, grey(type.de() + " ist voll ausgebaut")),
+                    Overlay.icon(Overlay.PARTS, Parts.COLOR, grey(capital(type.en()) + " is fully upgraded")));
             Sounds.deny(player);
         }
     }
@@ -271,6 +289,10 @@ public class BuildManager {
         barricade.center().getWorld().playSound(barricade.center(), sound, 1.0F, 1.0F);
     }
 
+    private static String capital(String text) {
+        return Character.toUpperCase(text.charAt(0)) + text.substring(1);
+    }
+
     private static String grey(String text) {
         return "<color:" + Overlay.GREY + ">" + text + "</color>";
     }
@@ -283,8 +305,7 @@ public class BuildManager {
             if (attackers == 0) continue;
             barricade.health -= attackers * HIT;
             Location center = barricade.center();
-            center.getWorld().spawnParticle(Particle.BLOCK, center, 6 * attackers, 0.4, 0.5, 0.4,
-                    (barricade.level == 1 ? Material.OAK_PLANKS : Material.IRON_BLOCK).createBlockData());
+            center.getWorld().spawnParticle(Particle.BLOCK, center, 6 * attackers, 0.4, 0.5, 0.4, barricade.kind.dust()[barricade.level].createBlockData());
             center.getWorld().playSound(center, barricade.level == 1 ? Sound.ENTITY_ZOMBIE_ATTACK_WOODEN_DOOR : Sound.ENTITY_ZOMBIE_ATTACK_IRON_DOOR, 0.8F, 1.0F);
             if (barricade.broken()) breakDown(barricade);
         }
@@ -313,7 +334,7 @@ public class BuildManager {
         NexoBarriers.open(barricade.display);
         Restore.display(barricade.display);
         barricade.display.setItemStack(null);
-        Overlay.smallAll(Overlay.icon(Overlay.PARTS, Parts.COLOR, "<b>Barrikade zerstört</b> " + grey("· mit Bauteilen neu aufbauen")),
-                Overlay.icon(Overlay.PARTS, Parts.COLOR, "<b>Barricade destroyed</b> " + grey("· rebuild it with parts")));
+        Overlay.smallAll(Overlay.icon(Overlay.PARTS, Parts.COLOR, "<b>" + barricade.kind.de() + " zerstört</b> " + grey("· mit Bauteilen neu aufbauen")),
+                Overlay.icon(Overlay.PARTS, Parts.COLOR, "<b>" + capital(barricade.kind.en()) + " destroyed</b> " + grey("· rebuild it with parts")));
     }
 }

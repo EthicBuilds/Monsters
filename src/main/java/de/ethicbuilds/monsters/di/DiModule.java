@@ -6,6 +6,7 @@ import de.ethicbuilds.monsters.bautest.BauTest;
 import de.ethicbuilds.monsters.building.BuildManager;
 import de.ethicbuilds.monsters.building.Deployables;
 import de.ethicbuilds.monsters.building.Elevators;
+import de.ethicbuilds.monsters.building.FieldBeds;
 import de.ethicbuilds.monsters.building.RollerDoors;
 import de.ethicbuilds.monsters.building.UpgradeMenu;
 import de.ethicbuilds.monsters.building.Flares;
@@ -89,6 +90,7 @@ public class DiModule extends AbstractModule {
         bind(Deployables.class).asEagerSingleton();
         bind(Elevators.class).asEagerSingleton();
         bind(RollerDoors.class).asEagerSingleton();
+        bind(FieldBeds.class).asEagerSingleton();
         bind(UpgradeMenu.class).asEagerSingleton();
 
         //Repositories
