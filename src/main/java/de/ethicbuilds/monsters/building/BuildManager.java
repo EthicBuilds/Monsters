@@ -54,7 +54,7 @@ public class BuildManager {
     // User 31.10.: 3/6/10 parts, repair 1; 10.11.: stronger than the barricade
     private static final Kind WALL_KIND = new Kind(WALL_ID, "Mauer", "wall", new int[]{0, 200, 400, 700},
             new int[]{0, 0, 6, 10}, new int[]{0, 3, 6, 10}, new String[]{"", "Holz", "Stein", "Stahl"},
-            new String[]{"", "Wood", "Stone", "Steel"}, "nexo:monsters_mauer_", new Material[]{null, Material.OAK_PLANKS, Material.STONE_BRICKS, Material.IRON_BLOCK});
+            new String[]{"", "Wood", "Stone", "Steel"}, "ausbau_mauer_", new Material[]{null, Material.OAK_PLANKS, Material.STONE_BRICKS, Material.IRON_BLOCK});
     private static final double REACH = 1.6;
     private static final int HIT = 10;
 
