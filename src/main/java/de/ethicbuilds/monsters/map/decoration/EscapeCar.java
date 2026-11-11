@@ -89,24 +89,43 @@ public class EscapeCar implements Listener {
     }
 
     void register(ItemDisplay display, Block block) {
-        List<Block> barriers = new ArrayList<>();
+        List<Block> barriers = body(block, display.getLocation().getYaw());
         double x = 0, z = 0;
-        for (int dx = -3; dx <= 3; dx++) {
-            for (int dy = 0; dy <= 1; dy++) {
-                for (int dz = -3; dz <= 3; dz++) {
-                    Block part = block.getRelative(dx, dy, dz);
-                    if (part.getType() != Material.BARRIER) continue;
-                    barriers.add(part);
-                    x += dx;
-                    z += dz;
-                }
-            }
+        for (Block part : barriers) {
+            x += part.getX() - block.getX();
+            z += part.getZ() - block.getZ();
         }
         int n = Math.max(1, barriers.size());
         Location middle = block.getLocation().add(0.5 + x / n, 0, 0.5 + z / n);
         Interaction hitbox = decorationManager.hitbox(block, STATION + cars.size(), 3.2F, 1.8F);
         hitbox.teleport(middle);
         cars.add(new Car(display, barriers, hitbox, middle.toVector().subtract(display.getLocation().toVector()).setY(0)));
+    }
+
+    // Only the car's own barriers (Nexo hitbox: x -2..2, z 0..1, two high except the front), never those of walls or deco around it
+    private static List<Block> body(Block block, float yaw) {
+        List<Block> best = List.of();
+        for (int sign = 1; sign >= -1; sign -= 2) {
+            int turns = Math.floorMod(Math.round(sign * yaw / 90F), 4);
+            List<Block> found = new ArrayList<>();
+            for (int dx = -2; dx <= 2; dx++) {
+                for (int dy = 0; dy <= 1; dy++) {
+                    for (int dz = 0; dz <= 1; dz++) {
+                        if (dx == 2 && dy == 1) continue;
+                        int x = dx, z = dz;
+                        for (int i = 0; i < turns; i++) {
+                            int t = x;
+                            x = -z;
+                            z = t;
+                        }
+                        Block part = block.getRelative(x, dy, z);
+                        if (part.getType() == Material.BARRIER) found.add(part);
+                    }
+                }
+            }
+            if (found.size() > best.size()) best = found;
+        }
+        return best;
     }
 
     /** Out of a crate or a wreck: with luck a part the car still needs */
