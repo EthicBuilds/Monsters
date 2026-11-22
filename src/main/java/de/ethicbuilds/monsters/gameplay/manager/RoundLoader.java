@@ -12,10 +12,14 @@ import org.bukkit.WorldCreator;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Comparator;
 import java.util.Map;
 
 /***
@@ -53,6 +57,7 @@ public class RoundLoader {
 
     private void load() {
         if (waitTask != null) waitTask.cancel();
+        removeMigratedRound();
         World world = new WorldCreator(ROUND_WORLD).createWorld();
         plugin.setWorld(world);
         mapManager.loadMapConfig();
@@ -61,6 +66,17 @@ public class RoundLoader {
         loaded = true;
         heartbeat();
         plugin.getLogger().info("Runde geladen: " + gameManager.getGameConfig().getMapName());
+    }
+
+    // Paper 26 moves the loaded round into the main world folder, a leftover would block the next copy
+    private void removeMigratedRound() {
+        Path old = Bukkit.getWorlds().get(0).getWorldFolder().toPath().getParent().resolve(ROUND_WORLD);
+        if (Files.notExists(old)) return;
+        try (var walk = Files.walk(old)) {
+            for (Path path : walk.sorted(Comparator.reverseOrder()).toList()) Files.delete(path);
+        } catch (IOException e) {
+            plugin.getLogger().warning("Alte Runden-Welt nicht entfernt: " + e.getMessage());
+        }
     }
 
     private void heartbeat() {
