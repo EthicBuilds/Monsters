@@ -1,7 +1,7 @@
 name: Monsters
 version: '${project.version}'
 main: de.ethicbuilds.monsters.Main
-api-version: '1.21'
+api-version: '26.3'
 authors: [ codedByGruba ]
 softdepend: [ ProtocolLib, LuckPerms, PlaceholderAPI, Nexo ]
 

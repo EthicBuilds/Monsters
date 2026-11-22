@@ -12,7 +12,7 @@
     <name>Monsters</name>
 
     <properties>
-        <java.version>21</java.version>
+        <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -26,12 +26,22 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.42</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.3</version>
+                <version>3.6.1</version>
+                <dependencies>
+                    <dependency><groupId>org.vafer</groupId><artifactId>jdependency</artifactId><version>2.15</version></dependency>
+                </dependencies>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -83,7 +93,7 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.21.11-R0.1-SNAPSHOT</version>
+            <version>26.3.build.258-stable</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -113,7 +123,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.38</version>
+            <version>1.18.42</version>
         </dependency>
         <dependency>
             <groupId>com.google.inject</groupId>

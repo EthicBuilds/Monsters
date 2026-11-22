@@ -38,7 +38,7 @@ public class Sniper extends Weapon {
         this.price = 10000;
         this.upgradePrice = 30000;
         // Left click shoots, the arm does not swing forward
-        item.setData(DataComponentTypes.SWING_ANIMATION,
+        item.setData(DataComponentTypes.ATTACK_ANIMATION,
                 SwingAnimation.swingAnimation().type(SwingAnimation.Animation.NONE).build());
 
         initialize();
